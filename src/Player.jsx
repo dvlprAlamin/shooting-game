@@ -97,6 +97,7 @@ export const Player = ({
       const { x, y, z } = initialPosition;
       playerRef.current.setTranslation({ x, y, z }, true);
       playerRef.current.setRotation(initialRotation, true);
+      // objectInHandRef.current.position.set([x, y, z]);
     }
   });
 
@@ -199,8 +200,9 @@ export const Player = ({
     <>
       <RigidBody colliders={false} mass={1} ref={playerRef} lockRotations>
         <mesh castShadow>
-          <capsuleGeometry args={[0.5, 0.5]} />
-          <CapsuleCollider args={[0.75, 0.5]} />
+          <capsuleGeometry args={[0.4, 1]} />
+          <meshBasicMaterial color={'yellow'} />
+          <CapsuleCollider args={[0.5, 0.5]} />
         </mesh>
       </RigidBody>
       <group ref={objectInHandRef}>

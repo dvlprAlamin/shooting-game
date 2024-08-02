@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
+import * as TWEEN from '@tweenjs/tween.js';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { PointerLockControls, Sky } from '@react-three/drei';
 import { Ground } from '@/Ground.jsx';
 import { Physics } from '@react-three/rapier';
 import { Player } from '@/Player.jsx';
 import { io } from 'socket.io-client';
-
 export const socket = io('http://localhost:3000');
 
 const App = () => {
@@ -70,6 +70,9 @@ const App = () => {
 export default App;
 
 const Scene = ({ players }) => {
+  useFrame(() => {
+    TWEEN.update();
+  });
   return (
     <>
       <PointerLockControls />
