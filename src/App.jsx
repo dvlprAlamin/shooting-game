@@ -12,6 +12,8 @@ export const socket = io('http://localhost:3000');
 const App = () => {
   const [players, setPlayers] = useState({});
   const [health, setHealth] = useState(100);
+  const [deaths, setDeaths] = useState(0);
+
   useEffect(() => {
     // Handle current players
     socket.on('currentPlayers', (currentPlayers) => {
@@ -27,18 +29,21 @@ const App = () => {
         [newPlayer.id]: {
           position: newPlayer.position,
           rotation: newPlayer.rotation,
+          health: newPlayer.health,
+          deaths: newPlayer.deaths,
         },
       }));
     });
 
     // Handle player movement
     socket.on('playerMoved', (player) => {
-      // console.log('Player Moved:', player);
       setPlayers((prevPlayers) => ({
         ...prevPlayers,
         [player.id]: {
           position: player.position,
           rotation: player.rotation,
+          health: player.health,
+          deaths: player.deaths,
         },
       }));
     });
@@ -68,6 +73,11 @@ const App = () => {
       }
     });
 
+    socket.on('respawn', (data) => {
+      setHealth(data.health);
+      setDeaths(data.deaths);
+    });
+
     return () => {
       socket.off('currentPlayers');
       socket.off('newPlayer');
@@ -75,6 +85,7 @@ const App = () => {
       socket.off('playerDisconnected');
       socket.off('hit');
       socket.off('playerDead');
+      socket.off('respawn');
     };
   }, []);
 
@@ -83,7 +94,7 @@ const App = () => {
       <Canvas camera={{ fov: 45 }} shadows>
         <Scene players={players} />
       </Canvas>
-      <HealthDisplay health={health} />
+      <HUD health={health} deaths={deaths} />
     </>
   );
 };
@@ -94,6 +105,7 @@ const Scene = ({ players }) => {
   useFrame(() => {
     TWEEN.update();
   });
+
   const pointerLockControlsLockHandler = () => {
     usePointerLockControlsStore.setState({ isLock: true });
   };
@@ -101,6 +113,7 @@ const Scene = ({ players }) => {
   const pointerLockControlsUnlockHandler = () => {
     usePointerLockControlsStore.setState({ isLock: false });
   };
+
   return (
     <>
       <PointerLockControls
@@ -135,21 +148,20 @@ const Scene = ({ players }) => {
   );
 };
 
-const HealthDisplay = ({ health }) => {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 10,
-        right: 10,
-        color: 'white',
-        background: 'rgba(0, 0, 0, 0.5)',
-        padding: '5px',
-        borderRadius: '5px',
-        zIndex: 99,
-      }}
-    >
-      Health: {health}
-    </div>
-  );
-};
+const HUD = ({ health, deaths }) => (
+  <div
+    style={{
+      position: 'absolute',
+      top: 10,
+      right: 10,
+      color: 'white',
+      background: 'rgba(0, 0, 0, 0.5)',
+      padding: '5px',
+      borderRadius: '5px',
+      zIndex: 99,
+    }}
+  >
+    <div>Health: {health}</div>
+    <div>Deaths: {deaths}</div>
+  </div>
+);
