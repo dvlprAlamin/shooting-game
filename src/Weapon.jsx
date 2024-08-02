@@ -6,31 +6,31 @@ import { useLoader } from '@react-three/fiber';
 import SingleShootAK47 from '@/assets/sounds/single-shoot-ak47.mp3';
 import ShootWithoutBullet from '@/assets/sounds/shoot-without-bullet.mp3';
 import FlashShoot from '@/assets/images/flash_shoot.png';
-import { useAimingStore } from '@/store/AimingStore.ts';
+// import { useAimingStore } from '@/store/AimingStore.ts';
 import { useRoundsStore } from '@/store/RoundsStore.ts';
 import { PositionalAudio } from '@react-three/drei';
-import { usePointerLockControlsStore } from './store/PointerLockControlStore';
+// import { usePointerLockControlsStore } from './store/PointerLockControlStore';
+import { usePersonControls } from './hooks';
 
-const SHOOT_BUTTON = parseInt(import.meta.env.VITE_SHOOT_BUTTON);
-const AIM_BUTTON = parseInt(import.meta.env.VITE_AIM_BUTTON);
-const RELOAD_BUTTON_CODE = import.meta.env.VITE_RELOAD_BUTTON_CODE;
+// const SHOOT_BUTTON = parseInt(import.meta.env.VITE_SHOOT_BUTTON);
+// const AIM_BUTTON = parseInt(import.meta.env.VITE_AIM_BUTTON);
+// const RELOAD_BUTTON_CODE = import.meta.env.VITE_RELOAD_BUTTON_CODE;
 const recoilAmount = 0.03;
 const recoilDuration = 50;
 const easing = TWEEN.Easing.Quadratic.Out;
 
 export const Weapon = (props) => {
+  const { shoot } = usePersonControls();
   const [recoilAnimation, setRecoilAnimation] = useState(null);
   const [isRecoilAnimationFinished, setIsRecoilAnimationFinished] =
     useState(true);
-  const [isShooting, setIsShooting] = useState(false);
-  const setIsAiming = useAimingStore((state) => state.setIsAiming);
   const weaponRef = useRef();
 
   const countOfRounds = useRoundsStore((state) => state.countRounds);
   const dispatchDecreaseRounds = useRoundsStore(
     (state) => state.decreaseRounds
   );
-  const dispatchReloadRounds = useRoundsStore((state) => state.reloadRounds);
+  // const dispatchReloadRounds = useRoundsStore((state) => state.reloadRounds);
 
   const positionalAudioRef = useRef();
   const [audioUrl, setAudioUrl] = useState(SingleShootAK47);
@@ -46,46 +46,46 @@ export const Weapon = (props) => {
   const texture = useLoader(THREE.TextureLoader, FlashShoot);
   const [flashAnimation, setFlashAnimation] = useState(null);
 
-  useEffect(() => {
-    const handleMouseDown = (ev) => {
-      ev.preventDefault();
-      mouseButtonHandler(ev.button, true);
-    };
+  // useEffect(() => {
+  //   const handleMouseDown = (ev) => {
+  //     ev.preventDefault();
+  //     mouseButtonHandler(ev.button, true);
+  //   };
 
-    const handleMouseUp = (ev) => {
-      ev.preventDefault();
-      mouseButtonHandler(ev.button, false);
-    };
+  //   const handleMouseUp = (ev) => {
+  //     ev.preventDefault();
+  //     mouseButtonHandler(ev.button, false);
+  //   };
 
-    const handleKeyPress = (ev) => {
-      ev.preventDefault();
-      if (ev.code === RELOAD_BUTTON_CODE) {
-        dispatchReloadRounds();
-      }
-    };
+  //   const handleKeyPress = (ev) => {
+  //     ev.preventDefault();
+  //     if (ev.code === RELOAD_BUTTON_CODE) {
+  //       dispatchReloadRounds();
+  //     }
+  //   };
 
-    document.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('keypress', handleKeyPress);
+  //   document.addEventListener('mousedown', handleMouseDown);
+  //   document.addEventListener('mouseup', handleMouseUp);
+  //   document.addEventListener('keypress', handleKeyPress);
 
-    return () => {
-      document.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('keypress', handleKeyPress);
-    };
-  }, []);
+  //   return () => {
+  //     document.removeEventListener('mousedown', handleMouseDown);
+  //     document.removeEventListener('mouseup', handleMouseUp);
+  //     document.removeEventListener('keypress', handleKeyPress);
+  //   };
+  // }, []);
 
-  const mouseButtonHandler = (button, state) => {
-    if (!usePointerLockControlsStore.getState().isLock) return;
-    switch (button) {
-      case SHOOT_BUTTON:
-        setIsShooting(state);
-        break;
-      case AIM_BUTTON:
-        setIsAiming(state);
-        break;
-    }
-  };
+  // const mouseButtonHandler = (button, state) => {
+  //   if (!usePointerLockControlsStore.getState().isLock) return;
+  //   switch (button) {
+  //     case SHOOT_BUTTON:
+  //       setIsShooting(state);
+  //       break;
+  //     case AIM_BUTTON:
+  //       setIsAiming(state);
+  //       break;
+  //   }
+  // };
 
   const generateRecoilOffset = () => {
     return new THREE.Vector3(
@@ -142,10 +142,10 @@ export const Weapon = (props) => {
   }, []);
 
   useEffect(() => {
-    if (isShooting && isRecoilAnimationFinished) {
+    if (shoot && isRecoilAnimationFinished && props.currentPlayer) {
       startShooting();
     }
-  }, [isShooting, isRecoilAnimationFinished]);
+  }, [shoot, isRecoilAnimationFinished]);
 
   const [flashOpacity, setFlashOpacity] = useState(0);
 
