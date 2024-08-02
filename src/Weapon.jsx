@@ -3,12 +3,12 @@ import * as TWEEN from '@tweenjs/tween.js';
 import { WeaponModel } from '@/WeaponModel.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { useLoader } from '@react-three/fiber';
-// import SingleShootAK47 from '@/assets/sounds/single-shoot-ak47.mp3';
-// import ShootWithoutBullet from '@/assets/sounds/shoot-without-bullet.mp3';
+import SingleShootAK47 from '@/assets/sounds/single-shoot-ak47.mp3';
+import ShootWithoutBullet from '@/assets/sounds/shoot-without-bullet.mp3';
 import FlashShoot from '@/assets/images/flash_shoot.png';
 import { useAimingStore } from '@/store/AimingStore.ts';
 import { useRoundsStore } from '@/store/RoundsStore.ts';
-// import { PositionalAudio } from '@react-three/drei';
+import { PositionalAudio } from '@react-three/drei';
 import { usePointerLockControlsStore } from './store/PointerLockControlStore';
 
 const SHOOT_BUTTON = parseInt(import.meta.env.VITE_SHOOT_BUTTON);
@@ -32,44 +32,51 @@ export const Weapon = (props) => {
   );
   const dispatchReloadRounds = useRoundsStore((state) => state.reloadRounds);
 
-  //   const positionalAudioRef = useRef();
-  //   const [audioUrl, setAudioUrl] = useState(SingleShootAK47);
+  const positionalAudioRef = useRef();
+  const [audioUrl, setAudioUrl] = useState(SingleShootAK47);
 
-  //   useEffect(() => {
-  //     if (countOfRounds > 0) {
-  //       setAudioUrl(SingleShootAK47);
-  //     } else {
-  //       setAudioUrl(ShootWithoutBullet);
-  //     }
-  //   }, [countOfRounds]);
+  useEffect(() => {
+    if (countOfRounds > 0) {
+      setAudioUrl(SingleShootAK47);
+    } else {
+      setAudioUrl(ShootWithoutBullet);
+    }
+  }, [countOfRounds]);
 
   const texture = useLoader(THREE.TextureLoader, FlashShoot);
-
   const [flashAnimation, setFlashAnimation] = useState(null);
 
   useEffect(() => {
-    document.addEventListener('mousedown', (ev) => {
+    const handleMouseDown = (ev) => {
       ev.preventDefault();
       mouseButtonHandler(ev.button, true);
-    });
+    };
 
-    document.addEventListener('mouseup', (ev) => {
+    const handleMouseUp = (ev) => {
       ev.preventDefault();
       mouseButtonHandler(ev.button, false);
-    });
+    };
 
-    document.addEventListener('keypress', (ev) => {
+    const handleKeyPress = (ev) => {
       ev.preventDefault();
-
       if (ev.code === RELOAD_BUTTON_CODE) {
         dispatchReloadRounds();
       }
-    });
+    };
+
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('keypress', handleKeyPress);
+
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('keypress', handleKeyPress);
+    };
   }, []);
 
   const mouseButtonHandler = (button, state) => {
     if (!usePointerLockControlsStore.getState().isLock) return;
-
     switch (button) {
       case SHOOT_BUTTON:
         setIsShooting(state);
@@ -120,8 +127,8 @@ export const Weapon = (props) => {
   const startShooting = () => {
     if (!recoilAnimation) return;
 
-    // positionalAudioRef.current.stop();
-    // positionalAudioRef.current.play();
+    positionalAudioRef.current.stop();
+    positionalAudioRef.current.play();
 
     if (countOfRounds > 0) {
       dispatchDecreaseRounds();
@@ -175,12 +182,12 @@ export const Weapon = (props) => {
           />
         </mesh>
         <WeaponModel />
-        {/* <PositionalAudio
+        <PositionalAudio
           url={audioUrl}
           autoplay={false}
           loop={false}
           ref={positionalAudioRef}
-        /> */}
+        />
       </group>
     </group>
   );

@@ -18,13 +18,15 @@ const easing = TWEEN.Easing.Quadratic.Out;
 
 export const Player = ({
   id,
+  // initialHealth = 100,
   initialPosition = { x: 0, y: 0, z: 0 },
   initialRotation = { x: 0, y: 0, z: 0 },
 }) => {
   const playerRef = useRef();
-  const { forward, backward, left, right, jump } = usePersonControls();
+  const { forward, backward, left, right, jump, shoot } = usePersonControls();
   const objectInHandRef = useRef();
   const swayingObjectRef = useRef();
+  // const [health, setHealth] = useState(100);
   const [swayingAnimation, setSwayingAnimation] = useState(null);
   const [swayingBackAnimation, setSwayingBackAnimation] = useState(null);
   const [isSwayingAnimationFinished, setIsSwayingAnimationFinished] =
@@ -36,6 +38,27 @@ export const Player = ({
   const [isMoving, setIsMoving] = useState(false);
   const isAiming = useAimingStore((state) => state.isAiming);
   const rapier = useRapier();
+
+  const shootRaycaster = new THREE.Raycaster();
+  const shootDirection = new THREE.Vector3();
+
+  // useEffect(() => {
+  //   socket.on('hit', (data) => {
+  //     setHealth(data.health);
+  //     console.log('hitting', health);
+  //   });
+
+  //   return () => {
+  //     socket.off('hit');
+  //   };
+  // }, []);
+
+  // useEffect(() => {
+  //   if (health <= 0) {
+  //     console.log('Player is dead');
+  //     // Handle player death, e.g., respawn or remove from the game
+  //   }
+  // }, [health]);
 
   useFrame((state) => {
     if (!playerRef.current) return;
@@ -93,17 +116,48 @@ export const Player = ({
         setIsSwayingAnimationFinished(false);
         swayingAnimation.start();
       }
+      if (shoot) {
+        const shootDirection = state.camera.getWorldDirection(
+          new THREE.Vector3()
+        );
+        const shootPosition = state.camera.position;
+
+        socket.emit('shoot', {
+          position: {
+            x: shootPosition.x,
+            y: shootPosition.y,
+            z: shootPosition.z,
+          },
+          direction: {
+            x: shootDirection.x,
+            y: shootDirection.y,
+            z: shootDirection.z,
+          },
+        });
+      }
+      // if (shoot) {
+      //   console.log('Player shooting');
+
+      //   shootRaycaster.setFromCamera(new THREE.Vector2(0, 0), state.camera);
+      //   shootDirection.copy(shootRaycaster.ray.direction);
+
+      //   socket.emit('shoot', {
+      //     position: { x, y, z },
+      //     direction: {
+      //       x: shootDirection.x,
+      //       y: shootDirection.y,
+      //       z: shootDirection.z,
+      //     },
+      //   });
+      // }
     } else {
       const { x, y, z } = initialPosition;
       playerRef.current.setTranslation({ x, y, z }, true);
       playerRef.current.setRotation(initialRotation, true);
-      // objectInHandRef.current.position.set([x, y, z]);
     }
   });
 
   const doJump = () => {
-    console.log('jump');
-
     playerRef.current.setLinvel({ x: 0, y: 8, z: 0 });
   };
 

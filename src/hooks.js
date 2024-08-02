@@ -6,7 +6,8 @@ export const usePersonControls = () => {
         KeyS: "backward",
         KeyA: "left",
         KeyD: "right",
-        Space: "jump"
+        Space: "jump",
+        KeyF: "shoot"
     }
 
     const moveFieldByKey = (key) => keys[key];
@@ -16,11 +17,12 @@ export const usePersonControls = () => {
         backward: false,
         left: false,
         right: false,
-        jump: false
+        jump: false,
+        shoot: false,
     });
 
     const setMovementStatus = (code, status) => {
-        setMovement((m) => ({...m, [code]: status}))
+        setMovement((m) => ({ ...m, [code]: status }))
     }
 
     useEffect(() => {
