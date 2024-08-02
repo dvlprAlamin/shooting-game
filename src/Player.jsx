@@ -19,13 +19,11 @@ const easing = TWEEN.Easing.Quadratic.Out;
 
 export const Player = ({
   id,
-  // initialHealth = 100,
   initialPosition = { x: 0, y: 0, z: 0 },
   initialRotation = { x: 0, y: 0, z: 0 },
 }) => {
   const playerRef = useRef();
-  const { forward, backward, left, right, jump, shoot, aim } =
-    usePersonControls();
+  const { forward, backward, left, right, jump, shoot } = usePersonControls();
   const objectInHandRef = useRef();
   const swayingObjectRef = useRef();
   // const [health, setHealth] = useState(100);
@@ -44,24 +42,6 @@ export const Player = ({
 
   const shootRaycaster = new THREE.Raycaster();
   const shootDirection = new THREE.Vector3();
-
-  // useEffect(() => {
-  //   socket.on('hit', (data) => {
-  //     setHealth(data.health);
-  //     console.log('hitting', health);
-  //   });
-
-  //   return () => {
-  //     socket.off('hit');
-  //   };
-  // }, []);
-
-  // useEffect(() => {
-  //   if (health <= 0) {
-  //     console.log('Player is dead');
-  //     // Handle player death, e.g., respawn or remove from the game
-  //   }
-  // }, [health]);
 
   useFrame((state) => {
     if (!playerRef.current) return;
@@ -119,27 +99,8 @@ export const Player = ({
         setIsSwayingAnimationFinished(false);
         swayingAnimation.start();
       }
-      // if (shoot) {
-      //   const shootDirection = state.camera.getWorldDirection(
-      //     new THREE.Vector3()
-      //   );
-      //   const shootPosition = state.camera.position;
 
-      //   socket.emit('shoot', {
-      //     position: {
-      //       x: shootPosition.x,
-      //       y: shootPosition.y,
-      //       z: shootPosition.z,
-      //     },
-      //     direction: {
-      //       x: shootDirection.x,
-      //       y: shootDirection.y,
-      //       z: shootDirection.z,
-      //     },
-      //   });
-      // }
       if (shoot) {
-        console.log('Player shooting');
         if (countOfRounds > 0) {
           shootRaycaster.setFromCamera(new THREE.Vector2(0, 0), state.camera);
           shootDirection.copy(shootRaycaster.ray.direction);

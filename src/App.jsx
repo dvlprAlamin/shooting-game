@@ -58,12 +58,23 @@ const App = () => {
       setHealth(data.health);
     });
 
+    socket.on('playerDead', (data) => {
+      if (data.shooter === socket.id) {
+        console.log('You killed ', data.id);
+      } else if (data.id === socket.id) {
+        console.log(data.shooter, ' killed you');
+      } else {
+        console.log(data.shooter, ' killed ', data.id);
+      }
+    });
+
     return () => {
       socket.off('currentPlayers');
       socket.off('newPlayer');
       socket.off('playerMoved');
       socket.off('playerDisconnected');
       socket.off('hit');
+      socket.off('playerDead');
     };
   }, []);
 
