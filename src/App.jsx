@@ -7,13 +7,22 @@ import { Physics } from '@react-three/rapier';
 import { Player } from '@/Player.jsx';
 import { io } from 'socket.io-client';
 import { usePointerLockControlsStore } from './store/PointerLockControlStore';
+import RespawnPopup from './UI/RespawnPopup/RespawnPopup';
+import { usePlayerStore } from './store/PlayersStore';
 export const socket = io('http://localhost:3000');
 
 const App = () => {
-  const [players, setPlayers] = useState({});
-  const [health, setHealth] = useState(100);
-  const [deaths, setDeaths] = useState(0);
-
+  const {
+    players,
+    setPlayers,
+    setCurrentPlayer,
+    setPlayer,
+    updatePlayer,
+    removePlayer,
+  } = usePlayerStore();
+  // const [health, setHealth] = useState(100);
+  // const [deathCount, setDeathCount] = useState(players[socket.id]?.deaths);
+  // const { isDeath, setIsDeath } = useDeathStore();
   useEffect(() => {
     // Handle current players
     socket.on('currentPlayers', (currentPlayers) => {
@@ -24,58 +33,105 @@ const App = () => {
     // Handle new player
     socket.on('newPlayer', (newPlayer) => {
       console.log('New Player:', newPlayer);
-      setPlayers((prevPlayers) => ({
-        ...prevPlayers,
-        [newPlayer.id]: {
-          position: newPlayer.position,
-          rotation: newPlayer.rotation,
-          health: newPlayer.health,
-          deaths: newPlayer.deaths,
-        },
-      }));
+      setPlayer({ ...newPlayer, isDead: false });
+      // if (newPlayer.id === socket.id) {
+      //   setCurrentPlayer(newPlayer);
+      // }
+
+      // setPlayers((prevPlayers) => ({
+      //   ...prevPlayers,
+      //   [newPlayer.id]: {
+      //     position: newPlayer.position,
+      //     rotation: newPlayer.rotation,
+      //     health: newPlayer.health,
+      //     deaths: newPlayer.deaths,
+      //     isDead: false,
+      //   },
+      // }));
     });
 
     // Handle player movement
     socket.on('playerMoved', (player) => {
-      setPlayers((prevPlayers) => ({
-        ...prevPlayers,
-        [player.id]: {
-          position: player.position,
-          rotation: player.rotation,
-          health: player.health,
-          deaths: player.deaths,
-        },
-      }));
+      // if (player.id === socket.id) {
+      //   setCurrentPlayer(player);
+      // }
+      // console.log('player.position', player.position);
+
+      setPlayer(player);
+      // setPlayers((prevPlayers) => ({
+      //   ...prevPlayers,
+      //   [player.id]: {
+      //     position: player.position,
+      //     rotation: player.rotation,
+      //     health: player.health,
+      //     deaths: player.deaths,
+      //     // isDead: false,
+      //   },
+      // }));
     });
 
     // Handle player disconnection
     socket.on('playerDisconnected', (id) => {
       console.log('Player Disconnected:', id);
-      setPlayers((prevPlayers) => {
-        const newPlayers = { ...prevPlayers };
-        delete newPlayers[id];
-        return newPlayers;
-      });
+      removePlayer(id);
+      // setPlayers((prevPlayers) => {
+      //   const newPlayers = { ...prevPlayers };
+      //   delete newPlayers[id];
+      //   return newPlayers;
+      // });
     });
 
-    socket.on('hit', (data) => {
-      console.log('Hit event received:', data);
-      setHealth(data.health);
+    socket.on('hit', (player) => {
+      console.log('Hit event received:', player);
+      // setHealth(player.health);
+      updatePlayer(socket.id, 'health', player.health);
     });
 
-    socket.on('playerDead', (data) => {
-      if (data.shooter === socket.id) {
-        console.log('You killed ', data.id);
-      } else if (data.id === socket.id) {
-        console.log(data.shooter, ' killed you');
+    socket.on('playerDead', (player) => {
+      updatePlayer(player.id, 'isDead', true);
+      // setPlayers((prevPlayers) => ({
+      //   ...prevPlayers,
+      //   [player.id]: {
+      //     ...prevPlayers[player.id],
+      //     isDead: true,
+      //   },
+      // }));
+
+      if (player.shooter === socket.id) {
+        console.log('You killed ', player.id);
+      } else if (player.id === socket.id) {
+        // setIsDeath(true);
+        console.log(player.shooter, ' killed you');
       } else {
-        console.log(data.shooter, ' killed ', data.id);
+        console.log(player.shooter, ' killed ', player.id);
       }
     });
 
-    socket.on('respawn', (data) => {
-      setHealth(data.health);
-      setDeaths(data.deaths);
+    // socket.on('respawn', (data) => {
+    //   setHealth(data.health);
+    //   setDeaths(data.deaths);
+    //   setPlayers((prevPlayers) => ({
+    //     ...prevPlayers,
+    //     [socket.id]: {
+    //       ...prevPlayers[socket.id],
+    //       position: data.position,
+    //       isDead: true,
+    //     },
+    //   }));
+    // });
+
+    socket.on('playerRespawned', (player) => {
+      // if (player.id === socket.id) {
+      //   setIsDeath(false);
+      // }
+      // setHealth(player.health);
+      // setDeathCount(player.deaths);
+      // setPlayers((prevPlayers) => ({
+      //   ...prevPlayers,
+      //   [socket.id]: player,
+      // }));
+      updatePlayer(player.id, 'isDead', false);
+      setPlayer(player);
     });
 
     return () => {
@@ -85,23 +141,37 @@ const App = () => {
       socket.off('playerDisconnected');
       socket.off('hit');
       socket.off('playerDead');
-      socket.off('respawn');
+      // socket.off('respawn');
+      socket.off('playerRespawned');
     };
   }, []);
 
+  const reSpawnHandler = () => {
+    // console.log('spawn handler click', socket.id);
+
+    socket.emit('respawn', socket.id);
+  };
   return (
     <>
+      {players[socket.id]?.isDead ? (
+        <RespawnPopup reSpawnHandler={reSpawnHandler} />
+      ) : (
+        <></>
+      )}
       <Canvas camera={{ fov: 45 }} shadows>
-        <Scene players={players} />
+        <Scene players={players} isDead={players[socket.id]?.isDead} />
       </Canvas>
-      <HUD health={health} deaths={deaths} />
+      <HUD
+        health={players[socket.id]?.health}
+        deaths={players[socket.id]?.deaths}
+      />
     </>
   );
 };
 
 export default App;
 
-const Scene = ({ players }) => {
+const Scene = ({ players, isDead }) => {
   useFrame(() => {
     TWEEN.update();
   });
@@ -116,10 +186,14 @@ const Scene = ({ players }) => {
 
   return (
     <>
-      <PointerLockControls
-        onLock={pointerLockControlsLockHandler}
-        onUnlock={pointerLockControlsUnlockHandler}
-      />
+      {!isDead ? (
+        <PointerLockControls
+          onLock={pointerLockControlsLockHandler}
+          onUnlock={pointerLockControlsUnlockHandler}
+        />
+      ) : (
+        <></>
+      )}
       <Sky sunPosition={[100, 20, 100]} />
       <ambientLight intensity={1.5} />
       <directionalLight
@@ -141,6 +215,7 @@ const Scene = ({ players }) => {
             // initialHealth={players[id].health}
             initialPosition={players[id].position}
             initialRotation={players[id].rotation}
+            isDead={players[id].isDead}
           />
         ))}
       </Physics>
@@ -161,7 +236,7 @@ const HUD = ({ health, deaths }) => (
       zIndex: 99,
     }}
   >
-    <div>Health: {health}</div>
-    <div>Deaths: {deaths}</div>
+    <div>Health: {health >= 0 ? health : 0}</div>
+    <div>Respawn: {deaths || 0}</div>
   </div>
 );

@@ -21,6 +21,7 @@ export const Player = ({
   id,
   initialPosition = { x: 0, y: 0, z: 0 },
   initialRotation = { x: 0, y: 0, z: 0 },
+  isDead,
 }) => {
   const playerRef = useRef();
   const { forward, backward, left, right, jump, shoot } = usePersonControls();
@@ -142,6 +143,7 @@ export const Player = ({
   };
 
   const initSwayingObjectAnimation = () => {
+    if (!swayingObjectRef) return;
     const currentPosition = new THREE.Vector3(0, 0, 0);
     const initialPosition = new THREE.Vector3(0, 0, 0);
     const newPosition = swayingNewPosition;
@@ -151,14 +153,16 @@ export const Player = ({
       .to(newPosition, animationDuration)
       .easing(easing)
       .onUpdate(() => {
-        swayingObjectRef.current.position.copy(currentPosition);
+        swayingObjectRef.current &&
+          swayingObjectRef.current.position.copy(currentPosition);
       });
 
     const twSwayingBackAnimation = new TWEEN.Tween(currentPosition)
       .to(initialPosition, animationDuration)
       .easing(easing)
       .onUpdate(() => {
-        swayingObjectRef.current.position.copy(currentPosition);
+        swayingObjectRef.current &&
+          swayingObjectRef.current.position.copy(currentPosition);
       })
       .onComplete(() => {
         setIsSwayingAnimationFinished(true);
@@ -220,13 +224,13 @@ export const Player = ({
   return (
     <>
       <RigidBody colliders={false} mass={1} ref={playerRef} lockRotations>
-        <mesh castShadow>
+        <mesh castShadow visible={!isDead}>
           <capsuleGeometry args={[0.4, 1]} />
           <meshBasicMaterial color={'yellow'} />
           <CapsuleCollider args={[0.5, 0.5]} />
         </mesh>
       </RigidBody>
-      <group ref={objectInHandRef}>
+      <group visible={!isDead} ref={objectInHandRef}>
         <group ref={swayingObjectRef}>
           <Weapon
             position={[0.3, -0.1, 0.3]}
