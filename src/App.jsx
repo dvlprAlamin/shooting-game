@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import * as TWEEN from '@tweenjs/tween.js';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { PointerLockControls, Sky } from '@react-three/drei';
@@ -20,9 +20,6 @@ const App = () => {
     updatePlayer,
     removePlayer,
   } = usePlayerStore();
-  // const [health, setHealth] = useState(100);
-  // const [deathCount, setDeathCount] = useState(players[socket.id]?.deaths);
-  // const { isDeath, setIsDeath } = useDeathStore();
   useEffect(() => {
     // Handle current players
     socket.on('currentPlayers', (currentPlayers) => {
@@ -34,102 +31,35 @@ const App = () => {
     socket.on('newPlayer', (newPlayer) => {
       console.log('New Player:', newPlayer);
       setPlayer({ ...newPlayer, isDead: false });
-      // if (newPlayer.id === socket.id) {
-      //   setCurrentPlayer(newPlayer);
-      // }
-
-      // setPlayers((prevPlayers) => ({
-      //   ...prevPlayers,
-      //   [newPlayer.id]: {
-      //     position: newPlayer.position,
-      //     rotation: newPlayer.rotation,
-      //     health: newPlayer.health,
-      //     deaths: newPlayer.deaths,
-      //     isDead: false,
-      //   },
-      // }));
     });
 
     // Handle player movement
     socket.on('playerMoved', (player) => {
-      // if (player.id === socket.id) {
-      //   setCurrentPlayer(player);
-      // }
-      // console.log('player.position', player.position);
-
       setPlayer(player);
-      // setPlayers((prevPlayers) => ({
-      //   ...prevPlayers,
-      //   [player.id]: {
-      //     position: player.position,
-      //     rotation: player.rotation,
-      //     health: player.health,
-      //     deaths: player.deaths,
-      //     // isDead: false,
-      //   },
-      // }));
     });
 
     // Handle player disconnection
     socket.on('playerDisconnected', (id) => {
-      console.log('Player Disconnected:', id);
       removePlayer(id);
-      // setPlayers((prevPlayers) => {
-      //   const newPlayers = { ...prevPlayers };
-      //   delete newPlayers[id];
-      //   return newPlayers;
-      // });
     });
 
     socket.on('hit', (player) => {
-      console.log('Hit event received:', player);
-      // setHealth(player.health);
       updatePlayer(socket.id, 'health', player.health);
     });
 
     socket.on('playerDead', (player) => {
       updatePlayer(player.id, 'isDead', true);
-      // setPlayers((prevPlayers) => ({
-      //   ...prevPlayers,
-      //   [player.id]: {
-      //     ...prevPlayers[player.id],
-      //     isDead: true,
-      //   },
-      // }));
 
       if (player.shooter === socket.id) {
         console.log('You killed ', player.id);
       } else if (player.id === socket.id) {
-        // setIsDeath(true);
         console.log(player.shooter, ' killed you');
       } else {
         console.log(player.shooter, ' killed ', player.id);
       }
     });
 
-    // socket.on('respawn', (data) => {
-    //   setHealth(data.health);
-    //   setDeaths(data.deaths);
-    //   setPlayers((prevPlayers) => ({
-    //     ...prevPlayers,
-    //     [socket.id]: {
-    //       ...prevPlayers[socket.id],
-    //       position: data.position,
-    //       isDead: true,
-    //     },
-    //   }));
-    // });
-
     socket.on('playerRespawned', (player) => {
-      // if (player.id === socket.id) {
-      //   setIsDeath(false);
-      // }
-      // setHealth(player.health);
-      // setDeathCount(player.deaths);
-      // setPlayers((prevPlayers) => ({
-      //   ...prevPlayers,
-      //   [socket.id]: player,
-      // }));
       updatePlayer(player.id, 'isDead', false);
       setPlayer(player);
     });
@@ -141,16 +71,14 @@ const App = () => {
       socket.off('playerDisconnected');
       socket.off('hit');
       socket.off('playerDead');
-      // socket.off('respawn');
       socket.off('playerRespawned');
     };
   }, []);
 
   const reSpawnHandler = () => {
-    // console.log('spawn handler click', socket.id);
-
     socket.emit('respawn', socket.id);
   };
+
   return (
     <>
       {players[socket.id]?.isDead ? (
@@ -212,7 +140,6 @@ const Scene = ({ players, isDead }) => {
           <Player
             key={id}
             id={id}
-            // initialHealth={players[id].health}
             initialPosition={players[id].position}
             initialRotation={players[id].rotation}
             isDead={players[id].isDead}

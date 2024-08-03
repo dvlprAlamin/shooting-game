@@ -27,7 +27,6 @@ export const Player = ({
   const { forward, backward, left, right, jump, shoot } = usePersonControls();
   const objectInHandRef = useRef();
   const swayingObjectRef = useRef();
-  // const [health, setHealth] = useState(100);
   const [swayingAnimation, setSwayingAnimation] = useState(null);
   const [swayingBackAnimation, setSwayingBackAnimation] = useState(null);
   const [isSwayingAnimationFinished, setIsSwayingAnimationFinished] =
