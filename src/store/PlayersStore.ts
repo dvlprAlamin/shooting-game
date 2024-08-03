@@ -6,6 +6,7 @@ interface Player {
   rotation: number[];
   deaths: number;
   health: number;
+  kills: number;
 }
 export interface IPlayerStore {
   currentPlayer: Player | null;
@@ -39,7 +40,9 @@ export const usePlayerStore = create<IPlayerStore>()(
       }),
     updatePlayer: (id: string, key: string, value: string | number | boolean) =>
       set((state) => {
-        state.players[id][key] = value;
+        if (state.players[id]) {
+          state.players[id][key] = value;
+        }
       }),
     removePlayer: (playerId: string) =>
       set((state) => {

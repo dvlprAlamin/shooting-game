@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect } from 'react';
+import React, { Fragment, useEffect, useState } from 'react';
 import * as TWEEN from '@tweenjs/tween.js';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { PointerLockControls, Sky, Stats } from '@react-three/drei';
@@ -22,6 +22,7 @@ const App = () => {
     updatePlayer,
     removePlayer,
   } = usePlayerStore();
+  const [isDied, setIsDied] = useState(false);
   useEffect(() => {
     // Handle current players
     socket.on('currentPlayers', (currentPlayers) => {
@@ -40,30 +41,34 @@ const App = () => {
       setPlayer(player);
     });
 
-    // Handle player disconnection
-    socket.on('playerDisconnected', (id) => {
-      removePlayer(id);
-    });
-
     socket.on('hit', (player) => {
       updatePlayer(socket.id, 'health', player.health);
     });
 
     socket.on('playerDead', (player) => {
-      updatePlayer(player.id, 'isDead', true);
-
+      // updatePlayer(player.id, 'isDead', true);
+      removePlayer(player.id);
       if (player.shooter === socket.id) {
         console.log('You killed ', player.id);
       } else if (player.id === socket.id) {
         console.log(player.shooter, ' killed you');
+        setIsDied(true);
       } else {
         console.log(player.shooter, ' killed ', player.id);
       }
     });
 
     socket.on('playerRespawned', (player) => {
-      updatePlayer(player.id, 'isDead', false);
+      // removePlayer(player.id);
+      if (player.id === socket.id) {
+        setIsDied(false);
+      }
       setPlayer(player);
+    });
+
+    // Handle player disconnection
+    socket.on('playerDisconnected', (id) => {
+      removePlayer(id);
     });
 
     return () => {
@@ -83,18 +88,18 @@ const App = () => {
 
   return (
     <>
-      {players[socket.id]?.isDead ? (
+      {isDied ? (
+        // players[socket.id]?.isDead
         <RespawnPopup reSpawnHandler={reSpawnHandler} />
       ) : (
-        <></>
+        <HUD
+          health={players[socket.id]?.health}
+          deaths={players[socket.id]?.deaths}
+        />
       )}
       <Canvas camera={{ fov: 45 }} shadows>
         <Scene players={players} isDead={players[socket.id]?.isDead} />
       </Canvas>
-      <HUD
-        health={players[socket.id]?.health}
-        deaths={players[socket.id]?.deaths}
-      />
     </>
   );
 };
@@ -148,14 +153,15 @@ const Scene = ({ players, isDead }) => {
                 initialPosition={players[id].position}
                 initialRotation={players[id].rotation}
                 isDead={players[id].isDead}
+                health={players[id].health}
               />
             ) : (
               <RemotePlayer
                 key={id}
                 id={id}
-                initialPosition={players[id].position}
-                initialRotation={players[id].rotation}
+                position={players[id].position}
                 isDead={players[id].isDead}
+                health={players[id].health}
               />
             )}
           </Fragment>
@@ -165,20 +171,22 @@ const Scene = ({ players, isDead }) => {
   );
 };
 
-const HUD = ({ health, deaths }) => (
-  <div
-    style={{
-      position: 'absolute',
-      top: 10,
-      right: 10,
-      color: 'white',
-      background: 'rgba(0, 0, 0, 0.5)',
-      padding: '5px',
-      borderRadius: '5px',
-      zIndex: 99,
-    }}
-  >
-    <div>Health: {health >= 0 ? health : 0}</div>
-    <div>Respawn: {deaths || 0}</div>
-  </div>
-);
+const HUD = ({ health, deaths }) => {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        color: 'white',
+        background: 'rgba(0, 0, 0, 0.5)',
+        padding: '5px',
+        borderRadius: '5px',
+        zIndex: 99,
+      }}
+    >
+      <div>Health: {health >= 0 ? health : 0}</div>
+      <div>Respawn: {deaths || 0}</div>
+    </div>
+  );
+};

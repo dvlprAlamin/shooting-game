@@ -6,7 +6,7 @@ const RespawnPopup = ({ reSpawnHandler }) => {
   useEffect(() => {
     const timeOutId = setTimeout(() => {
       setActiveButton(true);
-    });
+    }, 5000);
     return () => {
       clearTimeout(timeOutId);
     };
@@ -34,9 +34,9 @@ const RespawnPopup = ({ reSpawnHandler }) => {
             gap: '20px',
           }}
         >
-          <h1>You are dead!</h1>
+          <h1 style={{ color: '#fff' }}>You are dead!</h1>
           {!activeButton ? (
-            <h3>wait {waitingTime} seconds</h3>
+            <h3>Wait {waitingTime} seconds</h3>
           ) : (
             <button onClick={reSpawnHandler}>Respawn</button>
           )}
