@@ -11,7 +11,7 @@ import RespawnPopup from './UI/RespawnPopup/RespawnPopup';
 import { usePlayerStore } from './store/PlayersStore';
 import Player2 from './Player2';
 import { RemotePlayer } from './RemotePlayer';
-export const socket = io('http://localhost:3000');
+export const socket = io('https://shooting-game-server.onrender.com/');
 
 const App = () => {
   const {
