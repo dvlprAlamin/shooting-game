@@ -8,7 +8,7 @@ import { useFrame } from '@react-three/fiber';
 import { Weapon } from './Weapon';
 import { useAimingStore } from './store/AimingStore';
 import { socket } from './App';
-import { useRoundsStore } from './store/RoundsStore';
+// import { useRoundsStore } from './store/RoundsStore';
 
 const MOVE_SPEED = 5;
 const direction = new THREE.Vector3();
@@ -37,11 +37,11 @@ export const Player = ({
   const [swayingDuration, setSwayingDuration] = useState(1000);
   const [isMoving, setIsMoving] = useState(false);
   const isAiming = useAimingStore((state) => state.isAiming);
-  const countOfRounds = useRoundsStore((state) => state.countRounds);
+  // const countOfRounds = useRoundsStore((state) => state.countRounds);
   const rapier = useRapier();
 
-  const shootRaycaster = new THREE.Raycaster();
-  const shootDirection = new THREE.Vector3();
+  // const shootRaycaster = new THREE.Raycaster();
+  // const shootDirection = new THREE.Vector3();
 
   useFrame((state) => {
     if (!playerRef.current) return;
@@ -99,22 +99,26 @@ export const Player = ({
         setIsSwayingAnimationFinished(false);
         swayingAnimation.start();
       }
-
-      if (shoot) {
-        if (countOfRounds > 0) {
-          shootRaycaster.setFromCamera(new THREE.Vector2(0, 0), state.camera);
-          shootDirection.copy(shootRaycaster.ray.direction);
-
-          socket.emit('shoot', {
-            position: { x, y, z },
-            direction: {
-              x: shootDirection.x,
-              y: shootDirection.y,
-              z: shootDirection.z,
-            },
-          });
-        }
+      if (y < -50) {
+        playerRef.current.setTranslation({ x, y: 40, z }, true);
       }
+
+      // if (shoot) {
+      //   if (countOfRounds > 0) {
+      //     shootRaycaster.setFromCamera(new THREE.Vector2(0, 0), state.camera);
+      //     shootDirection.copy(shootRaycaster.ray.direction);
+
+      //     socket.emit('shoot', {
+      //       position: { x, y, z },
+      //       direction: {
+      //         x: shootDirection.x,
+      //         y: shootDirection.y,
+      //         z: shootDirection.z,
+      //       },
+      //       bulletId: uuidv4(),
+      //     });
+      //   }
+      // }
     } else {
       const { x, y, z } = initialPosition;
       playerRef.current.setTranslation({ x, y, z }, true);
@@ -238,9 +242,9 @@ export const Player = ({
       <group visible={!isDead} ref={objectInHandRef}>
         <group ref={swayingObjectRef}>
           <Weapon
+            playerRef={playerRef}
             position={[0.3, -0.1, 0.3]}
             scale={0.3}
-            currentPlayer={id === socket.id}
           />
         </group>
       </group>

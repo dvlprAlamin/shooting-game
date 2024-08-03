@@ -47,6 +47,8 @@ const App = () => {
 
     socket.on('playerDead', (player) => {
       // updatePlayer(player.id, 'isDead', true);
+      // console.log('player dead', player.id);
+
       removePlayer(player.id);
       if (player.shooter === socket.id) {
         console.log('You killed ', player.id);

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import * as TWEEN from '@tweenjs/tween.js';
 import { WeaponModel } from '@/WeaponModel.jsx';
 import { useEffect, useRef, useState } from 'react';
-import { useLoader } from '@react-three/fiber';
+import { useLoader, useThree } from '@react-three/fiber';
 import SingleShootAK47 from '@/assets/sounds/single-shoot-ak47.mp3';
 import ShootWithoutBullet from '@/assets/sounds/shoot-without-bullet.mp3';
 import FlashShoot from '@/assets/images/flash_shoot.png';
@@ -11,7 +11,8 @@ import { useRoundsStore } from '@/store/RoundsStore.ts';
 import { PositionalAudio } from '@react-three/drei';
 // import { usePointerLockControlsStore } from './store/PointerLockControlStore';
 import { usePersonControls } from './hooks';
-
+import { socket } from './App';
+import { v4 as uuidv4 } from 'uuid';
 // const SHOOT_BUTTON = parseInt(import.meta.env.VITE_SHOOT_BUTTON);
 // const AIM_BUTTON = parseInt(import.meta.env.VITE_AIM_BUTTON);
 // const RELOAD_BUTTON_CODE = import.meta.env.VITE_RELOAD_BUTTON_CODE;
@@ -21,6 +22,7 @@ const easing = TWEEN.Easing.Quadratic.Out;
 
 export const Weapon = (props) => {
   const { shoot } = usePersonControls();
+  const { camera } = useThree();
   const [recoilAnimation, setRecoilAnimation] = useState(null);
   const [isRecoilAnimationFinished, setIsRecoilAnimationFinished] =
     useState(true);
@@ -31,7 +33,8 @@ export const Weapon = (props) => {
     (state) => state.decreaseRounds
   );
   // const dispatchReloadRounds = useRoundsStore((state) => state.reloadRounds);
-
+  const shootRaycaster = new THREE.Raycaster();
+  const shootDirection = new THREE.Vector3();
   const positionalAudioRef = useRef();
   const [audioUrl, setAudioUrl] = useState(SingleShootAK47);
 
@@ -130,7 +133,23 @@ export const Weapon = (props) => {
     positionalAudioRef.current.stop();
     positionalAudioRef.current.play();
 
-    if (countOfRounds > 0) {
+    if (countOfRounds > 0 && props.playerRef?.current) {
+      shootRaycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+
+      shootDirection.copy(shootRaycaster.ray.direction);
+
+      const { x, y, z } = props.playerRef.current.translation();
+
+      socket.emit('shoot', {
+        position: { x, y, z },
+        direction: {
+          x: shootDirection.x,
+          y: shootDirection.y,
+          z: shootDirection.z,
+        },
+        bulletId: uuidv4(),
+      });
+
       dispatchDecreaseRounds();
       recoilAnimation.start();
       flashAnimation.start();
@@ -142,7 +161,7 @@ export const Weapon = (props) => {
   }, []);
 
   useEffect(() => {
-    if (shoot && isRecoilAnimationFinished && props.currentPlayer) {
+    if (shoot && isRecoilAnimationFinished) {
       startShooting();
     }
   }, [shoot, isRecoilAnimationFinished]);
