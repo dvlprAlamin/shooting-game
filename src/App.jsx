@@ -50,12 +50,17 @@ const App = () => {
       removePlayer(player.id);
       if (player.shooter === socket.id) {
         console.log('You killed ', player.id);
+        updatePlayer(socket.id, 'kills', player.kills);
       } else if (player.id === socket.id) {
         console.log(player.shooter, ' killed you');
         setIsDied(true);
       } else {
         console.log(player.shooter, ' killed ', player.id);
       }
+    });
+
+    socket.on('playerKilled', (player) => {
+      updatePlayer(player.id, 'kills', player.kills);
     });
 
     socket.on('playerRespawned', (player) => {
@@ -78,6 +83,7 @@ const App = () => {
       socket.off('playerDisconnected');
       socket.off('hit');
       socket.off('playerDead');
+      socket.off('playerKilled');
       socket.off('playerRespawned');
     };
   }, []);
@@ -95,6 +101,7 @@ const App = () => {
         <HUD
           health={players[socket.id]?.health}
           deaths={players[socket.id]?.deaths}
+          kills={players[socket.id]?.kills}
         />
       )}
       <Canvas camera={{ fov: 45 }} shadows>
@@ -171,7 +178,7 @@ const Scene = ({ players, isDead }) => {
   );
 };
 
-const HUD = ({ health, deaths }) => {
+const HUD = ({ health, deaths, kills }) => {
   return (
     <div
       style={{
@@ -186,6 +193,7 @@ const HUD = ({ health, deaths }) => {
       }}
     >
       <div>Health: {health >= 0 ? health : 0}</div>
+      <div>Kills: {kills || 0}</div>
       <div>Respawn: {deaths || 0}</div>
     </div>
   );
