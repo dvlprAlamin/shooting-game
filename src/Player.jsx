@@ -46,24 +46,6 @@ export const Player = ({
   useFrame((state) => {
     if (!playerRef.current) return;
 
-    // Moving player
-    const velocity = playerRef.current.linvel();
-
-    frontVector.set(0, 0, backward - forward);
-    sideVector.set(left - right, 0, 0);
-    direction
-      .subVectors(frontVector, sideVector)
-      .normalize()
-      .multiplyScalar(MOVE_SPEED)
-      .applyEuler(state.camera.rotation);
-
-    playerRef.current.wakeUp();
-    playerRef.current.setLinvel({
-      x: direction.x,
-      y: velocity.y,
-      z: direction.z,
-    });
-
     // Jumping
     const world = rapier.world;
     const ray = world.castRay(
@@ -75,6 +57,24 @@ export const Player = ({
 
     // Moving camera
     if (id === socket.id) {
+      // Moving player
+      const velocity = playerRef.current.linvel();
+
+      frontVector.set(0, 0, backward - forward);
+      sideVector.set(left - right, 0, 0);
+      direction
+        .subVectors(frontVector, sideVector)
+        .normalize()
+        .multiplyScalar(MOVE_SPEED)
+        .applyEuler(state.camera.rotation);
+
+      playerRef.current.wakeUp();
+      playerRef.current.setLinvel({
+        x: direction.x,
+        y: velocity.y,
+        z: direction.z,
+      });
+
       const { x, y, z } = playerRef.current.translation();
       state.camera.position.set(x, y, z);
 
@@ -222,7 +222,13 @@ export const Player = ({
 
   return (
     <>
-      <RigidBody colliders={false} mass={1} ref={playerRef} lockRotations>
+      <RigidBody
+        position={[initialPosition.x, initialPosition.y, initialPosition.z]}
+        colliders={false}
+        mass={1}
+        ref={playerRef}
+        lockRotations
+      >
         <mesh castShadow visible={!isDead}>
           <capsuleGeometry args={[0.4, 1]} />
           <meshBasicMaterial color={'yellow'} />

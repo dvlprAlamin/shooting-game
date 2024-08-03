@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { Fragment, useEffect } from 'react';
 import * as TWEEN from '@tweenjs/tween.js';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { PointerLockControls, Sky } from '@react-three/drei';
+import { PointerLockControls, Sky, Stats } from '@react-three/drei';
 import { Ground } from '@/Ground.jsx';
 import { Physics } from '@react-three/rapier';
 import { Player } from '@/Player.jsx';
@@ -9,6 +9,8 @@ import { io } from 'socket.io-client';
 import { usePointerLockControlsStore } from './store/PointerLockControlStore';
 import RespawnPopup from './UI/RespawnPopup/RespawnPopup';
 import { usePlayerStore } from './store/PlayersStore';
+import Player2 from './Player2';
+import { RemotePlayer } from './RemotePlayer';
 export const socket = io('http://localhost:3000');
 
 const App = () => {
@@ -114,6 +116,7 @@ const Scene = ({ players, isDead }) => {
 
   return (
     <>
+      <Stats />
       {!isDead ? (
         <PointerLockControls
           onLock={pointerLockControlsLockHandler}
@@ -137,13 +140,25 @@ const Scene = ({ players, isDead }) => {
       <Physics gravity={[0, -20, 0]}>
         <Ground />
         {Object.keys(players).map((id) => (
-          <Player
-            key={id}
-            id={id}
-            initialPosition={players[id].position}
-            initialRotation={players[id].rotation}
-            isDead={players[id].isDead}
-          />
+          <Fragment key={id}>
+            {id === socket.id ? (
+              <Player
+                key={id}
+                id={id}
+                initialPosition={players[id].position}
+                initialRotation={players[id].rotation}
+                isDead={players[id].isDead}
+              />
+            ) : (
+              <RemotePlayer
+                key={id}
+                id={id}
+                initialPosition={players[id].position}
+                initialRotation={players[id].rotation}
+                isDead={players[id].isDead}
+              />
+            )}
+          </Fragment>
         ))}
       </Physics>
     </>
