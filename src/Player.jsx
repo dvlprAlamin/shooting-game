@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import * as RAPIER from '@dimforge/rapier3d-compat';
-import * as TWEEN from '@tweenjs/tween.js';
+import { Tween, Easing } from '@tweenjs/tween.js';
 import { CapsuleCollider, RigidBody, useRapier } from '@react-three/rapier';
 import { useEffect, useRef, useState } from 'react';
 import { usePersonControls } from './hooks';
 import { useFrame } from '@react-three/fiber';
 import { Weapon } from './Weapon';
 import { useAimingStore } from './store/AimingStore';
-import { socket } from './App';
+import { socket, tweenGroup } from './App';
 // import { useRoundsStore } from './store/RoundsStore';
 
 const MOVE_SPEED = 5;
@@ -15,7 +15,7 @@ const direction = new THREE.Vector3();
 const frontVector = new THREE.Vector3();
 const sideVector = new THREE.Vector3();
 const rotation = new THREE.Vector3();
-const easing = TWEEN.Easing.Quadratic.Out;
+const easing = Easing.Quadratic.Out;
 
 export const Player = ({
   id,
@@ -152,15 +152,14 @@ export const Player = ({
     const newPosition = swayingNewPosition;
     const animationDuration = swayingDuration;
 
-    const twSwayingAnimation = new TWEEN.Tween(currentPosition)
+    const twSwayingAnimation = new Tween(currentPosition)
       .to(newPosition, animationDuration)
       .easing(easing)
       .onUpdate(() => {
         swayingObjectRef.current &&
           swayingObjectRef.current.position.copy(currentPosition);
       });
-
-    const twSwayingBackAnimation = new TWEEN.Tween(currentPosition)
+    const twSwayingBackAnimation = new Tween(currentPosition)
       .to(initialPosition, animationDuration)
       .easing(easing)
       .onUpdate(() => {
@@ -175,6 +174,9 @@ export const Player = ({
 
     setSwayingAnimation(twSwayingAnimation);
     setSwayingBackAnimation(twSwayingBackAnimation);
+
+    tweenGroup.add(twSwayingAnimation);
+    tweenGroup.add(twSwayingBackAnimation);
   };
 
   useEffect(() => {
@@ -192,11 +194,11 @@ export const Player = ({
     const currentPosition = swayingObjectRef.current.position;
     const finalPosition = new THREE.Vector3(-0.3, -0.01, 0);
 
-    const twAimingAnimation = new TWEEN.Tween(currentPosition)
+    const twAimingAnimation = new Tween(currentPosition)
       .to(finalPosition, 200)
       .easing(easing);
 
-    const twAimingBackAnimation = new TWEEN.Tween(finalPosition.clone())
+    const twAimingBackAnimation = new Tween(finalPosition.clone())
       .to(new THREE.Vector3(0, 0, 0), 200)
       .easing(easing)
       .onUpdate((position) => {
@@ -205,6 +207,9 @@ export const Player = ({
 
     setAimingAnimation(twAimingAnimation);
     setAimingBackAnimation(twAimingBackAnimation);
+
+    tweenGroup.add(twAimingAnimation);
+    tweenGroup.add(twAimingBackAnimation);
   };
 
   useEffect(() => {

@@ -1,5 +1,5 @@
 import React, { Fragment, useEffect, useState } from 'react';
-import * as TWEEN from '@tweenjs/tween.js';
+import { Group } from '@tweenjs/tween.js';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { PointerLockControls, Sky, Stats } from '@react-three/drei';
 import { Ground } from '@/Ground.jsx';
@@ -9,10 +9,10 @@ import { io } from 'socket.io-client';
 import { usePointerLockControlsStore } from './store/PointerLockControlStore';
 import RespawnPopup from './UI/RespawnPopup/RespawnPopup';
 import { usePlayerStore } from './store/PlayersStore';
-import Player2 from './Player2';
 import { RemotePlayer } from './RemotePlayer';
-export const socket = io('https://shooting-game-server.onrender.com/');
-
+import JoystickController from './components/JoystickController';
+export const socket = io(import.meta.env.VITE_SERVER_URL);
+export const tweenGroup = new Group();
 const App = () => {
   const {
     players,
@@ -109,6 +109,7 @@ const App = () => {
       <Canvas camera={{ fov: 45 }} shadows>
         <Scene players={players} isDead={players[socket.id]?.isDead} />
       </Canvas>
+      <JoystickController />
     </>
   );
 };
@@ -117,7 +118,7 @@ export default App;
 
 const Scene = ({ players, isDead }) => {
   useFrame(() => {
-    TWEEN.update();
+    tweenGroup.update();
   });
 
   const pointerLockControlsLockHandler = () => {
@@ -131,14 +132,14 @@ const Scene = ({ players, isDead }) => {
   return (
     <>
       <Stats />
-      {!isDead ? (
+      {/* {!isDead ? (
         <PointerLockControls
           onLock={pointerLockControlsLockHandler}
           onUnlock={pointerLockControlsUnlockHandler}
         />
       ) : (
         <></>
-      )}
+      )} */}
       <Sky sunPosition={[100, 20, 100]} />
       <ambientLight intensity={1.5} />
       <directionalLight
