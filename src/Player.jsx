@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import * as RAPIER from '@dimforge/rapier3d-compat';
 import { Tween, Easing } from '@tweenjs/tween.js';
 import { CapsuleCollider, RigidBody, useRapier } from '@react-three/rapier';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePersonControls } from './hooks';
 import { useFrame } from '@react-three/fiber';
 import { Weapon } from './Weapon';
@@ -24,7 +24,7 @@ export const Player = ({
   isDead,
 }) => {
   const playerRef = useRef();
-  const { forward, backward, left, right, jump, shoot } = usePersonControls();
+  const { forward, backward, left, right, jump } = usePersonControls();
   const objectInHandRef = useRef();
   const swayingObjectRef = useRef();
   const [swayingAnimation, setSwayingAnimation] = useState(null);
@@ -37,13 +37,10 @@ export const Player = ({
   const [swayingDuration, setSwayingDuration] = useState(1000);
   const [isMoving, setIsMoving] = useState(false);
   const isAiming = useAimingStore((state) => state.isAiming);
-  // const countOfRounds = useRoundsStore((state) => state.countRounds);
+  const [enableJump, setEnableJump] = useState(true);
   const rapier = useRapier();
 
-  // const shootRaycaster = new THREE.Raycaster();
-  // const shootDirection = new THREE.Vector3();
-
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!playerRef.current) return;
 
     // Jumping
@@ -53,81 +50,66 @@ export const Player = ({
     );
     const grounded = ray && ray.collider && Math.abs(ray.toi) <= 1.5;
 
-    if (jump && grounded) doJump();
+    if (jump) doJump();
 
-    // Moving camera
-    if (id === socket.id) {
-      // Moving player
-      const velocity = playerRef.current.linvel();
+    // Moving player
+    const velocity = playerRef.current.linvel();
 
-      frontVector.set(0, 0, backward - forward);
-      sideVector.set(left - right, 0, 0);
-      direction
-        .subVectors(frontVector, sideVector)
-        .normalize()
-        .multiplyScalar(MOVE_SPEED)
-        .applyEuler(state.camera.rotation);
+    frontVector.set(0, 0, backward - forward);
+    sideVector.set(left - right, 0, 0);
+    direction
+      .subVectors(frontVector, sideVector)
+      .normalize()
+      .multiplyScalar(MOVE_SPEED)
+      .applyEuler(state.camera.rotation);
 
-      playerRef.current.wakeUp();
-      playerRef.current.setLinvel({
-        x: direction.x,
-        y: velocity.y,
-        z: direction.z,
-      });
+    playerRef.current.wakeUp();
+    playerRef.current.setLinvel({
+      x: direction.x,
+      y: velocity.y,
+      z: direction.z,
+    });
 
-      const { x, y, z } = playerRef.current.translation();
-      state.camera.position.set(x, y, z);
+    const { x, y, z } = playerRef.current.translation();
+    state.camera.position.set(x, y, z);
 
-      // Moving object in hand for the player
-      objectInHandRef.current.rotation.copy(state.camera.rotation);
-      objectInHandRef.current.position
-        .copy(state.camera.position)
-        .add(state.camera.getWorldDirection(rotation));
+    // Moving object in hand for the player
+    objectInHandRef.current.rotation.copy(state.camera.rotation);
+    objectInHandRef.current.position
+      .copy(state.camera.position)
+      .add(state.camera.getWorldDirection(rotation));
 
-      socket.emit('move', {
-        position: { x, y, z },
-        rotation: {
-          x: state.camera.rotation.x,
-          y: state.camera.rotation.y,
-          z: state.camera.rotation.z,
-        },
-      });
+    socket.emit('move', {
+      position: { x, y, z },
+      rotation: {
+        x: state.camera.rotation.x,
+        y: state.camera.rotation.y,
+        z: state.camera.rotation.z,
+      },
+    });
 
-      setIsMoving(direction.length() > 0);
+    setIsMoving(direction.length() > 0);
 
-      if (swayingAnimation && isSwayingAnimationFinished) {
-        setIsSwayingAnimationFinished(false);
-        swayingAnimation.start();
-      }
-      if (y < -50) {
-        playerRef.current.setTranslation({ x, y: 40, z }, true);
-      }
-
-      // if (shoot) {
-      //   if (countOfRounds > 0) {
-      //     shootRaycaster.setFromCamera(new THREE.Vector2(0, 0), state.camera);
-      //     shootDirection.copy(shootRaycaster.ray.direction);
-
-      //     socket.emit('shoot', {
-      //       position: { x, y, z },
-      //       direction: {
-      //         x: shootDirection.x,
-      //         y: shootDirection.y,
-      //         z: shootDirection.z,
-      //       },
-      //       bulletId: uuidv4(),
-      //     });
-      //   }
-      // }
-    } else {
-      const { x, y, z } = initialPosition;
-      playerRef.current.setTranslation({ x, y, z }, true);
-      playerRef.current.setRotation(initialRotation, true);
+    if (swayingAnimation && isSwayingAnimationFinished) {
+      setIsSwayingAnimationFinished(false);
+      swayingAnimation.start();
+    }
+    if (y < -50) {
+      playerRef.current.setTranslation({ x, y: 40, z }, true);
     }
   });
 
+  let timeOutId;
   const doJump = () => {
+    if (timeOutId) {
+      clearTimeout(timeOutId);
+    }
+    if (!enableJump) return;
     playerRef.current.setLinvel({ x: 0, y: 8, z: 0 });
+    setEnableJump(false);
+    timeOutId = setTimeout(() => {
+      setEnableJump(true);
+    }, 1000);
   };
 
   const setSwayingAnimationParams = () => {
@@ -238,10 +220,9 @@ export const Player = ({
         ref={playerRef}
         lockRotations
       >
-        <mesh castShadow visible={!isDead}>
-          <capsuleGeometry args={[0.4, 1]} />
-          <meshBasicMaterial color={'yellow'} />
-          <CapsuleCollider args={[0.5, 0.5]} />
+        <mesh castShadow visible={false}>
+          <capsuleGeometry args={[0.5, 0.5]} />
+          <CapsuleCollider args={[0.75, 0.5]} />
         </mesh>
       </RigidBody>
       <group visible={!isDead} ref={objectInHandRef}>

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLoader, useThree } from '@react-three/fiber';
 import SingleShootAK47 from '@/assets/sounds/single-shoot-ak47.mp3';
 import ShootWithoutBullet from '@/assets/sounds/shoot-without-bullet.mp3';
-import FlashShoot from '@/assets/images/flash_shoot.png';
+import FlashShoot from '@/assets/textures/flash_shoot_256x256.png';
 import { useRoundsStore } from '@/store/RoundsStore.ts';
 import { PositionalAudio } from '@react-three/drei';
 import { usePersonControls } from './hooks';
@@ -112,14 +112,10 @@ export const Weapon = (props) => {
   };
 
   useEffect(() => {
-    initRecoilAnimation();
-  }, []);
-
-  useEffect(() => {
     if (shoot && isRecoilAnimationFinished) {
       startShooting();
     }
-  }, [shoot, isRecoilAnimationFinished]);
+  }, [shoot]);
 
   const [flashOpacity, setFlashOpacity] = useState(0);
 
@@ -142,6 +138,7 @@ export const Weapon = (props) => {
   };
 
   useEffect(() => {
+    initRecoilAnimation();
     initFlashAnimation();
   }, []);
 

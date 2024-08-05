@@ -10,7 +10,6 @@ import { usePointerLockControlsStore } from './store/PointerLockControlStore';
 import RespawnPopup from './UI/RespawnPopup/RespawnPopup';
 import { usePlayerStore } from './store/PlayersStore';
 import { RemotePlayer } from './RemotePlayer';
-import JoystickController from './components/JoystickController';
 export const socket = io(import.meta.env.VITE_SERVER_URL);
 export const tweenGroup = new Group();
 const App = () => {
@@ -109,7 +108,6 @@ const App = () => {
       <Canvas camera={{ fov: 45 }} shadows>
         <Scene players={players} isDead={players[socket.id]?.isDead} />
       </Canvas>
-      <JoystickController />
     </>
   );
 };
@@ -132,14 +130,14 @@ const Scene = ({ players, isDead }) => {
   return (
     <>
       <Stats />
-      {/* {!isDead ? (
+      {!isDead ? (
         <PointerLockControls
           onLock={pointerLockControlsLockHandler}
           onUnlock={pointerLockControlsUnlockHandler}
         />
       ) : (
         <></>
-      )} */}
+      )}
       <Sky sunPosition={[100, 20, 100]} />
       <ambientLight intensity={1.5} />
       <directionalLight
