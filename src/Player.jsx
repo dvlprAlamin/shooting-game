@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import * as RAPIER from '@dimforge/rapier3d-compat';
 import { Tween, Easing } from '@tweenjs/tween.js';
 import { CapsuleCollider, RigidBody, useRapier } from '@react-three/rapier';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -8,7 +7,12 @@ import { useFrame } from '@react-three/fiber';
 import { Weapon } from './Weapon';
 import { useAimingStore } from './store/AimingStore';
 import { socket, tweenGroup } from './App';
-// import { useRoundsStore } from './store/RoundsStore';
+import { usePlayerStore } from './store/PlayersStore';
+import blood from '@/assets/textures/blood_128x128.png';
+import deathSound from '@/assets/sounds/death-sound-male.mp3';
+import damageSound from '@/assets/sounds/damage-sound-male.mp3';
+import { PositionalAudio, useTexture } from '@react-three/drei';
+import { useControls } from 'leva';
 
 const MOVE_SPEED = 5;
 const direction = new THREE.Vector3();
@@ -16,7 +20,7 @@ const frontVector = new THREE.Vector3();
 const sideVector = new THREE.Vector3();
 const rotation = new THREE.Vector3();
 const easing = Easing.Quadratic.Out;
-
+const damageSounds = [damageSound, deathSound];
 export const Player = ({
   id,
   initialPosition = { x: 0, y: 0, z: 0 },
@@ -24,7 +28,9 @@ export const Player = ({
   isDead,
 }) => {
   const playerRef = useRef();
+  const bloodTexture = useTexture(blood);
   const { forward, backward, left, right, jump } = usePersonControls();
+  const { updatePlayer } = usePlayerStore();
   const objectInHandRef = useRef();
   const swayingObjectRef = useRef();
   const [swayingAnimation, setSwayingAnimation] = useState(null);
@@ -38,18 +44,23 @@ export const Player = ({
   const [isMoving, setIsMoving] = useState(false);
   const isAiming = useAimingStore((state) => state.isAiming);
   const [enableJump, setEnableJump] = useState(true);
-  const rapier = useRapier();
+  const positionalAudioRef = useRef();
+  const [audioUrl, setAudioUrl] = useState(damageSound);
+  const [bloodAnimation, setBloodAnimation] = useState(null);
+  const [bloodOpacity, setBloodOpacity] = useState(0);
+  const [bulletHitPositions, setBulletHitPositions] = useState([]);
 
+  const bulletPos = [
+    [-0.028925465718148136, 0.0016169992836073885, 0.9],
+    [0.02291618630976753, -0.007385728167648705, 0.9],
+    [0.0185328776786855, 0.006147296425424137, 0.9],
+    [0.03971329708025691, -0.009401320280938992, 0.9],
+    [-0.030639928403563665, -0.008088882703405277, 0.9],
+  ];
   useFrame((state, delta) => {
     if (!playerRef.current) return;
 
     // Jumping
-    const world = rapier.world;
-    const ray = world.castRay(
-      new RAPIER.Ray(playerRef.current.translation(), { x: 0, y: -1, z: 0 })
-    );
-    const grounded = ray && ray.collider && Math.abs(ray.toi) <= 1.5;
-
     if (jump) doJump();
 
     // Moving player
@@ -95,7 +106,7 @@ export const Player = ({
       swayingAnimation.start();
     }
     if (y < -50) {
-      playerRef.current.setTranslation({ x, y: 40, z }, true);
+      playerRef.current.setTranslation({ x: -10, y: 40, z: 15 }, true);
     }
   });
 
@@ -199,22 +210,100 @@ export const Player = ({
   }, [swayingObjectRef]);
 
   useEffect(() => {
-    if (id === socket.id) {
-      if (isAiming) {
-        swayingAnimation.stop();
-        aimingAnimation.start();
-      } else if (isAiming === false) {
-        aimingBackAnimation?.start().onComplete(() => {
-          setSwayingAnimationParams();
-        });
-      }
+    if (isAiming) {
+      swayingAnimation.stop();
+      aimingAnimation.start();
+    } else if (isAiming === false) {
+      aimingBackAnimation?.start().onComplete(() => {
+        setSwayingAnimationParams();
+      });
     }
   }, [isAiming, aimingAnimation, aimingBackAnimation]);
 
+  const twBloodAnimations = useMemo(() => {
+    const currentBloodParams = { opacity: 1 };
+    const bloodAnimation = new Tween(currentBloodParams)
+      .to({ opacity: 1 }, 3000)
+      .easing(Easing.Quartic.In)
+      .onUpdate(() => {
+        setBloodOpacity(() => currentBloodParams.opacity);
+      })
+      .onComplete(() => {
+        setBloodOpacity(() => 0);
+      });
+    tweenGroup.add(bloodAnimation);
+    return bloodAnimation;
+  }, []);
+
+  const handlePlayerHit = () => {
+    const index = Math.floor(Math.random() * 2);
+    setAudioUrl(damageSounds[index]);
+    positionalAudioRef.current.stop();
+    positionalAudioRef.current.play();
+    setBulletHitPositions((pre) => [
+      ...pre,
+      [(Math.random() - 0.5) * 0.1, Math.random() * 0.06 - 0.03, 0.9],
+    ]);
+  };
+
+  useEffect(() => {
+    socket.on('hit', (player) => {
+      updatePlayer(socket.id, 'health', player.health);
+      handlePlayerHit();
+    });
+
+    return () => {
+      socket.off('hit');
+    };
+  }, []);
+
+  // const initBloodAnimation = () => {
+  //   const currentBloodParams = { opacity: 0 };
+
+  //   const twBloodAnimation = new Tween(currentBloodParams)
+  //     .to({ opacity: 1 }, 100)
+  //     .easing(easing)
+  //     .onUpdate(() => {
+  //       setBloodOpacity(() => currentBloodParams.opacity);
+  //     })
+  //     .onComplete(() => {
+  //       setBloodOpacity(() => 0);
+  //     });
+
+  //   setBloodAnimation(twBloodAnimation);
+  //   console.log('init blood animation');
+
+  //   tweenGroup.add(twBloodAnimation);
+  // };
+
+  // useEffect(() => {
+  //   initBloodAnimation();
+  // }, []);
+
+  // const { positionX, positionY, positionZ } = useControls({
+  //   positionX: {
+  //     step: 0.01,
+  //     label: 'pX',
+  //     value: 0,
+  //   },
+  //   positionY: {
+  //     step: 0.01,
+  //     label: 'pY',
+  //     value: 0,
+  //   },
+  //   positionZ: {
+  //     step: 0.1,
+  //     label: 'pZ',
+  //     value: 0.9,
+  //   },
+  // });
+  // -3 to 3, -5 to 5
+  console.log('bloodOpacity', bloodOpacity);
+  //(Math.random()- 0.5)*0.1
   return (
     <>
       <RigidBody
-        position={[initialPosition.x, initialPosition.y, initialPosition.z]}
+        position={[0, 0, 0.9]}
         colliders={false}
         mass={1}
         ref={playerRef}
@@ -232,7 +321,24 @@ export const Player = ({
             position={[0.3, -0.1, 0.3]}
             scale={0.3}
           />
+          <PositionalAudio
+            url={audioUrl}
+            autoplay={false}
+            loop={false}
+            ref={positionalAudioRef}
+          />
         </group>
+        {bulletHitPositions.map((position) => (
+          <mesh scale={0.01} position={position}>
+            <planeGeometry attach="geometry" args={[1, 1]} />
+            <meshBasicMaterial
+              attach="material"
+              map={bloodTexture}
+              transparent={true}
+              // opacity={bloodOpacity}
+            />
+          </mesh>
+        ))}
       </group>
     </>
   );

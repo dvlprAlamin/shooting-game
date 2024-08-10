@@ -1,7 +1,12 @@
-import React, { Fragment, useEffect, useState } from 'react';
+import React, { Fragment, useEffect, useRef, useState } from 'react';
 import { Group } from '@tweenjs/tween.js';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { PointerLockControls, Sky, Stats } from '@react-three/drei';
+import {
+  PointerLockControls,
+  PositionalAudio,
+  Sky,
+  Stats,
+} from '@react-three/drei';
 import { Ground } from '@/Ground.jsx';
 import { Physics } from '@react-three/rapier';
 import { Player } from '@/Player.jsx';
@@ -10,6 +15,7 @@ import { usePointerLockControlsStore } from './store/PointerLockControlStore';
 import RespawnPopup from './UI/RespawnPopup/RespawnPopup';
 import { usePlayerStore } from './store/PlayersStore';
 import { RemotePlayer } from './RemotePlayer';
+import deathSound from './assets/sounds/death-sound-male.mp3';
 export const socket = io(import.meta.env.VITE_SERVER_URL);
 export const tweenGroup = new Group();
 const App = () => {
@@ -21,8 +27,18 @@ const App = () => {
     updatePlayer,
     removePlayer,
   } = usePlayerStore();
-  const [isDied, setIsDied] = useState(false);
+  const [isDead, setIsDead] = useState(false);
+  const deathSoundRef = useRef();
+
+  const deadHandler = () => {
+    deathSoundRef.current.stop();
+    deathSoundRef.current.play();
+    setIsDead(true);
+    console.log('dead.......');
+  };
+
   useEffect(() => {
+    let timeOutId;
     // Handle current players
     socket.on('currentPlayers', (currentPlayers) => {
       console.log('Current Players:', currentPlayers);
@@ -40,21 +56,18 @@ const App = () => {
       setPlayer(player);
     });
 
-    socket.on('hit', (player) => {
-      updatePlayer(socket.id, 'health', player.health);
-    });
-
     socket.on('playerDead', (player) => {
-      // updatePlayer(player.id, 'isDead', true);
+      updatePlayer(player.id, 'isDead', true);
       // console.log('player dead', player.id);
-
-      removePlayer(player.id);
+      // timeOutId = setTimeout(() => {
+      //   removePlayer(player.id);
+      // }, 5000);
       if (player.shooter === socket.id) {
         console.log('You killed ', player.id);
         updatePlayer(socket.id, 'kills', player.kills);
       } else if (player.id === socket.id) {
         console.log(player.shooter, ' killed you');
-        setIsDied(true);
+        deadHandler();
       } else {
         console.log(player.shooter, ' killed ', player.id);
       }
@@ -65,11 +78,14 @@ const App = () => {
     });
 
     socket.on('playerRespawned', (player) => {
-      // removePlayer(player.id);
-      if (player.id === socket.id) {
-        setIsDied(false);
-      }
-      setPlayer(player);
+      removePlayer(player.id);
+
+      timeOutId = setTimeout(() => {
+        if (player.id === socket.id) {
+          setIsDead(false);
+        }
+        setPlayer(player);
+      }, 2000);
     });
 
     // Handle player disconnection
@@ -82,10 +98,12 @@ const App = () => {
       socket.off('newPlayer');
       socket.off('playerMoved');
       socket.off('playerDisconnected');
-      socket.off('hit');
       socket.off('playerDead');
       socket.off('playerKilled');
       socket.off('playerRespawned');
+      if (timeOutId) {
+        clearTimeout(timeOutId);
+      }
     };
   }, []);
 
@@ -95,7 +113,7 @@ const App = () => {
 
   return (
     <>
-      {isDied ? (
+      {isDead ? (
         // players[socket.id]?.isDead
         <RespawnPopup reSpawnHandler={reSpawnHandler} />
       ) : (
@@ -106,7 +124,13 @@ const App = () => {
         />
       )}
       <Canvas camera={{ fov: 45 }} shadows>
-        <Scene players={players} isDead={players[socket.id]?.isDead} />
+        <PositionalAudio
+          url={deathSound}
+          autoplay={false}
+          loop={false}
+          ref={deathSoundRef}
+        />
+        <Scene players={players} isDead={isDead} />
       </Canvas>
     </>
   );
@@ -152,6 +176,7 @@ const Scene = ({ players, isDead }) => {
       />
       <Physics gravity={[0, -20, 0]}>
         <Ground />
+
         {Object.keys(players).map((id) => (
           <Fragment key={id}>
             {id === socket.id ? (

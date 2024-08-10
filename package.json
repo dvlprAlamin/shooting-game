@@ -36,6 +36,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.3",
     "gltf-pipeline": "^4.1.0",
+    "leva": "^0.9.35",
     "sass": "^1.69.7",
     "vite": "^5.3.5"
   }
