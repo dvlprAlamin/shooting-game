@@ -7,6 +7,7 @@ interface Player {
   deaths: number;
   health: number;
   kills: number;
+  isDead?: boolean;
 }
 export interface IPlayerStore {
   currentPlayer: Player | null;

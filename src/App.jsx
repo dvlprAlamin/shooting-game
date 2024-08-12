@@ -1,12 +1,7 @@
 import React, { Fragment, useEffect, useRef, useState } from 'react';
 import { Group } from '@tweenjs/tween.js';
 import { Canvas, useFrame } from '@react-three/fiber';
-import {
-  PointerLockControls,
-  PositionalAudio,
-  Sky,
-  Stats,
-} from '@react-three/drei';
+import { PointerLockControls, Sky, Stats } from '@react-three/drei';
 import { Ground } from '@/Ground.jsx';
 import { Physics } from '@react-three/rapier';
 import { Player } from '@/Player.jsx';
@@ -15,7 +10,6 @@ import { usePointerLockControlsStore } from './store/PointerLockControlStore';
 import RespawnPopup from './UI/RespawnPopup/RespawnPopup';
 import { usePlayerStore } from './store/PlayersStore';
 import { RemotePlayer } from './RemotePlayer';
-import deathSound from './assets/sounds/death-sound-male.mp3';
 export const socket = io(import.meta.env.VITE_SERVER_URL);
 export const tweenGroup = new Group();
 const App = () => {
@@ -28,14 +22,6 @@ const App = () => {
     removePlayer,
   } = usePlayerStore();
   const [isDead, setIsDead] = useState(false);
-  const deathSoundRef = useRef();
-
-  const deadHandler = () => {
-    deathSoundRef.current.stop();
-    deathSoundRef.current.play();
-    setIsDead(true);
-    console.log('dead.......');
-  };
 
   useEffect(() => {
     let timeOutId;
@@ -58,18 +44,14 @@ const App = () => {
 
     socket.on('playerDead', (player) => {
       updatePlayer(player.id, 'isDead', true);
-      // console.log('player dead', player.id);
-      // timeOutId = setTimeout(() => {
-      //   removePlayer(player.id);
-      // }, 5000);
+
       if (player.shooter === socket.id) {
         console.log('You killed ', player.id);
-        updatePlayer(socket.id, 'kills', player.kills);
       } else if (player.id === socket.id) {
-        console.log(player.shooter, ' killed you');
-        deadHandler();
+        console.log(player.shooter, 'killed you');
+        setIsDead(true);
       } else {
-        console.log(player.shooter, ' killed ', player.id);
+        console.log(player.shooter, 'killed', player.id);
       }
     });
 
@@ -84,8 +66,8 @@ const App = () => {
         if (player.id === socket.id) {
           setIsDead(false);
         }
-        setPlayer(player);
-      }, 2000);
+        setPlayer({ ...player, isDead: false });
+      }, 1500);
     });
 
     // Handle player disconnection
@@ -113,23 +95,15 @@ const App = () => {
 
   return (
     <>
-      {isDead ? (
-        // players[socket.id]?.isDead
-        <RespawnPopup reSpawnHandler={reSpawnHandler} />
-      ) : (
-        <HUD
-          health={players[socket.id]?.health}
-          deaths={players[socket.id]?.deaths}
-          kills={players[socket.id]?.kills}
-        />
-      )}
+      {isDead ? <RespawnPopup reSpawnHandler={reSpawnHandler} /> : <></>}
+
+      <HUD
+        health={players[socket.id]?.health}
+        deaths={players[socket.id]?.deaths}
+        kills={players[socket.id]?.kills}
+      />
+
       <Canvas camera={{ fov: 45 }} shadows>
-        <PositionalAudio
-          url={deathSound}
-          autoplay={false}
-          loop={false}
-          ref={deathSoundRef}
-        />
         <Scene players={players} isDead={isDead} />
       </Canvas>
     </>
