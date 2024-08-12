@@ -1,10 +1,19 @@
+@font-face {
+    font-family: "Glue-gun"; /*a name to be used later*/
+    src: url("./assets/fonts/Glue\ Gun.otf"); /*URL to font*/
+}
 * {
     margin: 0;
     padding: 0;
 }
 
-html, body, #root, #container {
+html,
+body,
+#root,
+#container {
     height: 100%;
+    font-family: "Glue-gun";
+    letter-spacing: 2px;
 }
 
 .ui-root {

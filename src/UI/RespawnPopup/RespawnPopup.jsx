@@ -1,14 +1,22 @@
 import { useEffect, useState } from 'react';
+import Button from '../elements/Button';
 
 const RespawnPopup = ({ reSpawnHandler }) => {
   const [activeButton, setActiveButton] = useState(false);
   const [waitingTime, setWaitingTime] = useState(5);
+
   useEffect(() => {
     const timeOutId = setTimeout(() => {
       setActiveButton(true);
     }, 5000);
+
+    const intervalId = setInterval(() => {
+      setWaitingTime((preValue) => (preValue > 0 ? preValue - 1 : preValue));
+    }, 1000);
+
     return () => {
       clearTimeout(timeOutId);
+      clearInterval(intervalId);
     };
   }, []);
   return (
@@ -31,14 +39,17 @@ const RespawnPopup = ({ reSpawnHandler }) => {
             flexDirection: 'column',
             justifyContent: 'center',
             alignItems: 'center',
-            gap: '20px',
+            gap: '30px',
+            height: '100%',
           }}
         >
           <h1 style={{ color: '#fff' }}>You are dead!</h1>
           {!activeButton ? (
-            <h3>Wait {waitingTime} seconds</h3>
+            <h3 style={{ color: '#fff' }}>
+              Wait {waitingTime} second{waitingTime > 1 ? 's' : ''}
+            </h3>
           ) : (
-            <button onClick={reSpawnHandler}>Respawn</button>
+            <Button text="Respawn" onClick={reSpawnHandler} />
           )}
         </div>
       </div>
