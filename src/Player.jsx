@@ -47,13 +47,6 @@ export const Player = ({
 
     // Moving player
     const velocity = playerRef.current.linvel();
-    // Ensure the y velocity only updates if it exceeds a threshold
-    // const velocity = playerRef.current.linvel();
-    // const minVelocityY = -0.05; // Adjust this threshold as needed
-
-    // if (Math.abs(velocity.y) < minVelocityY) {
-    //   velocity.y = 0;
-    // }
 
     frontVector.set(0, 0, backward - forward);
     sideVector.set(left - right, 0, 0);
