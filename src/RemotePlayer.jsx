@@ -2,12 +2,14 @@ import { CapsuleCollider, RigidBody } from '@react-three/rapier';
 import { useEffect, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { Text } from '@react-three/drei';
 
 export const RemotePlayer = ({
   id,
   position = { x: 0, y: 0, z: 0 },
   isDead,
   health,
+  playerName,
 }) => {
   const playerRef = useRef();
   const bodyRef = useRef();
@@ -39,7 +41,7 @@ export const RemotePlayer = ({
     >
       <mesh ref={bodyRef} castShadow>
         <capsuleGeometry args={[0.4, 1]} />
-        <meshBasicMaterial color={'yellow'} />
+        <meshBasicMaterial color={healthColor(health)} />
         <CapsuleCollider args={[0.5, 0.5]} />
       </mesh>
     </RigidBody>

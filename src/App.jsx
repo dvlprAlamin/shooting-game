@@ -10,6 +10,8 @@ import { usePointerLockControlsStore } from './store/PointerLockControlStore';
 import RespawnPopup from './UI/RespawnPopup/RespawnPopup';
 import { usePlayerStore } from './store/PlayersStore';
 import { RemotePlayer } from './RemotePlayer';
+import RoomSelector from './UI/RoomSelector/RoomSelector';
+import UI from './UI/UI';
 export const socket = io(import.meta.env.VITE_SERVER_URL);
 export const tweenGroup = new Group();
 const App = () => {
@@ -22,7 +24,7 @@ const App = () => {
     removePlayer,
   } = usePlayerStore();
   const [isDead, setIsDead] = useState(false);
-
+  const [isJoinedRoom, setIsJoinedRoom] = useState(false);
   useEffect(() => {
     let timeOutId;
     // Handle current players
@@ -39,7 +41,9 @@ const App = () => {
 
     // Handle player movement
     socket.on('playerMoved', (player) => {
-      setPlayer(player);
+      updatePlayer(player.id, 'position', player.position);
+      updatePlayer(player.id, 'rotation', player.rotation);
+      // setPlayer(player);
     });
 
     socket.on('playerDead', (player) => {
@@ -93,6 +97,15 @@ const App = () => {
     socket.emit('respawn', socket.id);
   };
 
+  const handleJoinRoom = (roomId, playerName) => {
+    socket.emit('joinRoom', roomId, playerName);
+    setIsJoinedRoom(true);
+  };
+  console.log('players', players);
+
+  if (!isJoinedRoom) {
+    return <RoomSelector joinRoom={handleJoinRoom} />;
+  }
   return (
     <>
       {isDead ? <RespawnPopup reSpawnHandler={reSpawnHandler} /> : <></>}
@@ -103,6 +116,7 @@ const App = () => {
         kills={players[socket.id]?.kills}
       />
 
+      <UI />
       <Canvas camera={{ fov: 45 }} shadows>
         <Scene players={players} isDead={isDead} />
       </Canvas>
@@ -116,7 +130,7 @@ const Scene = ({ players, isDead }) => {
   useFrame(() => {
     tweenGroup.update();
   });
-
+  console.log('players', players);
   const pointerLockControlsLockHandler = () => {
     usePointerLockControlsStore.setState({ isLock: true });
   };
@@ -169,6 +183,7 @@ const Scene = ({ players, isDead }) => {
                 position={players[id].position}
                 isDead={players[id].isDead}
                 health={players[id].health}
+                playerName={players[id].playerName}
               />
             )}
           </Fragment>
