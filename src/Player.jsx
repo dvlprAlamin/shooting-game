@@ -3,7 +3,7 @@ import { Tween, Easing } from '@tweenjs/tween.js';
 import { CapsuleCollider, RigidBody } from '@react-three/rapier';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePersonControls } from './hooks';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Weapon } from './Weapon';
 import { useAimingStore } from './store/AimingStore';
 import { socket, tweenGroup } from './App';
@@ -19,6 +19,10 @@ const frontVector = new THREE.Vector3();
 const sideVector = new THREE.Vector3();
 const rotation = new THREE.Vector3();
 const easing = Easing.Quadratic.Out;
+
+// const GROUND_OFFSET = 0.5; // Adjust based on player's size
+// const CHECK_DISTANCE = 0.5; // The distance to check the ground below
+
 const damageSounds = [damageSound, deathSound];
 export const Player = ({
   id,
@@ -26,6 +30,7 @@ export const Player = ({
   initialRotation = { x: 0, y: 0, z: 0 },
   isDead,
 }) => {
+  // const { scene } = useThree();
   const playerRef = useRef();
   const bloodTexture = useTexture(blood);
   const { forward, backward, left, right, jump } = usePersonControls();
@@ -41,6 +46,27 @@ export const Player = ({
 
   useFrame((state, delta) => {
     if (!playerRef.current) return;
+
+    // // update position while stuck into ground
+    // const origin = playerRef.current.translation();
+    // const direction = new THREE.Vector3(0, -1, 0);
+    // const raycaster = new THREE.Raycaster(origin, direction, 0, CHECK_DISTANCE);
+
+    // // Assuming `scene` is your current scene reference
+    // const intersects = raycaster.intersectObjects(scene.children, true);
+
+    // if (intersects.length > 0) {
+    //   const groundDistance = intersects[0].distance;
+    //   console.log('groundDistance', groundDistance);
+
+    //   if (groundDistance > GROUND_OFFSET) {
+    //     // Handle the case where the player is floating
+    //     playerRef.current.position.y -= groundDistance - GROUND_OFFSET;
+    //   } else if (groundDistance < GROUND_OFFSET) {
+    //     // Handle the case where the player is stuck in the ground
+    //     playerRef.current.position.y += GROUND_OFFSET - groundDistance;
+    //   }
+    // }
 
     // Jumping
     if (jump) doJump();
@@ -65,7 +91,6 @@ export const Player = ({
 
     const { x, y, z } = playerRef.current.translation();
     state.camera.position.set(x, y, z);
-
     // Moving object in hand for the player
     objectInHandRef.current.rotation.copy(state.camera.rotation);
     objectInHandRef.current.position
@@ -83,7 +108,7 @@ export const Player = ({
 
     setIsMoving(direction.length() > 0);
 
-    if (y < -50) {
+    if (y < -15) {
       playerRef.current.setTranslation({ x: -10, y: 40, z: 15 }, true);
     }
   });
@@ -94,11 +119,20 @@ export const Player = ({
       clearTimeout(timeOutId);
     }
     if (!enableJump) return;
-    playerRef.current.setLinvel({ x: 0, y: 8, z: 0 });
+    const preJump = playerRef.current.translation();
+    playerRef.current.setLinvel({ x: 0, y: 6, z: 0 });
+    const postJump = playerRef.current.translation();
+    if (preJump.y + 0.1 > postJump.y) {
+      playerRef.current.setTranslation({
+        x: preJump.x,
+        y: preJump.y + 0.5,
+        z: preJump.z,
+      });
+    }
     setEnableJump(false);
     timeOutId = setTimeout(() => {
       setEnableJump(true);
-    }, 1000);
+    }, 1500);
   };
 
   const [aimingAnimation, setAimingAnimation] = useState(null);

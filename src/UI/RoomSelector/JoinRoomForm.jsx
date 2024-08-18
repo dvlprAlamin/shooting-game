@@ -1,5 +1,6 @@
 import { Box, Button, TextField } from '@mui/material';
 import React from 'react';
+import PrimaryButton from '../elements/Primarybutton';
 
 const JoinRoomForm = ({ handleSubmit }) => {
   return (
@@ -24,9 +25,9 @@ const JoinRoomForm = ({ handleSubmit }) => {
         required
       />
 
-      <Button type="submit" variant="contained">
+      <PrimaryButton type="submit" variant="contained">
         Join Game
-      </Button>
+      </PrimaryButton>
     </Box>
   );
 };

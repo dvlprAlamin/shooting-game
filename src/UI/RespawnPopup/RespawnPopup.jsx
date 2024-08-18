@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import Button from '../elements/Button';
+import PrimaryButton from '../elements/Primarybutton';
+import { Box, Dialog, Typography } from '@mui/material';
+import LeaderBoard from '../LeaderBoard/LeaderBoard';
 
-const RespawnPopup = ({ reSpawnHandler }) => {
+const RespawnPopup = ({ reSpawnHandler, leaderboard, isGameOver }) => {
   const [activeButton, setActiveButton] = useState(false);
   const [waitingTime, setWaitingTime] = useState(5);
 
@@ -19,40 +21,45 @@ const RespawnPopup = ({ reSpawnHandler }) => {
       clearInterval(intervalId);
     };
   }, []);
+
   return (
     <div>
-      <div
-        onClick={(e) => e.preventDefault()}
-        style={{
-          height: '80vh',
-          width: '80vw',
-          position: 'fixed',
-          top: '10vh',
-          left: '10vw',
-          zIndex: 999,
-          background: '#00000080',
+      <Dialog
+        open={true}
+        PaperProps={{
+          sx: {
+            boxShadow: 'none',
+            background: '#00000080',
+            width: '80vw',
+            height: '90vh',
+          },
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '30px',
-            height: '100%',
+        <Box
+          sx={{
+            p: 3,
+            textAlign: 'center',
           }}
         >
-          <h1 style={{ color: '#fff' }}>You are dead!</h1>
-          {!activeButton ? (
-            <h3 style={{ color: '#fff' }}>
-              Wait {waitingTime} second{waitingTime > 1 ? 's' : ''}
-            </h3>
+          <h1 style={{ color: '#fff', marginBottom: 8 }}>
+            {isGameOver ? 'Game Over!' : 'You are dead!'}
+          </h1>
+          {!isGameOver ? (
+            <Box sx={{ height: 40 }}>
+              {!activeButton ? (
+                <Typography sx={{ fontSize: 18, color: '#fff' }}>
+                  Wait {waitingTime} second{waitingTime > 1 ? 's' : ''}
+                </Typography>
+              ) : (
+                <PrimaryButton onClick={reSpawnHandler}>Respawn</PrimaryButton>
+              )}
+            </Box>
           ) : (
-            <Button text="Respawn" onClick={reSpawnHandler} />
+            <></>
           )}
-        </div>
-      </div>
+        </Box>
+        <LeaderBoard leaderboard={leaderboard} />
+      </Dialog>
     </div>
   );
 };

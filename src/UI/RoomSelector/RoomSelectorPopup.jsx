@@ -22,6 +22,24 @@ export default function RoomSelectorPopup({ action, children }) {
         onClose={handleClose}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
+        sx={{
+          width: '90%',
+          maxWidth: '400px',
+          mx: 'auto',
+        }}
+        slotProps={{
+          backdrop: {
+            sx: {
+              backdropFilter: 'blur(5px)',
+            },
+          },
+        }}
+        PaperProps={{
+          sx: {
+            boxShadow: 'none',
+            background: 'rgba(0,0,0,0.5)',
+          },
+        }}
       >
         <Box sx={{ p: 3 }}>{children}</Box>
       </Dialog>

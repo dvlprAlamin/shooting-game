@@ -11,6 +11,7 @@ import RoomSelectorPopup from './RoomSelectorPopup';
 import CreateRoomForm from './CreateRoomForm';
 import JoinRoomForm from './JoinRoomForm';
 import { nanoid } from 'nanoid';
+import PrimaryButton from '../elements/Primarybutton';
 
 const RoomSelector = ({ joinRoom }) => {
   const [roomId, setRoomId] = useState('');
@@ -24,12 +25,12 @@ const RoomSelector = ({ joinRoom }) => {
     const data = new FormData(e.currentTarget);
     const playerName = data.get('playerName');
     if (!roomId && !playerName) return;
-    // const duration = data.get('duration');
-    if (!isCopyRoomId) {
-      alert('Please copy room id and share with your friends');
-      return;
-    }
-    joinRoom(roomId, playerName);
+    const duration = data.get('duration');
+    const playersLimit = data.get('playersLimit');
+
+    joinRoom({ roomId, playerName, isCreate: true, duration, playersLimit });
+    localStorage.setItem('playerName', playerName);
+    localStorage.setItem('roomId', roomId);
   };
   const joinRoomHandler = (e) => {
     e.preventDefault();
@@ -37,9 +38,9 @@ const RoomSelector = ({ joinRoom }) => {
     const playerName = data.get('playerName');
     const roomId = data.get('roomId');
     if (!roomId && !playerName) return;
-    if (playerName && roomId) {
-      joinRoom(roomId, playerName);
-    }
+    joinRoom({ roomId, playerName, isCreate: false });
+    localStorage.setItem('roomId', roomId);
+    localStorage.setItem('playerName', playerName);
   };
 
   const createRoomIdHandler = () => {
@@ -49,7 +50,7 @@ const RoomSelector = ({ joinRoom }) => {
     <Container maxWidth="md">
       <Typography
         variant="h2"
-        sx={{ fontFamily: 'inherit', my: 5, textAlign: 'center' }}
+        sx={{ color: '#fff', py: 5, textAlign: 'center' }}
       >
         Shooter Free
       </Typography>
@@ -60,20 +61,12 @@ const RoomSelector = ({ joinRoom }) => {
           gap: 5,
         }}
       >
-        <Box
-          sx={{
-            flex: 1,
-            aspectRatio: '1/1',
-            display: 'grid',
-            placeItems: 'center',
-            boxShadow: '0 0 5px rgba(0,0,0,0.2)',
-          }}
-        >
+        <Card>
           <RoomSelectorPopup
             action={
-              <Button variant="contained" onClick={createRoomIdHandler}>
+              <PrimaryButton variant="contained" onClick={createRoomIdHandler}>
                 Create Room
-              </Button>
+              </PrimaryButton>
             }
           >
             {roomId ? (
@@ -110,40 +103,38 @@ const RoomSelector = ({ joinRoom }) => {
               handleSubmit={startGameHandler}
             />
           </RoomSelectorPopup>
-        </Box>
-        <Box
-          sx={{
-            flex: 1,
-            aspectRatio: '1/1',
-            display: 'grid',
-            placeItems: 'center',
-            boxShadow: '0 0 5px rgba(0,0,0,0.2)',
-          }}
-        >
+        </Card>
+        <Card>
           <RoomSelectorPopup
-            action={<Button variant="contained">Join Room</Button>}
+            action={
+              <PrimaryButton variant="contained">Join Room</PrimaryButton>
+            }
           >
             <JoinRoomForm handleSubmit={joinRoomHandler} />
           </RoomSelectorPopup>
-        </Box>
+        </Card>
       </Box>
     </Container>
-    // <div style={{ zIndex: 999, position: 'absolute' }}>
-    //   <input
-    //     type="text"
-    //     value={playerName}
-    //     onChange={(e) => setPlayerName(e.target.value)}
-    //     placeholder="Enter your name"
-    //   />
-    //   <input
-    //     type="text"
-    //     value={roomId}
-    //     onChange={(e) => setRoomId(e.target.value)}
-    //     placeholder="Enter Room ID"
-    //   />
-    //   <button onClick={handleJoinRoom}>Join Room</button>
-    // </div>
   );
 };
 
 export default RoomSelector;
+
+const Card = ({ children }) => {
+  return (
+    <Box
+      sx={{
+        flex: 1,
+        aspectRatio: '1/1',
+        display: 'grid',
+        placeItems: 'center',
+        background: 'rgba(255, 255, 255, 0.05)',
+        boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+        backdropFilter: 'blur(5px)',
+        borderRadius: '10px',
+      }}
+    >
+      {children}
+    </Box>
+  );
+};
