@@ -1,12 +1,30 @@
+@font-face {
+    font-family: "Glue-gun"; /*a name to be used later*/
+    src: url("./assets/fonts/Glue\ Gun.otf"); /*URL to font*/
+}
+@font-face {
+    font-family: "Juvanze"; /*a name to be used later*/
+    src: url("./assets/fonts/Juvanze-ovw9A.otf"); /*URL to font*/
+}
 * {
     margin: 0;
     padding: 0;
+    font-family: "Juvanze";
 }
 
-html, body, #root, #container {
+html,
+body,
+#root,
+#container {
     height: 100%;
+    letter-spacing: 2px;
 }
-
+body {
+    background-image: url(./assets/images/game-bg.webp);
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
 .ui-root {
     position: fixed;
     top: 0;

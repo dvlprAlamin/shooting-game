@@ -1,24 +1,19 @@
 import * as THREE from 'three';
-import * as TWEEN from '@tweenjs/tween.js';
+import { Tween, Easing } from '@tweenjs/tween.js';
 import { WeaponModel } from '@/WeaponModel.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { useLoader, useThree } from '@react-three/fiber';
 import SingleShootAK47 from '@/assets/sounds/single-shoot-ak47.mp3';
 import ShootWithoutBullet from '@/assets/sounds/shoot-without-bullet.mp3';
-import FlashShoot from '@/assets/images/flash_shoot.png';
-// import { useAimingStore } from '@/store/AimingStore.ts';
+import FlashShoot from '@/assets/textures/flash_shoot_256x256.png';
 import { useRoundsStore } from '@/store/RoundsStore.ts';
 import { PositionalAudio } from '@react-three/drei';
-// import { usePointerLockControlsStore } from './store/PointerLockControlStore';
 import { usePersonControls } from './hooks';
-import { socket } from './App';
+import { socket, tweenGroup } from './App';
 import { v4 as uuidv4 } from 'uuid';
-// const SHOOT_BUTTON = parseInt(import.meta.env.VITE_SHOOT_BUTTON);
-// const AIM_BUTTON = parseInt(import.meta.env.VITE_AIM_BUTTON);
-// const RELOAD_BUTTON_CODE = import.meta.env.VITE_RELOAD_BUTTON_CODE;
 const recoilAmount = 0.03;
 const recoilDuration = 50;
-const easing = TWEEN.Easing.Quadratic.Out;
+const easing = Easing.Quadratic.Out;
 
 export const Weapon = (props) => {
   const { shoot } = usePersonControls();
@@ -32,7 +27,6 @@ export const Weapon = (props) => {
   const dispatchDecreaseRounds = useRoundsStore(
     (state) => state.decreaseRounds
   );
-  // const dispatchReloadRounds = useRoundsStore((state) => state.reloadRounds);
   const shootRaycaster = new THREE.Raycaster();
   const shootDirection = new THREE.Vector3();
   const positionalAudioRef = useRef();
@@ -48,47 +42,6 @@ export const Weapon = (props) => {
 
   const texture = useLoader(THREE.TextureLoader, FlashShoot);
   const [flashAnimation, setFlashAnimation] = useState(null);
-
-  // useEffect(() => {
-  //   const handleMouseDown = (ev) => {
-  //     ev.preventDefault();
-  //     mouseButtonHandler(ev.button, true);
-  //   };
-
-  //   const handleMouseUp = (ev) => {
-  //     ev.preventDefault();
-  //     mouseButtonHandler(ev.button, false);
-  //   };
-
-  //   const handleKeyPress = (ev) => {
-  //     ev.preventDefault();
-  //     if (ev.code === RELOAD_BUTTON_CODE) {
-  //       dispatchReloadRounds();
-  //     }
-  //   };
-
-  //   document.addEventListener('mousedown', handleMouseDown);
-  //   document.addEventListener('mouseup', handleMouseUp);
-  //   document.addEventListener('keypress', handleKeyPress);
-
-  //   return () => {
-  //     document.removeEventListener('mousedown', handleMouseDown);
-  //     document.removeEventListener('mouseup', handleMouseUp);
-  //     document.removeEventListener('keypress', handleKeyPress);
-  //   };
-  // }, []);
-
-  // const mouseButtonHandler = (button, state) => {
-  //   if (!usePointerLockControlsStore.getState().isLock) return;
-  //   switch (button) {
-  //     case SHOOT_BUTTON:
-  //       setIsShooting(state);
-  //       break;
-  //     case AIM_BUTTON:
-  //       setIsAiming(state);
-  //       break;
-  //   }
-  // };
 
   const generateRecoilOffset = () => {
     return new THREE.Vector3(
@@ -109,7 +62,7 @@ export const Weapon = (props) => {
     const currentPosition = new THREE.Vector3(0, 0, 0);
     const newPosition = generateNewPositionOfRecoil(currentPosition);
 
-    const twRecoilAnimation = new TWEEN.Tween(currentPosition)
+    const twRecoilAnimation = new Tween(currentPosition)
       .to(newPosition, recoilDuration)
       .easing(easing)
       .repeat(1)
@@ -125,6 +78,8 @@ export const Weapon = (props) => {
       });
 
     setRecoilAnimation(twRecoilAnimation);
+
+    tweenGroup.add(twRecoilAnimation);
   };
 
   const startShooting = () => {
@@ -157,21 +112,17 @@ export const Weapon = (props) => {
   };
 
   useEffect(() => {
-    initRecoilAnimation();
-  }, []);
-
-  useEffect(() => {
     if (shoot && isRecoilAnimationFinished) {
       startShooting();
     }
-  }, [shoot, isRecoilAnimationFinished]);
+  }, [shoot]);
 
   const [flashOpacity, setFlashOpacity] = useState(0);
 
   const initFlashAnimation = () => {
     const currentFlashParams = { opacity: 0 };
 
-    const twFlashAnimation = new TWEEN.Tween(currentFlashParams)
+    const twFlashAnimation = new Tween(currentFlashParams)
       .to({ opacity: 1 }, recoilDuration)
       .easing(easing)
       .onUpdate(() => {
@@ -182,9 +133,12 @@ export const Weapon = (props) => {
       });
 
     setFlashAnimation(twFlashAnimation);
+
+    tweenGroup.add(twFlashAnimation);
   };
 
   useEffect(() => {
+    initRecoilAnimation();
     initFlashAnimation();
   }, []);
 

@@ -44,6 +44,19 @@ const Player2 = ({ id, initialPosition, initialRotation, isDead }) => {
       });
       const { x, y, z } = playerRef.current.translation();
       state.camera.position.set(x, y, z);
+      // for joystick
+      if (joystickInput?.angle !== null) {
+        const radianAngle = joystickInput.angle;
+        const speed = 0.1 * joystickInput.distance;
+        const deltaX = speed * Math.cos(radianAngle);
+        const deltaZ = speed * Math.sin(radianAngle);
+
+        frontVector.set(0, 0, -deltaZ);
+        sideVector.set(deltaX, 0, 0);
+      } else {
+        frontVector.set(0, 0, backward - forward);
+        sideVector.set(left - right, 0, 0);
+      }
 
       // Moving object in hand for the player
       // objectInHandRef.current.rotation.copy(state.camera.rotation);

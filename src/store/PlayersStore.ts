@@ -7,11 +7,14 @@ interface Player {
   deaths: number;
   health: number;
   kills: number;
+  isDead?: boolean;
 }
 export interface IPlayerStore {
   currentPlayer: Player | null;
   setCurrentPlayer: (player: Player) => void;
   players: any;
+  leaderboard: any;
+  setLeaderboard: (players: any) => void;
   setPlayers: (players: any) => void;
   setPlayer: (player: Player) => void;
   updatePlayer: (
@@ -33,6 +36,11 @@ export const usePlayerStore = create<IPlayerStore>()(
     setPlayers: (players) =>
       set((state) => {
         state.players = players;
+      }),
+    leaderboard: {},
+    setLeaderboard: (players) =>
+      set((state) => {
+        state.leaderboard = players;
       }),
     setPlayer: (player: Player) =>
       set((state) => {

@@ -1,7 +1,7 @@
 import { CapsuleCollider, RigidBody } from '@react-three/rapier';
 import { useEffect, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { socket } from './App';
+import * as THREE from 'three';
 
 export const RemotePlayer = ({
   id,
@@ -11,59 +11,47 @@ export const RemotePlayer = ({
 }) => {
   const playerRef = useRef();
   const bodyRef = useRef();
-  //   const [color, setColor] = useState('yellow');
-  //   useEffect(() => {
-  //     socket.on('hit', (player) => {
-  //       console.log('player', player);
 
-  //       if (player.health > 70) {
-  //         setColor('yellow');
-  //       } else if (player.health >= 30 && player.health < 70) {
-  //         setColor('orange');
-  //       } else {
-  //         setColor('red');
-  //       }
-  //     });
-
-  //     return () => {
-  //       socket.off('hit');
-  //     };
-  //   }, []);
-
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!playerRef.current) return;
+
+    // const currentPos = playerRef.current.translation();
     const { x, y, z } = position;
     playerRef.current.setTranslation({ x, y, z }, true);
+    // playerRef.current.setTranslation(
+    //   { x, y: THREE.MathUtils.lerp(currentPos.y, position.y, 0.05), z },
+    //   true
+    // );
+  });
 
+  useEffect(() => {
     if (isDead) {
       bodyRef.current.rotateX(Math.PI * 0.5);
       bodyRef.current.position.set(0, -0.65, 0);
     }
-  });
+  }, [isDead]);
 
   return (
-    <>
-      <RigidBody
-        position={[position.x, position.y, position.z]}
-        colliders={false}
-        mass={1}
-        ref={playerRef}
-        lockRotations
-      >
-        <mesh ref={bodyRef} castShadow>
-          <capsuleGeometry args={[0.4, 1]} />
-          <meshBasicMaterial
-            color={
-              //   health >= 70 ?
-              'yellow'
-              // : health >= 30 && health < 70
-              // ? 'orange'
-              // : 'red'
-            }
-          />
-          <CapsuleCollider args={[0.5, 0.5]} />
-        </mesh>
-      </RigidBody>
-    </>
+    <RigidBody
+      position={[position.x, position.y, position.z]}
+      colliders={false}
+      mass={1}
+      ref={playerRef}
+      lockRotations
+      // linearDamping={0.9}
+    >
+      <mesh ref={bodyRef} castShadow>
+        <capsuleGeometry args={[0.4, 1]} />
+        <meshBasicMaterial color={'green'} />
+        <CapsuleCollider args={[0.5, 0.5]} />
+      </mesh>
+    </RigidBody>
   );
+};
+
+const healthColor = (health) => {
+  if (health > 75) return 'green';
+  if (health > 50) return 'yellow';
+  if (health > 25) return 'orange';
+  return 'red';
 };
