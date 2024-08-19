@@ -14,6 +14,7 @@ import RoomSelector from './UI/RoomSelector/RoomSelector';
 import UI from './UI/UI';
 import { useSnackbar } from 'notistack';
 import InviteFriends from './UI/InviteFriend/InviteFriends';
+import { Box } from '@mui/material';
 export const socket = io(import.meta.env.VITE_SERVER_URL);
 export const tweenGroup = new Group();
 const App = () => {
@@ -32,7 +33,15 @@ const App = () => {
   const { enqueueSnackbar } = useSnackbar();
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [isGameOver, setIsGameOver] = useState(false);
+  const [isServerConnected, setIsServerConnected] = useState(false);
   useEffect(() => {
+    socket.on('connect', () => {
+      setIsServerConnected(socket.connected);
+    });
+    socket.on('disconnect', () => {
+      setIsServerConnected(socket.connected);
+    });
+
     let timeOutId;
     // Handle current players
     socket.on('currentPlayers', (currentPlayers) => {
@@ -149,6 +158,13 @@ const App = () => {
     socket.emit('joinRoom', roomInfo);
   };
 
+  if (!isServerConnected) {
+    return (
+      <Box sx={{ textAlign: 'center', mt: 5 }}>
+        <h1>Connecting to the server...</h1>
+      </Box>
+    );
+  }
   if (!isJoinedRoom) {
     return <RoomSelector joinRoom={handleJoinRoom} />;
   }
