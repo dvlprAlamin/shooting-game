@@ -1,0 +1,119 @@
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 5; // above .ui-root (crosshair), below the HUD and dialogs
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+// Floating stick: rests bottom-left, jumps under the thumb when touched (inline left/top).
+.stick {
+  position: absolute;
+  left: calc(var(--safe-left) + 120px);
+  top: calc(100% - var(--safe-bottom) - 110px);
+  width: 128px;
+  height: 128px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.18);
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 0.15s;
+
+  &.active {
+    opacity: 1;
+  }
+
+  &.sprint .knob {
+    background: rgba(255, 196, 64, 0.85);
+  }
+}
+
+.knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+}
+
+.button {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+
+  svg {
+    width: 46%;
+    height: 46%;
+    pointer-events: none;
+  }
+
+  &.pressed,
+  &.on {
+    background: rgba(255, 255, 255, 0.35);
+    border-color: #fff;
+  }
+}
+
+.fire {
+  right: calc(var(--safe-right) + 104px);
+  bottom: calc(var(--safe-bottom) + 64px);
+  width: 88px;
+  height: 88px;
+  border-color: rgba(255, 90, 70, 0.8);
+  background: rgba(150, 20, 10, 0.35);
+
+  &.pressed {
+    background: rgba(255, 70, 50, 0.55);
+  }
+}
+
+.aim {
+  right: calc(var(--safe-right) + 30px);
+  bottom: calc(var(--safe-bottom) + 112px);
+  width: 60px;
+  height: 60px;
+}
+
+.jump {
+  right: calc(var(--safe-right) + 28px);
+  bottom: calc(var(--safe-bottom) + 30px);
+  width: 62px;
+  height: 62px;
+}
+
+.reload {
+  right: calc(var(--safe-right) + 210px);
+  bottom: calc(var(--safe-bottom) + 28px);
+  width: 54px;
+  height: 54px;
+}
+
+// Only reachable in a mobile browser; the native app is locked to landscape.
+.rotate {
+  display: none;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  font-size: 22px;
+  background: rgba(0, 0, 0, 0.85);
+
+  @media (orientation: portrait) {
+    display: flex;
+  }
+}

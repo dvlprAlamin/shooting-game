@@ -31,10 +31,11 @@ export function initAudio(camera) {
   return listener;
 }
 
-// Browsers keep the AudioContext suspended until a user gesture.
+// Browsers keep the AudioContext suspended until a user gesture. iOS also marks it
+// 'interrupted' after a call or when the app was in the background.
 export function resumeAudio() {
   const ctx = listener?.context;
-  if (ctx && ctx.state === 'suspended') ctx.resume();
+  if (ctx && (ctx.state === 'suspended' || ctx.state === 'interrupted')) ctx.resume();
 }
 
 function source(name, { volume = 1, detune = 0 }) {

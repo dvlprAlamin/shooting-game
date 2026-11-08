@@ -7,9 +7,16 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "app:sync": "vite build && cap sync",
+    "app:android": "vite build && cap sync android && cap open android",
+    "app:ios": "vite build && cap sync ios && cap open ios",
+    "app:apk": "vite build && cap sync android && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/ios": "^8.6.0",
     "@emotion/react": "^11.13.0",
     "@emotion/styled": "^11.13.0",
     "@mui/material": "^5.16.7",
@@ -19,17 +26,16 @@
     "@tweenjs/tween.js": "^25.0.0",
     "immer": "^10.1.1",
     "nanoid": "^5.0.7",
-    "nipplejs": "^0.10.2",
     "notistack": "^3.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-joystick-component": "^6.2.1",
     "socket.io-client": "^4.7.5",
     "three": "^0.167.1",
     "uuid": "^10.0.0",
     "zustand": "^4.4.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.6.0",
     "@types/node": "^22.1.0",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
@@ -43,6 +49,7 @@
     "gltf-pipeline": "^4.1.0",
     "leva": "^0.9.35",
     "sass": "^1.69.7",
+    "typescript": "^5.9.3",
     "vite": "^5.3.5"
   }
 }

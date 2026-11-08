@@ -1,5 +1,9 @@
-import { Gltf } from '@react-three/drei';
+import { Gltf, useGLTF } from '@react-three/drei';
 import { RigidBody } from '@react-three/rapier';
+
+// The map GLBs are Draco-compressed. Use the decoder in public/draco (copied from
+// three/examples/jsm/libs/draco/gltf) instead of drei's default Google CDN, so the app works offline.
+useGLTF.setDecoderPath('/draco/');
 
 export const Ground = () => {
   return (

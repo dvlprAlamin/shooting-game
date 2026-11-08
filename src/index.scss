@@ -26,6 +26,18 @@ body {
     background-attachment: fixed;
     color: #fff;
 }
+// Safe areas (notch, home indicator). Capacitor injects --safe-area-inset-* on Android; env() covers iOS and browsers.
+:root {
+    --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+    --safe-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
+    --safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+    --safe-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+}
+// Set on <html> when touch controls are active (see main.tsx).
+html.touch body {
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+}
 .ui-root {
     position: fixed;
     top: 0;

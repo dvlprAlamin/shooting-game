@@ -1,6 +1,6 @@
 import {useRoundsStore, IRoundsStore} from "@/store/RoundsStore.ts";
 import styles from "@/UI/NumberOfRounds/styles.module.scss";
-import { RELOAD_BUTTON_NAME } from "@/config";
+import { IS_TOUCH, RELOAD_BUTTON_NAME } from "@/config";
 
 const NumberOfRounds = () => {
     const countOfRounds = useRoundsStore((state: IRoundsStore) => state.countRounds);
@@ -8,7 +8,7 @@ const NumberOfRounds = () => {
 
     return (
         <div className={styles.rounds}>
-            {!isEmptyRounds ? countOfRounds : RELOAD_BUTTON_NAME}
+            {!isEmptyRounds || IS_TOUCH ? countOfRounds : RELOAD_BUTTON_NAME}
         </div>
     );
 };

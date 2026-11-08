@@ -33,6 +33,7 @@ import {
   RELOAD_EMPTY_TIME,
   RELOAD_TIME,
   SPRINT_SPEED,
+  TOUCH_LOOK_SPEED,
   WALK_SPEED,
   WORLD_FOV,
 } from '@/game/constants';
@@ -96,6 +97,7 @@ export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, isDead }) => {
     const uninstall = installInput();
     initAudio(camera);
     document.addEventListener('mousedown', resumeAudio);
+    document.addEventListener('touchend', resumeAudio);
 
     // Fresh spawn: full magazine, level camera, draw animation.
     useRoundsStore.getState().reloadRounds();
@@ -114,6 +116,7 @@ export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, isDead }) => {
     return () => {
       uninstall();
       document.removeEventListener('mousedown', resumeAudio);
+      document.removeEventListener('touchend', resumeAudio);
       socket.off('hit', onHit);
       camera.fov = WORLD_FOV;
       camera.updateProjectionMatrix();
@@ -202,6 +205,16 @@ export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, isDead }) => {
 
     // --- look ------------------------------------------------------------
     _euler.setFromQuaternion(camera.quaternion, 'YXZ');
+    if (input.lookX || input.lookY) {
+      // Touch drag (mouse look goes through PointerLockControls). Slower while aiming, like pointerSpeed.
+      if (!dead) {
+        const k = TOUCH_LOOK_SPEED * (1 - state.ads * 0.35);
+        _euler.y -= input.lookX * k;
+        _euler.x = THREE.MathUtils.clamp(_euler.x - input.lookY * k, -Math.PI / 2 + 0.01, Math.PI / 2 - 0.01);
+        camera.quaternion.setFromEuler(_euler);
+      }
+      input.lookX = input.lookY = 0;
+    }
     if (state.recoilPending > 1e-5 || Math.abs(state.recoilYawPending) > 1e-5) {
       const k = dampFactor(28, dt);
       const dp = state.recoilPending * k;
@@ -232,14 +245,15 @@ export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, isDead }) => {
     state.grounded = now - state.lastGrounded < 120;
 
     // --- movement ----------------------------------------------------------
-    const fx = (input.forward ? 1 : 0) - (input.backward ? 1 : 0);
-    const sx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+    // Keys are digital; the touch stick is analog (a partial push walks slower).
+    const fx = THREE.MathUtils.clamp((input.forward ? 1 : 0) - (input.backward ? 1 : 0) + input.moveY, -1, 1);
+    const sx = THREE.MathUtils.clamp((input.right ? 1 : 0) - (input.left ? 1 : 0) + input.moveX, -1, 1);
     _forward.set(-Math.sin(yaw), 0, -Math.cos(yaw));
     _right.set(Math.cos(yaw), 0, -Math.sin(yaw));
     _wish.set(0, 0, 0).addScaledVector(_forward, fx).addScaledVector(_right, sx);
-    if (_wish.lengthSq() > 0) _wish.normalize();
+    if (_wish.lengthSq() > 1) _wish.normalize();
 
-    state.sprinting = !dead && input.sprint && fx > 0 && !input.aim && !input.fire && state.grounded;
+    state.sprinting = !dead && (input.sprint || input.stickSprint) && fx > 0 && !input.aim && !input.fire && state.grounded;
     let speed = state.sprinting ? SPRINT_SPEED : WALK_SPEED;
     if (state.ads > 0.5) speed = ADS_SPEED;
     if (dead) speed = 0;

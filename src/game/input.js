@@ -2,7 +2,7 @@ import { usePointerLockControlsStore } from '@/store/PointerLockControlStore';
 import { useAimingStore } from '@/store/AimingStore';
 import { AIM_BUTTON, RELOAD_BUTTON_CODE, SHOOT_BUTTON } from '@/config';
 
-// Keyboard/mouse state read every frame inside useFrame. Kept outside React so key
+// Keyboard/mouse/touch state read every frame inside useFrame. Kept outside React so key
 // presses don't trigger re-renders.
 export const input = {
   forward: false,
@@ -15,6 +15,12 @@ export const input = {
   aim: false,
   reload: false, // edge-triggered, consumed by the player
   firePressed: false, // edge-triggered, consumed by the player
+  // Touch controls (see components/TouchControls.jsx)
+  moveX: 0, // analog stick, -1 (left) .. 1 (right)
+  moveY: 0, // analog stick, -1 (back) .. 1 (forward)
+  stickSprint: false, // stick pushed all the way forward
+  lookX: 0, // accumulated drag in CSS pixels, consumed by the player
+  lookY: 0,
 };
 
 const KEYS = {
@@ -31,14 +37,17 @@ const KEYS = {
   ShiftRight: 'sprint',
 };
 
-const setAim = (value) => {
+export const setAim = (value) => {
   input.aim = value;
   if (useAimingStore.getState().isAiming !== value) useAimingStore.getState().setIsAiming(value);
 };
 
-const releaseAll = () => {
+export const releaseAll = () => {
   for (const k of Object.values(KEYS)) input[k] = false;
   input.fire = false;
+  input.moveX = input.moveY = 0;
+  input.stickSprint = false;
+  input.lookX = input.lookY = 0;
   setAim(false);
 };
 

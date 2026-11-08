@@ -14,8 +14,8 @@ const InviteFriends = () => {
     <Box
       sx={{
         position: 'absolute',
-        top: 10,
-        right: 130,
+        top: 'calc(var(--safe-top) + 10px)',
+        right: 'calc(var(--safe-right) + 130px)',
         zIndex: 99,
       }}
     >

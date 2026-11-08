@@ -28,6 +28,7 @@ export const WORLD_FOV = 60;
 export const ADS_FOV = 45;
 export const VIEWMODEL_FOV = 55;
 export const VIEWMODEL_ADS_FOV = 42;
+export const TOUCH_LOOK_SPEED = 0.005; // radians per CSS pixel of drag
 
 // Networking
 export const NET_SEND_INTERVAL = 50; // ms (20 Hz)

@@ -13,6 +13,7 @@ import {
   resetRemote,
 } from '@/net/remotePlayers';
 import { WORLD_FOV } from '@/game/constants';
+import { IS_TOUCH } from '@/config';
 import { usePointerLockControlsStore } from './store/PointerLockControlStore';
 import RespawnPopup from './UI/RespawnPopup/RespawnPopup';
 import { usePlayerStore } from './store/PlayersStore';
@@ -22,6 +23,7 @@ import RoomSelector from './UI/RoomSelector/RoomSelector';
 import UI from './UI/UI';
 import { useSnackbar } from 'notistack';
 import InviteFriends from './UI/InviteFriend/InviteFriends';
+import TouchControls from './components/TouchControls';
 import { Box } from '@mui/material';
 
 export { socket };
@@ -193,6 +195,7 @@ const App = () => {
       />
       <InviteFriends />
       <UI />
+      {IS_TOUCH && !isDead && !isGameOver && <TouchControls />}
       <Canvas
         camera={{ fov: WORLD_FOV, near: 0.05, far: 1000 }}
         dpr={[1, 1.5]}
@@ -226,7 +229,8 @@ const Scene = ({ players, isDead, isGameOver }) => {
   return (
     <>
       <Stats />
-      {!isDead && !isGameOver ? (
+      {/* Mouse look needs the Pointer Lock API, which phones don't have; touch look is in TouchControls. */}
+      {!IS_TOUCH && !isDead && !isGameOver ? (
         <PointerLockControls
           makeDefault
           onLock={pointerLockControlsLockHandler}
@@ -281,8 +285,8 @@ const HUD = ({ health, deaths, kills, timeRemaining }) => {
     <div
       style={{
         position: 'absolute',
-        top: 10,
-        right: 10,
+        top: 'calc(var(--safe-top) + 10px)',
+        right: 'calc(var(--safe-right) + 10px)',
         color: 'white',
         background: 'rgba(0, 0, 0, 0.5)',
         padding: '5px',
