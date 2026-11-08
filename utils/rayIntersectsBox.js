@@ -1,30 +1,31 @@
+// Slab test. Returns the distance along the (normalized) ray to the box, or null on a miss.
+// Handles axis-parallel rays (direction component 0) without producing NaN.
 const rayIntersectsBox = (rayOrigin, rayDirection, boxMin, boxMax) => {
-    let tmin = (boxMin.x - rayOrigin.x) / rayDirection.x;
-    let tmax = (boxMax.x - rayOrigin.x) / rayDirection.x;
+    let tmin = -Infinity;
+    let tmax = Infinity;
 
-    if (tmin > tmax) [tmin, tmax] = [tmax, tmin];
+    for (const axis of ['x', 'y', 'z']) {
+        const o = rayOrigin[axis];
+        const d = rayDirection[axis];
+        const min = boxMin[axis];
+        const max = boxMax[axis];
 
-    let tymin = (boxMin.y - rayOrigin.y) / rayDirection.y;
-    let tymax = (boxMax.y - rayOrigin.y) / rayDirection.y;
+        if (Math.abs(d) < 1e-9) {
+            // Parallel to this slab: must already be inside it.
+            if (o < min || o > max) return null;
+            continue;
+        }
 
-    if (tymin > tymax) [tymin, tymax] = [tymax, tymin];
+        let t1 = (min - o) / d;
+        let t2 = (max - o) / d;
+        if (t1 > t2) [t1, t2] = [t2, t1];
+        if (t1 > tmin) tmin = t1;
+        if (t2 < tmax) tmax = t2;
+        if (tmin > tmax) return null;
+    }
 
-    if ((tmin > tymax) || (tymin > tmax)) return false;
-
-    if (tymin > tmin) tmin = tymin;
-    if (tymax < tmax) tmax = tymax;
-
-    let tzmin = (boxMin.z - rayOrigin.z) / rayDirection.z;
-    let tzmax = (boxMax.z - rayOrigin.z) / rayDirection.z;
-
-    if (tzmin > tzmax) [tzmin, tzmax] = [tzmax, tzmin];
-
-    if ((tmin > tzmax) || (tzmin > tmax)) return false;
-
-    if (tzmin > tmin) tmin = tzmin;
-    if (tzmax < tmax) tmax = tzmax;
-
-    return tmax > 0;
+    if (tmax < 0) return null; // box is behind the ray
+    return tmin >= 0 ? tmin : 0; // origin inside the box
 };
 
 module.exports = rayIntersectsBox;
