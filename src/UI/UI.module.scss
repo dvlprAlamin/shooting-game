@@ -9,3 +9,79 @@
   border: 2px solid white;
   z-index: 2;
 }
+
+// Four short diagonal ticks around the crosshair.
+.hitMarker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  transform: translate3d(-50%, -50%, 0) rotate(45deg);
+  z-index: 3;
+  pointer-events: none;
+  animation: hitMarker 0.25s ease-out forwards;
+  background:
+    linear-gradient(#fff, #fff) center top / 2px 8px no-repeat,
+    linear-gradient(#fff, #fff) center bottom / 2px 8px no-repeat,
+    linear-gradient(#fff, #fff) left center / 8px 2px no-repeat,
+    linear-gradient(#fff, #fff) right center / 8px 2px no-repeat;
+
+  &.kill {
+    width: 36px;
+    height: 36px;
+    animation-duration: 0.6s;
+    background:
+      linear-gradient(#ff3b3b, #ff3b3b) center top / 3px 11px no-repeat,
+      linear-gradient(#ff3b3b, #ff3b3b) center bottom / 3px 11px no-repeat,
+      linear-gradient(#ff3b3b, #ff3b3b) left center / 11px 3px no-repeat,
+      linear-gradient(#ff3b3b, #ff3b3b) right center / 11px 3px no-repeat;
+  }
+}
+
+@keyframes hitMarker {
+  from {
+    opacity: 1;
+    scale: 1.25;
+  }
+  to {
+    opacity: 0;
+    scale: 1;
+  }
+}
+
+.damage {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(170, 0, 0, 0.5) 100%);
+  animation: damage 0.9s ease-out forwards;
+
+  img {
+    position: absolute;
+    width: 180px;
+    opacity: 0.45;
+  }
+}
+
+@keyframes damage {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.reloading {
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: 18px;
+  text-shadow: 0 0 4px #000;
+  letter-spacing: 3px;
+  z-index: 2;
+}

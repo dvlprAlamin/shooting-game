@@ -1,76 +1,80 @@
-import React, { Fragment, Suspense, useEffect, useRef, useState } from 'react';
-import { Group } from '@tweenjs/tween.js';
-import { Canvas, useFrame } from '@react-three/fiber';
+import React, { Suspense, useEffect, useState } from 'react';
+import { Canvas } from '@react-three/fiber';
 import { Html, PointerLockControls, Sky, Stats } from '@react-three/drei';
 import { Ground } from '@/Ground.jsx';
 import { Physics } from '@react-three/rapier';
 import { Player } from '@/Player.jsx';
-import { io } from 'socket.io-client';
+import { socket } from '@/net/socket';
+import {
+  clearRemotes,
+  dispatchShot,
+  pushSnapshot,
+  removeRemote,
+  resetRemote,
+} from '@/net/remotePlayers';
+import { WORLD_FOV } from '@/game/constants';
 import { usePointerLockControlsStore } from './store/PointerLockControlStore';
 import RespawnPopup from './UI/RespawnPopup/RespawnPopup';
 import { usePlayerStore } from './store/PlayersStore';
+import { useHudStore } from './store/HudStore';
 import { RemotePlayer } from './RemotePlayer';
 import RoomSelector from './UI/RoomSelector/RoomSelector';
 import UI from './UI/UI';
 import { useSnackbar } from 'notistack';
 import InviteFriends from './UI/InviteFriend/InviteFriends';
 import { Box } from '@mui/material';
-export const socket = io(import.meta.env.VITE_SERVER_URL);
-export const tweenGroup = new Group();
+
+export { socket };
+
 const App = () => {
-  const {
-    players,
-    setPlayers,
-    setCurrentPlayer,
-    setPlayer,
-    updatePlayer,
-    removePlayer,
-    leaderboard,
-    setLeaderboard,
-  } = usePlayerStore();
+  const players = usePlayerStore((s) => s.players);
+  const leaderboard = usePlayerStore((s) => s.leaderboard);
   const [isDead, setIsDead] = useState(false);
   const [isJoinedRoom, setIsJoinedRoom] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [isGameOver, setIsGameOver] = useState(false);
-  const [isServerConnected, setIsServerConnected] = useState(false);
+  const [isServerConnected, setIsServerConnected] = useState(socket.connected);
+
   useEffect(() => {
-    socket.on('connect', () => {
-      setIsServerConnected(socket.connected);
-    });
-    socket.on('disconnect', () => {
-      setIsServerConnected(socket.connected);
-    });
+    const { setPlayers, setPlayer, updatePlayer, removePlayer, setLeaderboard } = usePlayerStore.getState();
+    const respawnTimeouts = new Set();
 
-    let timeOutId;
+    const onConnect = () => setIsServerConnected(true);
+    const onDisconnect = () => {
+      setIsServerConnected(false);
+      // The server forgets us on disconnect; go back to the room selector.
+      setIsJoinedRoom(false);
+      setIsDead(false);
+      setIsGameOver(false);
+      setPlayers({});
+      clearRemotes();
+    };
+
     // Handle current players
-    socket.on('currentPlayers', (currentPlayers) => {
-      console.log('Current Players:', currentPlayers);
+    const onCurrentPlayers = (currentPlayers) => {
+      clearRemotes();
+      for (const id in currentPlayers) {
+        if (id !== socket.id) resetRemote(id, currentPlayers[id].position, currentPlayers[id].rotation?.y);
+      }
       setPlayers(currentPlayers);
-    });
-
-    socket.on('leaderboardAllPlayers', (allPlayers) => {
-      console.log('Current Players:', allPlayers);
-      setLeaderboard(allPlayers);
-    });
+    };
 
     // Handle new player
-    socket.on('newPlayer', (newPlayer) => {
-      console.log('New Player:', newPlayer);
+    const onNewPlayer = (newPlayer) => {
+      resetRemote(newPlayer.id, newPlayer.position);
       setPlayer({ ...newPlayer, isDead: false });
-    });
+    };
 
-    // Handle player movement
-    socket.on('playerMoved', (player) => {
-      updatePlayer(player.id, 'position', player.position);
-      updatePlayer(player.id, 'rotation', player.rotation);
-      // setPlayer(player);
-    });
+    // Movement goes straight into the interpolation buffers, not into React state.
+    const onPlayerMoved = (data) => pushSnapshot(data.id, data);
+    const onPlayerShot = (data) => dispatchShot(data.id, data);
 
-    socket.on('playerDead', (player) => {
+    const onPlayerDead = (player) => {
       updatePlayer(player.id, 'isDead', true);
 
       if (player.shooter === socket.id) {
+        useHudStore.getState().showHitMarker(true);
         enqueueSnackbar({
           message: `You killed ${player.playerName}!`,
           variant: 'success',
@@ -90,63 +94,63 @@ const App = () => {
           hideIconVariant: true,
         });
       }
-    });
+    };
 
-    socket.on('playerKilled', (player) => {
-      updatePlayer(player.id, 'kills', player.kills);
-    });
+    const onPlayerKilled = (player) => updatePlayer(player.id, 'kills', player.kills);
 
-    socket.on('playerRespawned', (player) => {
+    const onPlayerRespawned = (player) => {
       removePlayer(player.id);
-      timeOutId = setTimeout(() => {
+      if (player.id !== socket.id) resetRemote(player.id, player.position);
+      const timeoutId = setTimeout(() => {
+        respawnTimeouts.delete(timeoutId);
         if (player.id === socket.id) {
           setIsDead(false);
         }
         setPlayer({ ...player, isDead: false });
       }, 1000);
-    });
+      respawnTimeouts.add(timeoutId);
+    };
 
-    socket.on('notification', ({ message }) => {
+    const onNotification = ({ message }) => {
       enqueueSnackbar({
         message: message,
         variant: 'warning',
       });
-    });
+    };
 
-    socket.on('timerUpdate', (remaining) => {
-      console.log('remaining', remaining);
-
-      setTimeRemaining(remaining);
-    });
-    socket.on('gameOver', () => {
-      setIsGameOver(true);
-    });
-
-    socket.on('joinedRoom', ({ message }) => {
-      setIsJoinedRoom(true);
-    });
+    const onTimerUpdate = (remaining) => setTimeRemaining(remaining);
+    const onGameOver = () => setIsGameOver(true);
+    const onJoinedRoom = () => setIsJoinedRoom(true);
 
     // Handle player disconnection
-    socket.on('playerDisconnected', (id) => {
+    const onPlayerDisconnected = (id) => {
+      removeRemote(id);
       removePlayer(id);
-    });
+    };
+
+    const handlers = {
+      connect: onConnect,
+      disconnect: onDisconnect,
+      currentPlayers: onCurrentPlayers,
+      leaderboardAllPlayers: setLeaderboard,
+      newPlayer: onNewPlayer,
+      playerMoved: onPlayerMoved,
+      playerShot: onPlayerShot,
+      playerDead: onPlayerDead,
+      playerKilled: onPlayerKilled,
+      playerRespawned: onPlayerRespawned,
+      notification: onNotification,
+      timerUpdate: onTimerUpdate,
+      gameOver: onGameOver,
+      joinedRoom: onJoinedRoom,
+      playerDisconnected: onPlayerDisconnected,
+    };
+    for (const [event, fn] of Object.entries(handlers)) socket.on(event, fn);
+    setIsServerConnected(socket.connected);
 
     return () => {
-      socket.off('currentPlayers');
-      socket.off('leaderboardAllPlayers');
-      socket.off('newPlayer');
-      socket.off('playerMoved');
-      socket.off('playerDisconnected');
-      socket.off('playerDead');
-      socket.off('playerKilled');
-      socket.off('playerRespawned');
-      socket.off('notification');
-      socket.off('timerUpdate');
-      socket.off('gameOver');
-      socket.off('joinedRoom');
-      if (timeOutId) {
-        clearTimeout(timeOutId);
-      }
+      for (const [event, fn] of Object.entries(handlers)) socket.off(event, fn);
+      respawnTimeouts.forEach(clearTimeout);
     };
   }, []);
 
@@ -189,7 +193,11 @@ const App = () => {
       />
       <InviteFriends />
       <UI />
-      <Canvas camera={{ fov: 45 }} shadows>
+      <Canvas
+        camera={{ fov: WORLD_FOV, near: 0.05, far: 1000 }}
+        dpr={[1, 1.5]}
+        shadows
+      >
         <Suspense
           fallback={
             <Html center>
@@ -207,10 +215,6 @@ const App = () => {
 export default App;
 
 const Scene = ({ players, isDead, isGameOver }) => {
-  useFrame(() => {
-    tweenGroup.update();
-  });
-
   const pointerLockControlsLockHandler = () => {
     usePointerLockControlsStore.setState({ isLock: true });
   };
@@ -224,6 +228,7 @@ const Scene = ({ players, isDead, isGameOver }) => {
       <Stats />
       {!isDead && !isGameOver ? (
         <PointerLockControls
+          makeDefault
           onLock={pointerLockControlsLockHandler}
           onUnlock={pointerLockControlsUnlockHandler}
         />
@@ -235,39 +240,34 @@ const Scene = ({ players, isDead, isGameOver }) => {
       <directionalLight
         castShadow
         intensity={1.5}
-        shadow-mapSize={4096}
+        shadow-mapSize={2048}
         shadow-camera-top={50}
         shadow-camera-bottom={-50}
         shadow-camera-left={50}
         shadow-camera-right={-50}
         position={[100, 100, 0]}
       />
-      <Physics gravity={[0, -9.8, 0]}>
+      {/* Step physics before any game logic so the player reads this frame's interpolated pose. */}
+      <Physics gravity={[0, -9.8, 0]} updatePriority={-50}>
         <Ground />
         {!isGameOver ? (
-          Object.keys(players).map((id) => (
-            <Fragment key={id}>
-              {id === socket.id ? (
-                <Player
-                  key={id}
-                  id={id}
-                  initialPosition={players[id].position}
-                  initialRotation={players[id].rotation}
-                  isDead={players[id].isDead}
-                  health={players[id].health}
-                />
-              ) : (
-                <RemotePlayer
-                  key={id}
-                  id={id}
-                  position={players[id].position}
-                  isDead={players[id].isDead}
-                  health={players[id].health}
-                  playerName={players[id].playerName}
-                />
-              )}
-            </Fragment>
-          ))
+          Object.keys(players).map((id) =>
+            id === socket.id ? (
+              <Player
+                key={id}
+                initialPosition={players[id].position}
+                isDead={players[id].isDead}
+              />
+            ) : (
+              <RemotePlayer
+                key={id}
+                id={id}
+                initialPosition={players[id].position}
+                isDead={players[id].isDead}
+                playerName={players[id].playerName}
+              />
+            )
+          )
         ) : (
           <></>
         )}

@@ -1,7 +1,6 @@
 import {useRoundsStore, IRoundsStore} from "@/store/RoundsStore.ts";
 import styles from "@/UI/NumberOfRounds/styles.module.scss";
-
-const RELOAD_BUTTON_NAME = import.meta.env.VITE_RELOAD_BUTTON_NAME;
+import { RELOAD_BUTTON_NAME } from "@/config";
 
 const NumberOfRounds = () => {
     const countOfRounds = useRoundsStore((state: IRoundsStore) => state.countRounds);

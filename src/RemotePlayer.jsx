@@ -1,57 +1,164 @@
-import { CapsuleCollider, RigidBody } from '@react-three/rapier';
-import { useEffect, useRef, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useEffect, useMemo, useRef } from 'react';
+import { useFrame, useLoader } from '@react-three/fiber';
+import { useGLTF } from '@react-three/drei';
+import { CapsuleCollider, RigidBody } from '@react-three/rapier';
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import FlashShoot from '@/assets/textures/flash_shoot_256x256.png';
+import { sampleRemote, setShotListener } from '@/net/remotePlayers';
+import { createSoldierRig, getMuzzleWorld, GUN_MUZZLE } from '@/game/soldierRig';
+import { playSoundAt } from '@/game/audio';
+import {
+  FLAG_GROUNDED,
+  PLAYER_CENTER_TO_FEET,
+  PLAYER_HALF_HEIGHT,
+  PLAYER_RADIUS,
+} from '@/game/constants';
 
-export const RemotePlayer = ({
-  id,
-  position = { x: 0, y: 0, z: 0 },
-  isDead,
-  health,
-}) => {
-  const playerRef = useRef();
+const SOLDIER_URL = '/models/soldier.glb';
+const RIFLE_URL = '/models/weapon_tp.glb';
+
+const _muzzle = new THREE.Vector3();
+
+function makeNameTag(name) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  ctx.font = 'bold 30px Juvanze, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+  ctx.strokeText(name, 128, 32, 240);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(name, 128, 32, 240);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+export const RemotePlayer = ({ id, isDead, playerName = '', initialPosition = { x: 0, y: 0, z: 0 } }) => {
+  const soldier = useGLTF(SOLDIER_URL);
+  const rifle = useGLTF(RIFLE_URL);
+  const flashTexture = useLoader(THREE.TextureLoader, FlashShoot);
   const bodyRef = useRef();
+  const rootRef = useRef();
+  const tiltRef = useRef();
 
-  useFrame((state, delta) => {
-    if (!playerRef.current) return;
+  const visual = useMemo(() => {
+    const model = cloneSkinned(soldier.scene);
+    const gun = rifle.scene.clone(true);
+    for (const obj of [model, gun]) {
+      obj.traverse((o) => {
+        if (o.isMesh) o.castShadow = true;
+      });
+    }
+    const rig = createSoldierRig(model, gun);
 
-    // const currentPos = playerRef.current.translation();
-    const { x, y, z } = position;
-    playerRef.current.setTranslation({ x, y, z }, true);
-    // playerRef.current.setTranslation(
-    //   { x, y: THREE.MathUtils.lerp(currentPos.y, position.y, 0.05), z },
-    //   true
-    // );
-  });
+    const flash = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: flashTexture,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        transparent: true,
+        color: new THREE.Color(1, 0.85, 0.6),
+      })
+    );
+    flash.position.copy(GUN_MUZZLE).add(new THREE.Vector3(0, 0, 0.06));
+    flash.visible = false;
+    gun.add(flash);
+
+    return { model, gun, rig, flash };
+  }, [soldier, rifle, flashTexture]);
+
+  const nameTag = useMemo(() => makeNameTag(playerName), [playerName]);
+  useEffect(() => () => nameTag.dispose(), [nameTag]);
+
+  const motion = useMemo(
+    () => ({
+      sample: { x: initialPosition.x, y: initialPosition.y, z: initialPosition.z, yaw: 0, pitch: 0, f: FLAG_GROUNDED },
+      last: new THREE.Vector3(initialPosition.x, initialPosition.y, initialPosition.z),
+      vel: new THREE.Vector3(),
+      flashUntil: 0,
+      started: false,
+    }),
+    []
+  );
 
   useEffect(() => {
-    if (isDead) {
-      bodyRef.current.rotateX(Math.PI * 0.5);
-      bodyRef.current.position.set(0, -0.65, 0);
+    setShotListener(id, () => {
+      motion.flashUntil = performance.now() + 50;
+      visual.flash.visible = true;
+      visual.flash.material.rotation = Math.random() * Math.PI * 2;
+      visual.flash.scale.setScalar(0.3 + Math.random() * 0.15);
+      playSoundAt('shot', getMuzzleWorld(visual.gun, _muzzle), {
+        volume: 0.9,
+        detune: (Math.random() - 0.5) * 120,
+      });
+    });
+    return () => setShotListener(id, null);
+  }, [id, visual]);
+
+  useFrame((_, rawDt) => {
+    const dt = Math.min(rawDt, 0.05);
+    const s = motion.sample;
+    if (!isDead) sampleRemote(id, s);
+
+    // Velocity from the interpolated positions drives the walk cycle.
+    if (motion.started && dt > 0) {
+      const k = 1 - Math.exp(-12 * dt);
+      motion.vel.x += ((s.x - motion.last.x) / dt - motion.vel.x) * k;
+      motion.vel.z += ((s.z - motion.last.z) / dt - motion.vel.z) * k;
     }
-  }, [isDead]);
+    motion.started = true;
+    motion.last.set(s.x, s.y, s.z);
+
+    const root = rootRef.current;
+    if (root) {
+      root.position.set(s.x, s.y - PLAYER_CENTER_TO_FEET, s.z);
+      root.rotation.y = s.yaw + Math.PI; // model faces +Z, cameras look down -Z
+    }
+
+    const sin = Math.sin(s.yaw);
+    const cos = Math.cos(s.yaw);
+    visual.rig.update({
+      dt,
+      forward: -motion.vel.x * sin - motion.vel.z * cos,
+      side: motion.vel.x * cos - motion.vel.z * sin,
+      pitch: s.pitch,
+      grounded: (s.f & FLAG_GROUNDED) !== 0,
+      dead: !!isDead,
+      body: tiltRef.current,
+    });
+
+    if (visual.flash.visible && performance.now() > motion.flashUntil) visual.flash.visible = false;
+
+    if (!isDead) bodyRef.current?.setNextKinematicTranslation({ x: s.x, y: s.y, z: s.z });
+  });
 
   return (
-    <RigidBody
-      position={[position.x, position.y, position.z]}
-      colliders={false}
-      mass={1}
-      ref={playerRef}
-      lockRotations
-      // linearDamping={0.9}
-    >
-      <mesh ref={bodyRef} castShadow>
-        <capsuleGeometry args={[0.4, 1]} />
-        <meshBasicMaterial color={'green'} />
-        <CapsuleCollider args={[0.5, 0.5]} />
-      </mesh>
-    </RigidBody>
+    <>
+      <RigidBody
+        ref={bodyRef}
+        type="kinematicPosition"
+        colliders={false}
+        position={[initialPosition.x, initialPosition.y, initialPosition.z]}
+        userData={{ playerId: id }}
+      >
+        {!isDead && <CapsuleCollider args={[PLAYER_HALF_HEIGHT, PLAYER_RADIUS]} />}
+      </RigidBody>
+      <group ref={rootRef} position={[initialPosition.x, initialPosition.y - PLAYER_CENTER_TO_FEET, initialPosition.z]}>
+        <group ref={tiltRef}>
+          <primitive object={visual.model} />
+        </group>
+        <sprite position={[0, 2.05, 0]} scale={[1.1, 0.275, 1]} visible={!isDead}>
+          <spriteMaterial map={nameTag} transparent depthWrite={false} />
+        </sprite>
+      </group>
+    </>
   );
 };
 
-const healthColor = (health) => {
-  if (health > 75) return 'green';
-  if (health > 50) return 'yellow';
-  if (health > 25) return 'orange';
-  return 'red';
-};
+useGLTF.preload(SOLDIER_URL);
+useGLTF.preload(RIFLE_URL);
