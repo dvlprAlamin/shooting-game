@@ -16,6 +16,11 @@ const touchOverride = new URLSearchParams(window.location.search).get('touch');
 export const IS_TOUCH: boolean =
   touchOverride != null ? touchOverride !== '0' : IS_NATIVE || window.matchMedia('(pointer: coarse)').matches;
 
+// Low graphics on phones: render at 1x pixel ratio and skip shadow maps, the two biggest GPU costs
+// (together ~2.5x the frame rate in testing). `?quality=low` / `?quality=high` overrides for testing.
+const qualityOverride = new URLSearchParams(window.location.search).get('quality');
+export const LOW_QUALITY: boolean = qualityOverride != null ? qualityOverride === 'low' : IS_TOUCH;
+
 // The native app is served from capacitor://localhost or https://localhost, so it can't derive the
 // server from its own address: native builds must set VITE_SERVER_URL.
 if (IS_NATIVE && !env.VITE_SERVER_URL) {

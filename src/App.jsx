@@ -13,7 +13,7 @@ import {
   resetRemote,
 } from '@/net/remotePlayers';
 import { WORLD_FOV } from '@/game/constants';
-import { IS_TOUCH } from '@/config';
+import { IS_TOUCH, LOW_QUALITY } from '@/config';
 import { usePointerLockControlsStore } from './store/PointerLockControlStore';
 import RespawnPopup from './UI/RespawnPopup/RespawnPopup';
 import { usePlayerStore } from './store/PlayersStore';
@@ -198,8 +198,8 @@ const App = () => {
       {IS_TOUCH && !isDead && !isGameOver && <TouchControls />}
       <Canvas
         camera={{ fov: WORLD_FOV, near: 0.05, far: 1000 }}
-        dpr={[1, 1.5]}
-        shadows
+        dpr={LOW_QUALITY ? 1 : [1, 1.5]}
+        shadows={!LOW_QUALITY}
       >
         <Suspense
           fallback={
