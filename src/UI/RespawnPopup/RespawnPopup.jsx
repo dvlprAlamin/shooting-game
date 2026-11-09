@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import PrimaryButton from '../elements/Primarybutton';
 import { Box, Dialog, Typography } from '@mui/material';
 import LeaderBoard from '../LeaderBoard/LeaderBoard';
+import { SHORT_SCREEN_MEDIA } from '../../theme/shortScreen';
 
 const RespawnPopup = ({ reSpawnHandler, leaderboard, isGameOver }) => {
   const [activeButton, setActiveButton] = useState(false);
@@ -26,12 +27,22 @@ const RespawnPopup = ({ reSpawnHandler, leaderboard, isGameOver }) => {
     <div>
       <Dialog
         open={true}
+        fullWidth
         PaperProps={{
           sx: {
             boxShadow: 'none',
             background: '#00000080',
-            width: '80vw',
-            height: '90vh',
+            // The paper is a flex column: the header keeps its size and only the leaderboard scrolls.
+            height: '90%',
+            overflow: 'hidden',
+            // Keep the default 32px on top: on touch the kill feed snackbars sit at the top centre.
+            [SHORT_SCREEN_MEDIA]: {
+              m: 1.5,
+              mt: 4,
+              width: 'calc(100% - 24px)',
+              height: 'calc(100% - 44px)',
+              maxHeight: 'none',
+            },
           },
         }}
       >
@@ -39,13 +50,25 @@ const RespawnPopup = ({ reSpawnHandler, leaderboard, isGameOver }) => {
           sx={{
             p: 3,
             textAlign: 'center',
+            flexShrink: 0,
+            // Phone in landscape: title and respawn button on one row to leave room for the leaderboard.
+            [SHORT_SCREEN_MEDIA]: {
+              p: 1.5,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 3,
+            },
           }}
         >
-          <h1 style={{ color: '#fff', marginBottom: 8 }}>
+          <Box
+            component="h1"
+            sx={{ color: '#fff', mb: 1, [SHORT_SCREEN_MEDIA]: { mb: 0, fontSize: 24 } }}
+          >
             {isGameOver ? 'Game Over!' : 'You are dead!'}
-          </h1>
+          </Box>
           {!isGameOver ? (
-            <Box sx={{ height: 40 }}>
+            <Box sx={{ height: 40, display: 'grid', placeItems: 'center' }}>
               {!activeButton ? (
                 <Typography sx={{ fontSize: 18, color: '#fff' }}>
                   Wait {waitingTime} second{waitingTime > 1 ? 's' : ''}

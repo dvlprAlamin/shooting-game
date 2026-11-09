@@ -1,6 +1,5 @@
 import {
   Box,
-  Button,
   Container,
   IconButton,
   Tooltip,
@@ -12,8 +11,10 @@ import CreateRoomForm from './CreateRoomForm';
 import JoinRoomForm from './JoinRoomForm';
 import { nanoid } from 'nanoid';
 import PrimaryButton from '../elements/Primarybutton';
+import { SHORT_SCREEN_MEDIA, useShortScreen } from '../../theme/shortScreen';
 
 const RoomSelector = ({ joinRoom }) => {
+  const isShortScreen = useShortScreen();
   const [roomId, setRoomId] = useState('');
   const [isCopyRoomId, setIsCopyRoomId] = useState(false);
   const handleCopyRoomId = () => {
@@ -47,18 +48,44 @@ const RoomSelector = ({ joinRoom }) => {
     setRoomId(nanoid(6));
   };
   return (
-    <Container maxWidth="md">
+    // Exactly one screen tall: the title scales with the viewport height and the cards take what's left,
+    // so nothing scrolls on a phone in landscape.
+    <Container
+      maxWidth="md"
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        pt: 'var(--safe-top)',
+        pb: 'calc(var(--safe-bottom) + clamp(12px, 5vh, 40px))',
+        pl: 'calc(var(--safe-left) + 16px)',
+        pr: 'calc(var(--safe-right) + 16px)',
+      }}
+    >
       <Typography
         variant="h2"
-        sx={{ color: '#fff', py: 5, textAlign: 'center' }}
+        sx={{
+          color: '#fff',
+          py: 'clamp(8px, 6vh, 40px)',
+          fontSize: 'clamp(2rem, 13vh, 3.75rem)',
+          textAlign: 'center',
+          flexShrink: 0,
+        }}
       >
         Shooter Free
       </Typography>
       <Box
         sx={{
+          flex: 1,
+          minHeight: 0,
           display: 'flex',
           justifyContent: 'center',
-          gap: 5,
+          alignItems: 'flex-start',
+          gap: 'clamp(16px, 5vw, 40px)',
+          '@media (orientation: portrait)': {
+            flexDirection: 'column',
+            alignItems: 'center',
+          },
         }}
       >
         <Card>
@@ -70,12 +97,12 @@ const RoomSelector = ({ joinRoom }) => {
             }
           >
             {roomId ? (
-              <Box mb={2}>
+              <Box sx={{ mb: 2, [SHORT_SCREEN_MEDIA]: { mb: 1 } }}>
                 Room Id: {roomId}
                 <Tooltip
                   title={isCopyRoomId ? 'Room Id Copied!' : 'Copy Room Id'}
                 >
-                  <IconButton onClick={handleCopyRoomId}>
+                  <IconButton onClick={handleCopyRoomId} size={isShortScreen ? 'small' : 'medium'}>
                     <svg
                       height={18}
                       width={18}
@@ -124,8 +151,18 @@ const Card = ({ children }) => {
   return (
     <Box
       sx={{
-        flex: 1,
+        // Square, as tall as the space allows (up to 400px).
+        height: '100%',
+        maxHeight: 400,
         aspectRatio: '1/1',
+        minWidth: 0,
+        '@media (orientation: portrait)': {
+          height: 'auto',
+          flex: '1 1 0',
+          width: '100%',
+          maxWidth: 400,
+          aspectRatio: 'auto',
+        },
         display: 'grid',
         placeItems: 'center',
         background: 'rgba(255, 255, 255, 0.05)',
