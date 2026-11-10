@@ -1,6 +1,7 @@
 import {create} from "zustand";
+import { MAG_SIZE } from "@/shared/gameplay";
 
-const defaultCountOfRounds = 30;
+const defaultCountOfRounds = MAG_SIZE;
 
 export interface IRoundsStore {
     countRounds: number;

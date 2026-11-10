@@ -2,6 +2,7 @@ import { Box, MenuItem, TextField } from '@mui/material';
 import React from 'react';
 import PrimaryButton from '../elements/Primarybutton';
 import { SHORT_SCREEN_MEDIA, useShortScreen } from '../../theme/shortScreen';
+import { PLAYER_LIMITS, ROOM_DURATIONS } from '@/shared/gameplay';
 
 const CreateRoomForm = ({ handleSubmit }) => {
   const isShortScreen = useShortScreen();
@@ -46,29 +47,30 @@ const CreateRoomForm = ({ handleSubmit }) => {
         <TextField
           {...fieldProps}
           label="Duration"
-          defaultValue={5}
+          defaultValue={ROOM_DURATIONS[0]}
           name="duration"
           select
           SelectProps={selectProps}
         >
-          <MenuItem value={5}>5 minutes</MenuItem>
-          <MenuItem value={10}>10 minutes</MenuItem>
-          <MenuItem value={15}>15 minutes</MenuItem>
-          <MenuItem value={20}>20 minutes</MenuItem>
-          <MenuItem value={25}>25 minutes</MenuItem>
-          <MenuItem value={30}>30 minutes</MenuItem>
+          {ROOM_DURATIONS.map((minutes) => (
+            <MenuItem key={minutes} value={minutes}>
+              {minutes} minutes
+            </MenuItem>
+          ))}
         </TextField>
         <TextField
           {...fieldProps}
           label="Players Limit"
-          defaultValue={5}
+          defaultValue={PLAYER_LIMITS[0]}
           name="playersLimit"
           select
           SelectProps={selectProps}
         >
-          <MenuItem value={5}>5 Players</MenuItem>
-          <MenuItem value={10}>10 Players</MenuItem>
-          <MenuItem value={15}>15 Players</MenuItem>
+          {PLAYER_LIMITS.map((limit) => (
+            <MenuItem key={limit} value={limit}>
+              {limit} Players
+            </MenuItem>
+          ))}
         </TextField>
       </Box>
       <PrimaryButton type="submit" variant="contained">

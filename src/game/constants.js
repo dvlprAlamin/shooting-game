@@ -1,9 +1,14 @@
-// Shared gameplay tuning. Hitbox numbers must match shooting-game-server/server.js.
+// Client-side gameplay tuning. Numbers the server also needs (hitbox, damage, fire rate, ...)
+// live in src/shared/gameplay.js, a copy of the server's shared/ folder.
+export {
+  FIRE_INTERVAL,
+  MAG_SIZE,
+  MAX_SHOT_DISTANCE,
+  PLAYER_CENTER_TO_FEET,
+  PLAYER_HALF_HEIGHT,
+  PLAYER_RADIUS,
+} from '@/shared/gameplay';
 
-// Player capsule: 0.35 radius, 1.8 m tall. Positions sent over the network are the capsule centre.
-export const PLAYER_RADIUS = 0.35;
-export const PLAYER_HALF_HEIGHT = 0.55; // half height of the capsule's cylinder part
-export const PLAYER_CENTER_TO_FEET = PLAYER_HALF_HEIGHT + PLAYER_RADIUS;
 export const EYE_HEIGHT = 0.7; // camera height above the capsule centre
 
 // Movement (m/s)
@@ -16,9 +21,6 @@ export const JUMP_VELOCITY = 5.2;
 export const FALL_RESET_Y = -15;
 
 // Weapon
-export const MAG_SIZE = 30;
-export const FIRE_INTERVAL = 100; // ms (600 rpm)
-export const MAX_SHOT_DISTANCE = 250;
 export const RELOAD_TIME = 2.4; // s, matches the "Reload" clip
 export const RELOAD_EMPTY_TIME = 3.2; // s, matches the "ReloadEmpty" clip
 export const DRAW_TIME = 0.6;

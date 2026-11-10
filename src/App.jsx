@@ -36,16 +36,17 @@ const App = () => {
   const { enqueueSnackbar } = useSnackbar();
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [isGameOver, setIsGameOver] = useState(false);
-  const [isServerConnected, setIsServerConnected] = useState(socket.connected);
+  const [isReconnecting, setIsReconnecting] = useState(false);
 
   useEffect(() => {
     const { setPlayers, setPlayer, updatePlayer, removePlayer, setLeaderboard } = usePlayerStore.getState();
     const respawnTimeouts = new Set();
 
-    const onConnect = () => setIsServerConnected(true);
+    // The connection opens when joining a room. 'disconnect' means joining failed or the connection
+    // is gone for good (reconnecting gave up): go back to the room selector.
+    const onReconnecting = () => setIsReconnecting(true);
     const onDisconnect = () => {
-      setIsServerConnected(false);
-      // The server forgets us on disconnect; go back to the room selector.
+      setIsReconnecting(false);
       setIsJoinedRoom(false);
       setIsDead(false);
       setIsGameOver(false);
@@ -122,7 +123,10 @@ const App = () => {
 
     const onTimerUpdate = (remaining) => setTimeRemaining(remaining);
     const onGameOver = () => setIsGameOver(true);
-    const onJoinedRoom = () => setIsJoinedRoom(true);
+    const onJoinedRoom = () => {
+      setIsJoinedRoom(true);
+      setIsReconnecting(false);
+    };
 
     // Handle player disconnection
     const onPlayerDisconnected = (id) => {
@@ -131,7 +135,7 @@ const App = () => {
     };
 
     const handlers = {
-      connect: onConnect,
+      reconnecting: onReconnecting,
       disconnect: onDisconnect,
       currentPlayers: onCurrentPlayers,
       leaderboardAllPlayers: setLeaderboard,
@@ -148,7 +152,6 @@ const App = () => {
       playerDisconnected: onPlayerDisconnected,
     };
     for (const [event, fn] of Object.entries(handlers)) socket.on(event, fn);
-    setIsServerConnected(socket.connected);
 
     return () => {
       for (const [event, fn] of Object.entries(handlers)) socket.off(event, fn);
@@ -164,13 +167,6 @@ const App = () => {
     socket.emit('joinRoom', roomInfo);
   };
 
-  if (!isServerConnected) {
-    return (
-      <Box sx={{ textAlign: 'center', mt: 5 }}>
-        <h1>Connecting to the server...</h1>
-      </Box>
-    );
-  }
   if (!isJoinedRoom) {
     return <RoomSelector joinRoom={handleJoinRoom} />;
   }
@@ -185,6 +181,21 @@ const App = () => {
         />
       ) : (
         <></>
+      )}
+      {isReconnecting && (
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 1500,
+            display: 'grid',
+            placeItems: 'center',
+            background: 'rgba(0, 0, 0, 0.5)',
+            color: '#fff',
+          }}
+        >
+          <h1>Reconnecting...</h1>
+        </Box>
       )}
 
       <HUD

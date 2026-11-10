@@ -28,6 +28,9 @@ Requirements: Android Studio (with the Android SDK) for Android; Xcode on macOS 
    VITE_SERVER_URL=https://your-game-server.example.com
    ```
 
+   This is the Cloudflare Worker in `shooting-game-server/worker` (its `workers.dev` URL or your own domain).
+   The client no longer talks to the old Node + Socket.IO server.
+
    Use `https://` in production: Android and iOS block plain `http://` / `ws://` by default.
 
 2. Build the web app, copy it into the native projects, and open the IDE:
@@ -86,10 +89,11 @@ For Google Play, run the same `cap build` with `--androidreleasetype AAB` and wi
 
 ### Testing against a server on your LAN (Android)
 
-For a quick test with the server running on your computer (`node server.js` in `shooting-game-server`):
+For a quick test with the game server running on your computer (`pnpm dev --ip 0.0.0.0` in
+`shooting-game-server/worker`):
 
 ```
-VITE_SERVER_URL=http://192.168.x.x:3000 pnpm build
+VITE_SERVER_URL=http://192.168.x.x:8787 pnpm build
 CAP_ALLOW_INSECURE=1 pnpm exec cap sync android
 ```
 
@@ -102,3 +106,15 @@ a release build so it isn't shipped. On iOS, use an `https://` server.
   it can't be changed afterwards.
 - Landscape only, full screen (status/navigation bars hidden; an edge swipe shows them briefly).
 - The Draco decoder for the map models is bundled in `public/draco/`, so the app needs no CDN.
+
+## Gameplay numbers shared with the server
+
+Values both sides must agree on (hitbox size, damage, fire rate, magazine size, room options) live in
+`shooting-game-server/shared/`. `src/shared/` is a copy of that folder: don't edit it here. After changing the
+server's copy, run:
+
+```
+pnpm sync:shared   # expects ../shooting-game-server next to this repo; or: pnpm sync:shared <path>
+```
+
+The server's `npm test` fails while the two copies differ.

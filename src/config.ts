@@ -26,8 +26,9 @@ export const LOW_QUALITY: boolean = qualityOverride != null ? qualityOverride ==
 if (IS_NATIVE && !env.VITE_SERVER_URL) {
   console.error('VITE_SERVER_URL is not set; the app cannot reach the game server.');
 }
+// Without VITE_SERVER_URL: the same host on port 8787, where `wrangler dev` serves the game server.
 export const SERVER_URL: string =
-  env.VITE_SERVER_URL || `${window.location.protocol}//${window.location.hostname}:3000`;
+  env.VITE_SERVER_URL || `${window.location.protocol}//${window.location.hostname}:8787`;
 export const SHOOT_BUTTON = int(env.VITE_SHOOT_BUTTON, 0);
 export const AIM_BUTTON = int(env.VITE_AIM_BUTTON, 2);
 export const RELOAD_BUTTON_CODE: string = env.VITE_RELOAD_BUTTON_CODE || 'KeyR';
