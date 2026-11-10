@@ -28,4 +28,4 @@ const rayIntersectsBox = (rayOrigin, rayDirection, boxMin, boxMax) => {
     return tmin >= 0 ? tmin : 0; // origin inside the box
 };
 
-module.exports = rayIntersectsBox;
+export default rayIntersectsBox;
