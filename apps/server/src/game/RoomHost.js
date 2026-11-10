@@ -7,6 +7,7 @@ export const CLOSE = {
     LIMIT: 4001, // too many or too large messages
     JOIN_TIMEOUT: 4002, // connected but never asked to join
     REPLACED: 4003, // the same player connected again on another connection
+    ROOM_CLOSED: 4004, // the match ended and nobody started a rematch
 };
 
 const JOIN_TIMEOUT_MS = 10_000;
@@ -14,7 +15,7 @@ const MAX_MESSAGE_LENGTH = 4096;
 // A normal client sends 20 moves plus up to 10 shots a second.
 const MAX_MESSAGES_PER_SECOND = 60;
 const MAX_KEY_LENGTH = 64;
-const GAME_EVENTS = new Set(['move', 'shoot', 'respawn']);
+const GAME_EVENTS = new Set(['move', 'shoot', 'respawn', 'rematch']);
 
 const randomId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 8);
 
@@ -22,8 +23,9 @@ const randomId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 8);
  * Hosts one room for WebSocket clients. Messages are JSON text frames: {"e": event, "d": data}.
  *
  * GameRoom has the rules; this class has everything about connections: creating the room on the
- * first join, reconnecting with the client's key, the once-a-second timer, and per-connection
- * limits. A Durable Object holds one RoomHost; tests drive it with fake sockets.
+ * first join, reconnecting with the client's key, leaving, the once-a-second timer, closing a
+ * finished room, and per-connection limits. A Durable Object holds one RoomHost; tests drive it
+ * with fake sockets.
  *
  * A socket is anything with send(text) and close(code, reason). Call connect(socket) when it
  * opens, message(conn, text) for each frame, and closed(conn) when it closes.
@@ -71,7 +73,15 @@ export class RoomHost {
             return;
         }
         if (msg?.e === 'joinRoom') this.join(conn, msg.d);
+        else if (msg?.e === 'leave') this.leave(conn);
         else if (conn.playerId && GAME_EVENTS.has(msg?.e)) this.game?.[msg.e](conn.playerId, msg.d);
+    }
+
+    /** The player left on purpose (back to the menu): they're gone at once, no reconnect grace. */
+    leave(conn) {
+        if (!conn.playerId) return;
+        this.game?.leave(conn.playerId);
+        this.close(conn, 1000, 'Left');
     }
 
     /** The socket closed (the client left, or the network dropped). */
@@ -121,7 +131,21 @@ export class RoomHost {
 
     tick() {
         this.game.tick();
-        this.cleanup();
+        if (this.game.expired) this.closeRoom('The match is over and the room has closed.');
+        else this.cleanup();
+    }
+
+    // Ends the room and sends everyone back to the menu.
+    closeRoom(message) {
+        const conns = [...this.connections.values()];
+        this.connections.clear(); // so closing them doesn't hand their players to the reconnect grace
+        this.timers.clearInterval(this.interval);
+        this.interval = null;
+        this.game = null;
+        for (const conn of conns) {
+            this.notify(conn, message);
+            this.close(conn, CLOSE.ROOM_CLOSED, 'Room closed');
+        }
     }
 
     send(id, event, data) {

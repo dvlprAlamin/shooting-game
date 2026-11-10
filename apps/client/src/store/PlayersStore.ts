@@ -2,12 +2,17 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 interface Player {
   id: string;
+  playerName: string;
   position: number[];
   rotation: number[];
   deaths: number;
   health: number;
   kills: number;
+  streak: number;
+  bestStreak: number;
   isDead?: boolean;
+  /** ms of spawn protection left when the server sent this */
+  protection: number;
 }
 type Players = Record<string, Player>; // by player id
 export interface IPlayerStore {

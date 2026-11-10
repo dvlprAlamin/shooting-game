@@ -35,6 +35,18 @@
     linear-gradient(#fff, #fff) left center / 8px 2px no-repeat,
     linear-gradient(#fff, #fff) right center / 8px 2px no-repeat;
 
+  // Bigger and heavier for a headshot; red for a kill.
+  &.head {
+    width: 34px;
+    height: 34px;
+    animation-duration: 0.4s;
+    background:
+      linear-gradient(#fff, #fff) center top / 3px 10px no-repeat,
+      linear-gradient(#fff, #fff) center bottom / 3px 10px no-repeat,
+      linear-gradient(#fff, #fff) left center / 10px 3px no-repeat,
+      linear-gradient(#fff, #fff) right center / 10px 3px no-repeat;
+  }
+
   &.kill {
     width: 36px;
     height: 36px;
@@ -44,6 +56,62 @@
       linear-gradient(#ff3b3b, #ff3b3b) center bottom / 3px 11px no-repeat,
       linear-gradient(#ff3b3b, #ff3b3b) left center / 11px 3px no-repeat,
       linear-gradient(#ff3b3b, #ff3b3b) right center / 11px 3px no-repeat;
+  }
+}
+
+// Above the crosshair, clear of the reload bar below it.
+.callout {
+  position: absolute;
+  left: 50%;
+  bottom: calc(50% + 64px);
+  translate: -50% 0;
+  z-index: 3;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  text-align: center;
+  pointer-events: none;
+  @include over-scene;
+  animation: callout-out 0.4s ease-in 1.8s forwards;
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation:
+      callout-in 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.3),
+      callout-out 0.4s ease-in 1.8s forwards;
+  }
+
+  @include short {
+    bottom: calc(50% + 44px);
+  }
+}
+
+.calloutTitle {
+  @include stencil;
+  font-size: 2.5rem;
+
+  @include short {
+    font-size: 1.9rem;
+  }
+}
+
+.calloutDetail {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--sand);
+}
+
+@keyframes callout-in {
+  from {
+    opacity: 0;
+    scale: 1.3;
+  }
+}
+
+@keyframes callout-out {
+  to {
+    opacity: 0;
   }
 }
 

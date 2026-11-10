@@ -13,12 +13,12 @@ import { INTERP_DELAY } from '@/game/constants';
 const MAX_SNAPSHOTS = 40;
 const MAX_EXTRAPOLATION = 120; // ms
 
-const players = new Map(); // id -> { snaps: [], offset: number | null, shotListener }
+const players = new Map(); // id -> { snaps: [], offset: number | null, onShot, protectedUntil }
 
 const entry = (id) => {
   let e = players.get(id);
   if (!e) {
-    e = { snaps: [], offset: null, onShot: null };
+    e = { snaps: [], offset: null, onShot: null, protectedUntil: 0 };
     players.set(id, e);
   }
   return e;
@@ -111,6 +111,15 @@ export function sampleRemote(id, out) {
   out.pitch = a.pitch + (b.pitch - a.pitch) * t;
   out.f = t < 0.5 ? a.f : b.f;
   return true;
+}
+
+/** Spawn protection: the server says how many ms are left (0 when it ended early). Timed on this clock. */
+export function setProtection(id, ms) {
+  entry(id).protectedUntil = ms > 0 ? now() + ms : 0;
+}
+
+export function isProtected(id) {
+  return (players.get(id)?.protectedUntil ?? 0) > now();
 }
 
 /** Remote shot events (muzzle flash + sound) are routed to the RemotePlayer component. */

@@ -2,6 +2,7 @@
 // live in @shooter/shared (packages/shared/gameplay.js).
 export {
   FIRE_INTERVAL,
+  HEAD_HEIGHT,
   MAG_SIZE,
   MAX_SHOT_DISTANCE,
   PLAYER_CENTER_TO_FEET,

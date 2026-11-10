@@ -1,4 +1,6 @@
-import { MAX_HEALTH } from '@shooter/shared';
+import { useEffect, useState } from 'react';
+import { MAX_HEALTH, SPAWN_PROTECTION } from '@shooter/shared';
+import { useHudStore } from '@/store/HudStore';
 import CopyButton from '../elements/CopyButton';
 import styles from './Hud.module.scss';
 
@@ -46,6 +48,32 @@ const Health = ({ value }) => {
   );
 };
 
+// Spawn protection left, as a draining bar. Gone when it runs out or you fire.
+const Protection = () => {
+  const until = useHudStore((s) => s.protectedUntil);
+  const [left, setLeft] = useState(0);
+
+  useEffect(() => {
+    const ms = until - performance.now();
+    setLeft(Math.max(0, ms));
+    if (ms <= 0) return;
+    const id = setTimeout(() => setLeft(0), ms);
+    return () => clearTimeout(id);
+  }, [until]);
+
+  if (left <= 0) return null;
+  return (
+    <div
+      className={styles.protection}
+      role="status"
+      style={{ '--left': `${left}ms`, '--from': Math.min(1, left / SPAWN_PROTECTION) }}
+    >
+      Spawn protection
+      <span className={styles.drain} aria-hidden="true" />
+    </div>
+  );
+};
+
 /** Match info at the top, health at the bottom, and the room code to send to friends. */
 const Hud = ({ health, kills = 0, deaths = 0, timeRemaining, roomId }) => (
   <div className={styles.hud}>
@@ -79,7 +107,10 @@ const Hud = ({ health, kills = 0, deaths = 0, timeRemaining, roomId }) => (
       </div>
     )}
 
-    <Health value={health} />
+    <div className={styles.vitals}>
+      <Protection />
+      <Health value={health} />
+    </div>
   </div>
 );
 

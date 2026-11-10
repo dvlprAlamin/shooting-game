@@ -11,6 +11,7 @@ import {
   pushSnapshot,
   removeRemote,
   resetRemote,
+  setProtection,
 } from '@/net/remotePlayers';
 import { WORLD_FOV } from '@/game/constants';
 import { IS_TOUCH, LOW_QUALITY } from '@/config';
@@ -28,6 +29,12 @@ import TouchControls from './components/TouchControls';
 
 export { socket };
 
+// Streaks worth announcing: 3, 5 and 7 kills in a row, then every 5 from 10.
+const STREAK_MIN = 3;
+const isStreakMilestone = (n) => n === 3 || n === 5 || n === 7 || (n >= 10 && n % 5 === 0);
+
+const NO_REMATCH = { votes: [], startsIn: null };
+
 const App = () => {
   const players = usePlayerStore((s) => s.players);
   const leaderboard = usePlayerStore((s) => s.leaderboard);
@@ -38,11 +45,19 @@ const App = () => {
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [isGameOver, setIsGameOver] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [rematch, setRematch] = useState(NO_REMATCH);
 
   useEffect(() => {
     const { setPlayers, setPlayer, updatePlayer, removePlayer, setLeaderboard } = usePlayerStore.getState();
     const { pushKill, pushNotice } = useFeedStore.getState();
+    const hud = useHudStore.getState();
     const respawnTimeouts = new Set();
+
+    // Spawn protection: the server says how many ms are left, and it's timed on this clock from now.
+    const protect = (player) => {
+      if (player.id === socket.id) hud.setProtection(player.protection);
+      else setProtection(player.id, player.protection);
+    };
 
     // The connection opens when joining a room. 'disconnect' means joining failed or the connection
     // is gone for good (reconnecting gave up): go back to the room selector.
@@ -52,8 +67,10 @@ const App = () => {
       setIsJoinedRoom(false);
       setIsDead(false);
       setIsGameOver(false);
+      setRematch(NO_REMATCH);
       setPlayers({});
       clearRemotes();
+      hud.setProtection(0);
     };
 
     // Handle current players
@@ -61,6 +78,7 @@ const App = () => {
       clearRemotes();
       for (const id in currentPlayers) {
         if (id !== socket.id) resetRemote(id, currentPlayers[id].position, currentPlayers[id].rotation?.y);
+        protect(currentPlayers[id]);
       }
       setPlayers(currentPlayers);
     };
@@ -68,6 +86,7 @@ const App = () => {
     // Handle new player
     const onNewPlayer = (newPlayer) => {
       resetRemote(newPlayer.id, newPlayer.position);
+      protect(newPlayer);
       setPlayer({ ...newPlayer, isDead: false });
     };
 
@@ -75,15 +94,31 @@ const App = () => {
     const onPlayerMoved = (data) => pushSnapshot(data.id, data);
     const onPlayerShot = (data) => dispatchShot(data.id, data);
 
-    const onPlayerDead = (player) => {
-      updatePlayer(player.id, 'isDead', true);
+    // `streak` is the shooter's, counting this kill; `endedStreak` is the one the victim had going.
+    const onPlayerDead = (death) => {
+      updatePlayer(death.id, 'isDead', true);
 
-      const you = player.shooter === socket.id ? 'killer' : player.id === socket.id ? 'victim' : null;
-      pushKill({ killer: player.shooterName, victim: player.playerName, you });
+      const you = death.shooter === socket.id ? 'killer' : death.id === socket.id ? 'victim' : null;
+      pushKill({ killer: death.shooterName, victim: death.playerName, you, headshot: !!death.headshot });
+
+      const milestone = isStreakMilestone(death.streak);
+      const ended = death.endedStreak >= STREAK_MIN ? death.endedStreak : 0;
       if (you === 'killer') {
-        useHudStore.getState().showHitMarker(true);
-      } else if (you === 'victim') {
-        setKilledBy(player.shooterName);
+        // Your own kills get the callout over the crosshair instead of a notice.
+        hud.showHitMarker('kill');
+        const endedLine = ended ? `You ended ${death.playerName}'s ${ended}-kill streak` : undefined;
+        if (milestone) hud.showCallout(`${death.streak}-kill streak`, endedLine ?? (death.headshot ? 'Headshot' : undefined));
+        else if (ended) hud.showCallout(death.headshot ? 'Headshot' : 'Streak ended', endedLine);
+        else if (death.headshot) hud.showCallout('Headshot');
+        return;
+      }
+      if (milestone) pushNotice(`${death.shooterName} is on a ${death.streak}-kill streak`);
+      if (ended) {
+        const whose = you === 'victim' ? 'your' : `${death.playerName}'s`;
+        pushNotice(`${death.shooterName} ended ${whose} ${ended}-kill streak`);
+      }
+      if (you === 'victim') {
+        setKilledBy(death.shooterName);
         setIsDead(true);
       }
     };
@@ -93,6 +128,7 @@ const App = () => {
     const onPlayerRespawned = (player) => {
       removePlayer(player.id);
       if (player.id !== socket.id) resetRemote(player.id, player.position);
+      protect(player);
       const timeoutId = setTimeout(() => {
         respawnTimeouts.delete(timeoutId);
         if (player.id === socket.id) {
@@ -105,8 +141,25 @@ const App = () => {
 
     const onNotification = ({ message }) => pushNotice(message);
 
+    const onProtectionEnded = ({ id }) => protect({ id, protection: 0 });
+    // Regeneration (damage comes with 'hit', handled by Player).
+    const onHealth = ({ health }) => updatePlayer(socket.id, 'health', health);
+
     const onTimerUpdate = (remaining) => setTimeRemaining(remaining);
     const onGameOver = () => setIsGameOver(true);
+
+    // The same room starts over: fresh scores and positions, like joining again.
+    const onMatchStarted = ({ players: all, duration }) => {
+      respawnTimeouts.forEach(clearTimeout);
+      respawnTimeouts.clear();
+      setIsGameOver(false);
+      setIsDead(false);
+      setKilledBy(null);
+      setRematch(NO_REMATCH);
+      setTimeRemaining(duration);
+      onCurrentPlayers(all);
+      setLeaderboard(all);
+    };
     const onJoinedRoom = () => {
       setIsJoinedRoom(true);
       setIsReconnecting(false);
@@ -129,9 +182,13 @@ const App = () => {
       playerDead: onPlayerDead,
       playerKilled: onPlayerKilled,
       playerRespawned: onPlayerRespawned,
+      protectionEnded: onProtectionEnded,
+      health: onHealth,
       notification: onNotification,
       timerUpdate: onTimerUpdate,
       gameOver: onGameOver,
+      rematchVotes: setRematch,
+      matchStarted: onMatchStarted,
       joinedRoom: onJoinedRoom,
       playerDisconnected: onPlayerDisconnected,
     };
@@ -146,6 +203,9 @@ const App = () => {
   const reSpawnHandler = () => {
     socket.emit('respawn', socket.id);
   };
+
+  const handleRematch = () => socket.emit('rematch');
+  const handleLeave = () => socket.leave();
 
   const handleJoinRoom = (roomInfo) => {
     setRoomId(roomInfo.roomId);
@@ -165,6 +225,9 @@ const App = () => {
           reSpawnHandler={reSpawnHandler}
           killedBy={killedBy}
           myId={socket.id}
+          rematch={rematch}
+          onRematch={handleRematch}
+          onLeave={handleLeave}
         />
       ) : (
         <></>

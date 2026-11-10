@@ -50,6 +50,11 @@
     width: 5rem;
     text-align: right;
   }
+
+  // Wide enough for its header on one line.
+  .streak {
+    width: 6.75rem;
+  }
 }
 
 .rank {
@@ -73,4 +78,17 @@
 .you {
   font-weight: 500;
   color: var(--blaze);
+}
+
+// After the match: who wants a rematch.
+.ready {
+  margin-left: 0.6rem;
+  font-weight: 700;
+  font-size: 0.85em;
+  color: var(--moss);
+  white-space: nowrap;
+
+  &::before {
+    content: '✓ ';
+  }
 }

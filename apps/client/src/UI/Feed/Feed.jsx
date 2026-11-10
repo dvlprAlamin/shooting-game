@@ -13,6 +13,19 @@ const RifleIcon = () => (
   </svg>
 );
 
+// A head and shoulders in a crosshair.
+const HeadshotIcon = () => (
+  <svg className={styles.head} viewBox="0 0 16 16" aria-hidden="true">
+    <path
+      d="M8 2.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6ZM2.5 16c.4-3.2 2.7-4.8 5.5-4.8s5.1 1.6 5.5 4.8Z"
+      fill="currentColor"
+      opacity="0.5"
+    />
+    <circle cx="8" cy="5.5" r="4.6" fill="none" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M8 0v2.4M8 8.6V11M2.5 5.5H0M13.5 5.5H16" stroke="currentColor" strokeWidth="1.5" />
+  </svg>
+);
+
 const Feed = () => {
   const kills = useFeedStore((s) => s.kills);
   const notices = useFeedStore((s) => s.notices);
@@ -24,8 +37,10 @@ const Feed = () => {
           <li key={k.id} className={k.you ? styles.mine : undefined}>
             <Name you={k.you === 'killer'}>{k.killer}</Name>
             <RifleIcon />
+            {k.headshot && <HeadshotIcon />}
             <span className="sr-only">eliminated</span>
             <Name you={k.you === 'victim'}>{k.victim}</Name>
+            {k.headshot && <span className="sr-only">with a headshot</span>}
           </li>
         ))}
       </ol>

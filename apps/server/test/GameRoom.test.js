@@ -1,7 +1,22 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { GameRoom } from '../src/game/GameRoom.js';
-import { DAMAGE, FIRE_INTERVAL, MAX_HEALTH, ROOM_DURATIONS, PLAYER_LIMITS } from '@shooter/shared';
+import {
+    GAME_OVER_TTL_MS,
+    GameRoom,
+    REGEN_DELAY_MS,
+    REGEN_PER_TICK,
+    REMATCH_WAIT,
+} from '../src/game/GameRoom.js';
+import { SPAWN_POINTS } from '../src/game/spawns.js';
+import {
+    DAMAGE,
+    FIRE_INTERVAL,
+    HEAD_DAMAGE,
+    MAX_HEALTH,
+    PLAYER_LIMITS,
+    ROOM_DURATIONS,
+    SPAWN_PROTECTION,
+} from '@shooter/shared';
 
 // A room with a fake clock and a log of everything it sends.
 function setup(options = {}) {
@@ -19,23 +34,43 @@ function setup(options = {}) {
 }
 
 const EYE = { x: 0, y: 0.7, z: 0 };
-const TOWARDS_B = { x: 0, y: -0.07, z: -1 }; // from EYE to a player standing at (0, 0, -10)
+const TOWARDS_B = { x: 0, y: -0.07, z: -1 }; // from EYE to the centre of a player standing at (0, 0, -10)
+const TOWARDS_B_HEAD = { x: 0, y: 0.005, z: -1 }; // 0.75 m above that centre
+const KILL_SHOTS = MAX_HEALTH / DAMAGE;
 
-// A at the origin, B 10 m in front of A.
+// A at the origin, B 10 m in front of A, both past their spawn protection.
 function twoPlayers() {
     const s = setup();
     s.room.join('A', 'Alice');
     s.room.join('B', 'Bob');
+    s.clock.t += SPAWN_PROTECTION;
+    placeB(s);
     s.room.move('A', { t: 1, p: [0, 0, 0], yaw: 0, pitch: 0, f: 1 });
-    s.room.move('B', { t: 1, p: [0, 0, -10], yaw: 0, pitch: 0, f: 1 });
     s.take();
     return s;
 }
 
-const shootB = (s) => {
+const placeB = (s) => s.room.move('B', { t: 1, p: [0, 0, -10], yaw: 0, pitch: 0, f: 1 });
+
+const shootB = (s, extra = {}) => {
     s.clock.t += FIRE_INTERVAL;
-    s.room.shoot('A', { o: EYE, d: TOWARDS_B, target: 'B' });
+    s.room.shoot('A', { o: EYE, d: TOWARDS_B, target: 'B', ...extra });
 };
+
+const killB = (s) => {
+    for (let i = 0; i < KILL_SHOTS; i++) shootB(s);
+};
+
+// B back where A can shoot them, unprotected.
+const respawnB = (s) => {
+    s.room.respawn('B');
+    s.clock.t += SPAWN_PROTECTION;
+    placeB(s);
+};
+
+const squaredDistance = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
+// Spawn points sorted farthest first from `p`.
+const farthestFrom = (p) => [...SPAWN_POINTS].sort((a, b) => squaredDistance(b, p) - squaredDistance(a, p));
 
 test('options outside the offered lists fall back to the defaults', () => {
     const { room } = setup({ duration: '999', playersLimit: -1 });
@@ -94,7 +129,69 @@ test('a valid hit costs health and is confirmed to both players', () => {
     assert.equal(s.room.players.B.health, MAX_HEALTH - DAMAGE);
     const sent = s.take();
     assert.deepEqual(sent.map((e) => `${e.to}:${e.event}`), ['B:playerShot', 'B:hit', 'A:hitConfirmed']);
-    assert.deepEqual(sent[1].data, { health: MAX_HEALTH - DAMAGE, from: EYE, shooter: 'A' });
+    assert.deepEqual(sent[1].data, { health: MAX_HEALTH - DAMAGE, from: EYE, shooter: 'A', headshot: false });
+});
+
+test('a headshot does more damage, but only if the ray really went through the head', () => {
+    const s = twoPlayers();
+    shootB(s, { d: TOWARDS_B_HEAD, head: true });
+    assert.equal(s.room.players.B.health, MAX_HEALTH - HEAD_DAMAGE);
+    const hit = s.take().find((e) => e.event === 'hit');
+    assert.equal(hit.data.headshot, true);
+
+    shootB(s, { head: true }); // claims the head, aimed at the chest
+    assert.equal(s.room.players.B.health, MAX_HEALTH - HEAD_DAMAGE - DAMAGE);
+    shootB(s, { d: TOWARDS_B_HEAD, head: 'yes' });
+    assert.equal(s.room.players.B.health, MAX_HEALTH - HEAD_DAMAGE - 2 * DAMAGE);
+});
+
+test('a player who just spawned cannot be hurt until the protection runs out or they fire', () => {
+    const s = setup();
+    s.room.join('A', 'Alice');
+    s.room.join('B', 'Bob');
+    const newcomer = s.sent.find((e) => e.event === 'newPlayer');
+    assert.equal(newcomer.data.protection, SPAWN_PROTECTION);
+    placeB(s);
+    s.take();
+
+    shootB(s);
+    assert.equal(s.room.players.B.health, MAX_HEALTH);
+    assert.ok(!s.sent.some((e) => e.event === 'hit'));
+
+    // B fires: their protection is gone, and everyone hears about it once.
+    s.room.shoot('B', { o: { x: 0, y: 0.7, z: -10 }, d: { x: 0, y: 0, z: 1 }, target: null });
+    s.clock.t += FIRE_INTERVAL;
+    s.room.shoot('B', { o: { x: 0, y: 0.7, z: -10 }, d: { x: 0, y: 0, z: 1 }, target: null });
+    const ended = s.sent.filter((e) => e.event === 'protectionEnded' && e.data.id === 'B');
+    assert.deepEqual(ended.map((e) => e.to), ['A', 'B']);
+    shootB(s);
+    assert.equal(s.room.players.B.health, MAX_HEALTH - DAMAGE);
+
+    // Without firing, it simply runs out.
+    const t = setup();
+    t.room.join('A', 'Alice');
+    t.room.join('B', 'Bob');
+    t.clock.t += SPAWN_PROTECTION - FIRE_INTERVAL - 1;
+    placeB(t);
+    shootB(t);
+    assert.equal(t.room.players.B.health, MAX_HEALTH);
+    shootB(t);
+    assert.equal(t.room.players.B.health, MAX_HEALTH - DAMAGE);
+});
+
+test('respawns pick a spawn point far from the living enemies', () => {
+    const s = twoPlayers();
+    killB(s);
+    s.room.respawn('B');
+    const [first, second] = farthestFrom(s.room.players.A.position);
+    assert.deepEqual(s.room.players.B.position, first);
+
+    s.clock.t += SPAWN_PROTECTION;
+    placeB(s);
+    killB(s);
+    s.room.random = () => 0.99; // the other of the two safe choices
+    s.room.respawn('B');
+    assert.deepEqual(s.room.players.B.position, second);
 });
 
 test('the server rejects shots that are too fast, malformed, or claim a player the ray misses', () => {
@@ -123,12 +220,21 @@ test('without a target field the server finds the player on the ray itself', () 
 
 test('the killing shot announces the kill and updates the scores', () => {
     const s = twoPlayers();
-    for (let i = 0; i < MAX_HEALTH / DAMAGE; i++) shootB(s);
+    killB(s);
     assert.equal(s.room.players.B.isDead, true);
+    assert.equal(s.room.players.B.deaths, 1, 'counted when it happens, not at the respawn');
     assert.equal(s.room.players.A.kills, 1);
     assert.deepEqual(s.events('A').slice(-3), ['playerDead', 'playerKilled', 'leaderboardAllPlayers']);
     const dead = s.sent.find((e) => e.event === 'playerDead' && e.to === 'B');
-    assert.deepEqual(dead.data, { id: 'B', shooter: 'A', playerName: 'Bob', shooterName: 'Alice' });
+    assert.deepEqual(dead.data, {
+        id: 'B',
+        shooter: 'A',
+        playerName: 'Bob',
+        shooterName: 'Alice',
+        headshot: false,
+        streak: 1,
+        endedStreak: 0,
+    });
 
     // Dead players can't be hit and can't shoot.
     s.take();
@@ -139,17 +245,61 @@ test('the killing shot announces the kill and updates the scores', () => {
     assert.ok(!s.sent.some((e) => e.event === 'hit'));
 });
 
-test('only dead players can respawn, at full health with one more death', () => {
+test('only dead players can respawn, at full health', () => {
     const s = twoPlayers();
     s.room.respawn('B');
     assert.deepEqual(s.take(), []);
 
-    for (let i = 0; i < MAX_HEALTH / DAMAGE; i++) shootB(s);
+    killB(s);
     s.take();
     s.room.respawn('B');
     const b = s.room.players.B;
     assert.deepEqual([b.isDead, b.health, b.deaths], [false, MAX_HEALTH, 1]);
     assert.deepEqual(s.events('A'), ['playerRespawned', 'leaderboardAllPlayers']);
+    assert.equal(s.sent[0].data.protection, SPAWN_PROTECTION);
+});
+
+test('kills in a row build a streak that the next death ends', () => {
+    const s = twoPlayers();
+    killB(s);
+    respawnB(s);
+    killB(s);
+    const a = s.room.players.A;
+    assert.deepEqual([a.streak, a.bestStreak], [2, 2]);
+    assert.equal(s.sent.findLast((e) => e.event === 'playerDead').data.streak, 2);
+
+    // Bob gets Alice: her streak of 2 ends, her best stays.
+    respawnB(s);
+    s.take();
+    for (let i = 0; i < KILL_SHOTS; i++) {
+        s.clock.t += FIRE_INTERVAL;
+        s.room.shoot('B', { o: { x: 0, y: 0.7, z: -10 }, d: { x: 0, y: -0.07, z: 1 }, target: 'A' });
+    }
+    const dead = s.sent.find((e) => e.event === 'playerDead');
+    assert.deepEqual([dead.data.id, dead.data.streak, dead.data.endedStreak], ['A', 1, 2]);
+    assert.deepEqual([a.streak, a.bestStreak], [0, 2]);
+});
+
+test('health comes back a little every second once a player has not been hit for a while', () => {
+    const s = twoPlayers();
+    for (let i = 0; i < 3; i++) shootB(s);
+    const healthEvents = () => s.take().filter((e) => e.event === 'health').map((e) => [e.to, e.data.health]);
+
+    s.clock.t += REGEN_DELAY_MS - 1;
+    s.room.tick();
+    assert.deepEqual(healthEvents(), []);
+    s.clock.t += 1;
+    s.room.tick();
+    assert.deepEqual(healthEvents(), [['B', MAX_HEALTH - 3 * DAMAGE + REGEN_PER_TICK]]);
+    s.room.tick();
+    s.room.tick();
+    assert.equal(s.room.players.B.health, MAX_HEALTH);
+    assert.deepEqual(healthEvents(), [['B', MAX_HEALTH]]);
+
+    // A new hit restarts the wait.
+    shootB(s);
+    s.room.tick();
+    assert.deepEqual(healthEvents(), []);
 });
 
 test('the timer counts down every tick and ends the match at zero', () => {
@@ -167,6 +317,74 @@ test('the timer counts down every tick and ends the match at zero', () => {
     shootB(s);
     s.room.respawn('B');
     assert.deepEqual(s.take(), []);
+});
+
+// Three players in a finished match.
+function finishedMatch() {
+    const s = setup();
+    for (const id of ['A', 'B', 'C']) s.room.join(id, id);
+    s.room.duration = 1;
+    s.room.tick();
+    s.take();
+    return s;
+}
+
+const votesSeen = (s, to = 'A') =>
+    s.take().filter((e) => e.event === 'rematchVotes' && e.to === to).map((e) => e.data);
+
+test('a rematch starts when everyone wants one, with fresh scores and the full timer', () => {
+    const s = finishedMatch();
+    s.room.players.A.kills = 4;
+    s.room.players.B.isDead = true;
+    s.room.rematch('A');
+    s.room.rematch('A');
+    assert.deepEqual(votesSeen(s), [{ votes: ['A'], startsIn: null }]);
+    s.room.rematch('B');
+    assert.deepEqual(votesSeen(s), [{ votes: ['A', 'B'], startsIn: REMATCH_WAIT }]);
+
+    s.room.rematch('C');
+    const started = s.sent.filter((e) => e.event === 'matchStarted');
+    assert.deepEqual(started.map((e) => e.to), ['A', 'B', 'C']);
+    const { players, duration } = started[0].data;
+    assert.equal(duration, ROOM_DURATIONS[0] * 60);
+    assert.deepEqual([players.A.kills, players.B.isDead, players.C.protection], [0, false, SPAWN_PROTECTION]);
+    assert.equal(s.room.ended, false);
+    // Spread out: nobody spawns on top of anyone else.
+    assert.equal(new Set(Object.values(players).map((p) => JSON.stringify(p.position))).size, 3);
+});
+
+test('once more than half want a rematch it starts after a countdown, voted or not', () => {
+    const s = finishedMatch();
+    s.room.rematch('A');
+    s.room.rematch('B');
+    s.take();
+    for (let i = 1; i < REMATCH_WAIT; i++) s.room.tick();
+    assert.deepEqual(votesSeen(s).map((v) => v.startsIn), [9, 8, 7, 6, 5, 4, 3, 2, 1].slice(0, REMATCH_WAIT - 1));
+    s.room.tick();
+    assert.ok(s.events('C').includes('matchStarted'));
+    assert.equal(s.room.duration, ROOM_DURATIONS[0] * 60, 'the countdown did not run the match timer');
+});
+
+test('the rematch stops waiting for players who leave', () => {
+    const s = finishedMatch();
+    s.room.rematch('A');
+    s.take();
+    s.room.leave('C'); // 1 of 2 is not more than half
+    assert.deepEqual(votesSeen(s), [{ votes: ['A'], startsIn: null }]);
+    s.room.leave('B');
+    assert.ok(s.events('A').includes('matchStarted'));
+});
+
+test('rematch votes only count after the match, and a finished room expires', () => {
+    const s = twoPlayers();
+    s.room.rematch('A');
+    assert.deepEqual(s.take(), []);
+
+    const over = finishedMatch();
+    over.clock.t += GAME_OVER_TTL_MS - 1;
+    assert.equal(over.room.expired, false);
+    over.clock.t += 1;
+    assert.equal(over.room.expired, true);
 });
 
 test('leaving tells the others and empties the room', () => {

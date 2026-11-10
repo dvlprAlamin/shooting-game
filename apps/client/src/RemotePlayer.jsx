@@ -5,7 +5,7 @@ import { useGLTF } from '@react-three/drei';
 import { CapsuleCollider, RigidBody } from '@react-three/rapier';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import FlashShoot from '@/assets/textures/flash_shoot_256x256.png';
-import { sampleRemote, setShotListener } from '@/net/remotePlayers';
+import { isProtected, sampleRemote, setShotListener } from '@/net/remotePlayers';
 import { createSoldierRig, getMuzzleWorld, GUN_MUZZLE } from '@/game/soldierRig';
 import { playSoundAt } from '@/game/audio';
 import {
@@ -19,6 +19,7 @@ const SOLDIER_URL = '/models/soldier.glb';
 const RIFLE_URL = '/models/weapon_tp.glb';
 
 const _muzzle = new THREE.Vector3();
+const SHIELD_COLOR = '#47c6cb'; // --teal in index.scss
 
 function makeNameTag(name) {
   const canvas = document.createElement('canvas');
@@ -45,6 +46,7 @@ export const RemotePlayer = ({ id, isDead, playerName = '', initialPosition = { 
   const bodyRef = useRef();
   const rootRef = useRef();
   const tiltRef = useRef();
+  const shieldRef = useRef();
 
   const visual = useMemo(() => {
     const model = cloneSkinned(soldier.scene);
@@ -134,6 +136,13 @@ export const RemotePlayer = ({ id, isDead, playerName = '', initialPosition = { 
 
     if (visual.flash.visible && performance.now() > motion.flashUntil) visual.flash.visible = false;
 
+    // A pulsing see-through shell while spawn protection lasts.
+    const shield = shieldRef.current;
+    if (shield) {
+      shield.visible = !isDead && isProtected(id);
+      if (shield.visible) shield.material.opacity = 0.3 + 0.1 * Math.sin(performance.now() * 0.008);
+    }
+
     if (!isDead) bodyRef.current?.setNextKinematicTranslation({ x: s.x, y: s.y, z: s.z });
   });
 
@@ -155,6 +164,10 @@ export const RemotePlayer = ({ id, isDead, playerName = '', initialPosition = { 
         <sprite position={[0, 2.05, 0]} scale={[1.1, 0.275, 1]} visible={!isDead}>
           <spriteMaterial map={nameTag} transparent depthWrite={false} />
         </sprite>
+        <mesh ref={shieldRef} position={[0, PLAYER_CENTER_TO_FEET, 0]} visible={false}>
+          <capsuleGeometry args={[PLAYER_RADIUS + 0.12, PLAYER_HALF_HEIGHT * 2, 4, 12]} />
+          <meshBasicMaterial color={SHIELD_COLOR} transparent depthWrite={false} />
+        </mesh>
       </group>
     </>
   );

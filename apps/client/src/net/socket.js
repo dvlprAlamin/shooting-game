@@ -9,12 +9,14 @@ import { ROOM_ID_PATTERN } from '@shooter/shared';
 // key, and the server gives you your player back (score and all) during its 10 s grace period.
 //
 // Events it adds on top of the server's: 'reconnecting' (connection lost, retrying) and
-// 'disconnect' (couldn't join, or gave up reconnecting).
+// 'disconnect' (couldn't join, gave up reconnecting, the room closed, or you left).
 
 const RETRY_DELAYS = [500, 1000, 2000, 3000, 3000]; // ~9.5 s in total, inside the server's grace period
 // Close codes from the server (apps/server/src/game/RoomHost.js) that mean "don't retry".
-const FINAL_CLOSE_CODES = new Set([4000, 4001, 4002, 4003]);
+const FINAL_CLOSE_CODES = new Set([4000, 4001, 4002, 4003, 4004]);
 const REPLACED = 4003;
+// A refused join (4000) and a closed room (4004) already came with a notification saying why.
+const EXPLAINED_CLOSE_CODES = new Set([4000, 4004]);
 
 const WS_BASE = SERVER_URL.replace(/^http/, 'ws').replace(/\/+$/, '');
 
@@ -63,6 +65,20 @@ class GameSocket {
   emit(event, data) {
     if (event === 'joinRoom') this.#joinRoom(data);
     else if (this.#joined && this.#ws?.readyState === WebSocket.OPEN) this.#send(event, data);
+  }
+
+  /** Leave the room for good. The server drops your player at once instead of holding it for a reconnect. */
+  leave() {
+    const ws = this.#ws;
+    if (this.#joined && ws?.readyState === WebSocket.OPEN) this.#send('leave');
+    this.#ws = null; // so its close event is ignored
+    ws?.close(1000);
+    clearTimeout(this.#retryTimer);
+    this.#join = null;
+    this.#joined = false;
+    this.#reconnecting = false;
+    this.id = null;
+    this.#fire('disconnect', 1000);
   }
 
   #fire(event, data) {
@@ -125,10 +141,11 @@ class GameSocket {
     this.#joined = false;
     this.#reconnecting = false;
     this.id = null;
-    // A refused join (4000) already came with a notification saying why.
     if (code === REPLACED) this.#fire('notification', { message: 'You joined from another tab or device.' });
-    else if (wasJoined) this.#fire('notification', { message: 'Lost the connection to the game server.' });
-    else if (code !== 4000) this.#fire('notification', { message: "Can't reach the game server. Check your connection and try again." });
+    else if (EXPLAINED_CLOSE_CODES.has(code)) {
+      // The server's notification said why.
+    } else if (wasJoined) this.#fire('notification', { message: 'Lost the connection to the game server.' });
+    else this.#fire('notification', { message: "Can't reach the game server. Check your connection and try again." });
     this.#fire('disconnect', code);
   }
 }

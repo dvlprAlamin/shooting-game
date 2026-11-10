@@ -57,6 +57,15 @@
   flex-shrink: 0;
 }
 
+// Brighter than the rifle, and tucked against it.
+.head {
+  width: 14px;
+  height: 14px;
+  margin-left: -0.25rem;
+  color: var(--bone);
+  flex-shrink: 0;
+}
+
 // Under the match timer, and at the top of the menu.
 .notices {
   position: fixed;

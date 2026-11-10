@@ -9,6 +9,7 @@ export interface IKill {
   victim: string;
   /** Which side you were on, if either. */
   you: 'killer' | 'victim' | null;
+  headshot: boolean;
 }
 
 export interface INotice {

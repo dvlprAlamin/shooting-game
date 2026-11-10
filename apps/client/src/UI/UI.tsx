@@ -7,15 +7,21 @@ import Reloading from '@/UI/Reloading.jsx';
 // import QuickAccessSlots from "@/UI/QuickAccessSlots/QuickAccessSlots.tsx";
 
 const HitMarker = () => {
-  const hit = useHudStore((s: IHudStore) => s.hitMarker);
-  const kill = useHudStore((s: IHudStore) => s.killMarker);
-  if (!hit && !kill) return null;
+  const marker = useHudStore((s: IHudStore) => s.marker);
+  if (!marker.n) return null;
   // Remounting via `key` restarts the CSS animation on every hit.
+  return <div key={marker.n} className={`${styles.hitMarker} ${styles[marker.kind] ?? ''}`} />;
+};
+
+// Your streaks and headshot kills, over the crosshair. Screen readers get it from the kill feed.
+const Callout = () => {
+  const callout = useHudStore((s: IHudStore) => s.callout);
+  if (!callout) return null;
   return (
-    <div
-      key={`${hit}-${kill}`}
-      className={`${styles.hitMarker} ${kill ? styles.kill : ''}`}
-    />
+    <div key={callout.n} className={styles.callout} aria-hidden="true">
+      <p className={styles.calloutTitle}>{callout.title}</p>
+      {callout.detail && <p className={styles.calloutDetail}>{callout.detail}</p>}
+    </div>
   );
 };
 
@@ -46,6 +52,7 @@ const UI = () => {
     <div className="ui-root">
       {!isAiming && <div className={styles.aim} />}
       <HitMarker />
+      <Callout />
       <DamageOverlay />
       {isReloading && <Reloading />}
       <NumberOfRounds />

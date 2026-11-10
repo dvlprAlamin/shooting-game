@@ -80,15 +80,15 @@ export function playSoundAt(name, position, opts = {}) {
   s.src.start();
 }
 
-/** Short synthesized tick for hit markers (no asset needed). */
-export function playHitTick() {
+/** Short synthesized tick for hit markers (no asset needed); higher and louder for a headshot. */
+export function playHitTick(head = false) {
   if (!listener) return;
   const ctx = listener.context;
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.type = 'square';
-  osc.frequency.value = 1800;
-  gain.gain.setValueAtTime(0.08, ctx.currentTime);
+  osc.frequency.value = head ? 2700 : 1800;
+  gain.gain.setValueAtTime(head ? 0.11 : 0.08, ctx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.06);
   osc.connect(gain).connect(listener.getInput());
   osc.start();

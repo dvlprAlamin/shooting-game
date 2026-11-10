@@ -93,20 +93,62 @@
 }
 
 // Bottom left on desktop; bottom centre on touch, between the stick and the buttons.
-.health {
+.vitals {
   position: absolute;
   left: calc(var(--safe-left) + 24px);
   bottom: calc(var(--safe-bottom) + 22px);
+
+  :global(html.touch) & {
+    left: 50%;
+    bottom: calc(var(--safe-bottom) + 14px);
+    translate: calc(-100% - 12px) 0; // ends just left of centre: the rifle is on the right
+  }
+}
+
+.health {
   display: flex;
   align-items: flex-end;
   gap: 0.75rem;
   @include over-scene;
 
   :global(html.touch) & {
-    left: 50%;
-    bottom: calc(var(--safe-bottom) + 14px);
-    translate: calc(-100% - 12px) 0; // ends just left of centre: the rifle is on the right
     gap: 0.5rem;
+  }
+}
+
+// Above the health, out of the layout so the health doesn't move. Teal: the shield colour others see on you.
+.protection {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  display: grid;
+  gap: 4px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--teal);
+  white-space: nowrap;
+  @include over-scene;
+}
+
+.drain {
+  height: 3px;
+  background: rgb(var(--canopy-rgb) / 0.6);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.4);
+
+  &::after {
+    content: '';
+    display: block;
+    height: 100%;
+    background: var(--teal);
+    transform-origin: left;
+    transform: scaleX(0);
+    animation: drain var(--left) linear forwards;
+  }
+}
+
+@keyframes drain {
+  from {
+    transform: scaleX(var(--from));
   }
 }
 

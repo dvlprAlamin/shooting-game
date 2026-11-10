@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CLOSE, RoomHost } from '../src/game/RoomHost.js';
-import { RECONNECT_GRACE_MS } from '../src/game/GameRoom.js';
+import { GAME_OVER_TTL_MS, RECONNECT_GRACE_MS } from '../src/game/GameRoom.js';
 
 // A RoomHost on a fake clock with hand-driven timers, and fake sockets that record frames.
 function setup() {
@@ -160,7 +160,37 @@ test('full and finished rooms refuse new players but let dropped players back in
     host.game.ended = true;
     assert.deepEqual(join('Later').notes(), ['That match is already over.']);
     const back = join('P1');
-    assert.deepEqual(back.events().slice(-1), ['gameOver']);
+    assert.deepEqual(back.events().slice(-2), ['gameOver', 'rematchVotes']);
+});
+
+test('leaving on purpose removes the player at once', () => {
+    const { host, join } = setup();
+    const alice = join('Alice', { isCreate: true });
+    const bob = join('Bob');
+    bob.say('leave');
+    assert.equal(bob.closedWith.code, 1000);
+    assert.ok(alice.events().includes('playerDisconnected'));
+    assert.deepEqual(Object.keys(host.game.players), ['p1']);
+
+    alice.say('leave');
+    assert.equal(host.game, null);
+});
+
+test('a finished match that nobody restarts closes the room', () => {
+    const { host, advance, join, intervals } = setup();
+    const alice = join('Alice', { isCreate: true });
+    const bob = join('Bob');
+    host.game.duration = 1;
+    advance(1000);
+    assert.ok(alice.events().includes('gameOver'));
+
+    advance(GAME_OVER_TTL_MS);
+    for (const s of [alice, bob]) {
+        assert.equal(s.closedWith.code, CLOSE.ROOM_CLOSED);
+        assert.deepEqual(s.notes(), ['The match is over and the room has closed.']);
+    }
+    assert.equal(host.game, null);
+    assert.equal(intervals.size, 0);
 });
 
 test('joining twice on one connection is refused', () => {

@@ -98,6 +98,39 @@
   }
 }
 
+// After the match: Leave and Play again, with the rematch vote count under them.
+.actions {
+  display: grid;
+  justify-items: end;
+  gap: 0.5rem;
+
+  @include short {
+    gap: 0.3rem;
+  }
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+// The same width as "Play again" and "Ready".
+.again {
+  min-width: 11rem;
+
+  @include short {
+    min-width: 9.5rem;
+  }
+}
+
+.votes {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--sand);
+  font-variant-numeric: tabular-nums;
+}
+
 @keyframes land {
   from {
     opacity: 0;

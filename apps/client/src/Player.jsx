@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { CapsuleCollider, RigidBody, useRapier } from '@react-three/rapier';
 import { socket } from '@/net/socket';
+import { isProtected } from '@/net/remotePlayers';
 import { input, installInput } from '@/game/input';
 import { initAudio, playHitTick, playSound, resumeAudio } from '@/game/audio';
 import { usePlayerStore } from '@/store/PlayersStore';
@@ -23,6 +24,7 @@ import {
   FLAG_RELOAD,
   FLAG_SPRINT,
   GROUND_ACCEL,
+  HEAD_HEIGHT,
   JUMP_VELOCITY,
   MAG_SIZE,
   MAX_SHOT_DISTANCE,
@@ -138,6 +140,9 @@ export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, isDead }) => {
     // Keep an exact cadence while the trigger is held.
     state.lastShot = now - state.lastShot < FIRE_INTERVAL * 2 ? state.lastShot + FIRE_INTERVAL : now;
     useRoundsStore.getState().decreaseRounds();
+    // Firing gives up your spawn protection (the server ends it too).
+    const hud = useHudStore.getState();
+    if (hud.protectedUntil) hud.setProtection(0);
 
     // Spread: none when aiming, small when standing, larger when moving or airborne.
     let spread = 0.006;
@@ -168,13 +173,19 @@ export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, isDead }) => {
     );
 
     let target = null;
+    let head = false;
     if (hit) {
       _point.copy(_origin).addScaledVector(_dir, hit.timeOfImpact);
       target = hit.collider.parent()?.userData?.playerId ?? null;
       if (target) {
-        useHudStore.getState().showHitMarker();
-        playHitTick();
-        impactsRef.current?.blood(_point);
+        // The collider's translation is the capsule centre; the top of the capsule is the head.
+        head = _point.y - hit.collider.translation().y >= HEAD_HEIGHT;
+        // Spawn-protected players take no damage, so they get no hit feedback either.
+        if (!isProtected(target)) {
+          hud.showHitMarker(head ? 'head' : 'hit');
+          playHitTick(head);
+          impactsRef.current?.blood(_point);
+        }
       } else {
         _normal.set(hit.normal.x, hit.normal.y, hit.normal.z);
         impactsRef.current?.bulletHole(_point, _normal);
@@ -185,6 +196,7 @@ export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, isDead }) => {
       o: { x: round3(_origin.x), y: round3(_origin.y), z: round3(_origin.z) },
       d: { x: _dir.x, y: _dir.y, z: _dir.z },
       target,
+      head,
     });
 
     viewModelRef.current?.shot();

@@ -7,9 +7,15 @@ export const PLAYER_HALF_HEIGHT = 0.55; // half height of the capsule's cylinder
 export const PLAYER_CENTER_TO_FEET = PLAYER_HALF_HEIGHT + PLAYER_RADIUS;
 
 export const MAX_HEALTH = 100;
+// A player who just spawned can't be hurt for this long, or until they fire.
+export const SPAWN_PROTECTION = 3000; // ms
 
 // Weapon
 export const DAMAGE = 10;
+export const HEAD_DAMAGE = 25;
+// Hits on the capsule higher than this above its centre are headshots (soldier.glb's neck is
+// 1.52 m above the feet, the capsule centre 0.9 m).
+export const HEAD_HEIGHT = 0.6;
 export const MAG_SIZE = 30;
 export const FIRE_INTERVAL = 100; // ms (600 rpm)
 export const MAX_SHOT_DISTANCE = 250;

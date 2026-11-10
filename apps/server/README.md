@@ -5,10 +5,12 @@ to the player who created them.
 
 ## Layout
 
-- `src/game/GameRoom.js` is one match: players, scores, timer, and the checks on moves, shots and respawns.
-  It knows nothing about sockets, so the tests drive it directly.
-- `src/game/RoomHost.js` serves one room over plain WebSockets: joining, reconnecting (a dropped player has
-  10 seconds to come back with their score), the timer, and limits on what one connection may send.
+- `src/game/GameRoom.js` is one match: players, scores, timer, and the checks on moves, shots and respawns,
+  plus headshots, spawn protection, health regeneration, kill streaks and rematch votes. It knows nothing about
+  sockets, so the tests drive it directly.
+- `src/game/RoomHost.js` serves one room over plain WebSockets: joining, leaving, reconnecting (a dropped player
+  has 10 seconds to come back with their score), the timer, closing a finished room nobody restarts (after
+  3 minutes), and limits on what one connection may send.
 - `src/app.js` is the Hono app: it routes `/rooms/<roomId>` to that room's Durable Object (`src/room.js`), which
   holds a RoomHost.
 - Gameplay numbers the client also uses come from `@shooter/shared` (`packages/shared/` in the repo root).

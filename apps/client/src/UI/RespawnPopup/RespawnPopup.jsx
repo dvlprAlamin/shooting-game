@@ -16,11 +16,17 @@ const winnerLine = (ranked, myId) => {
   return first.id === myId ? `You win with ${kills}` : `${first.playerName} wins with ${kills}`;
 };
 
-/** Full-screen after you die (with the countdown to respawn) and when the match ends. */
-const RespawnPopup = ({ reSpawnHandler, leaderboard, isGameOver, killedBy, myId }) => {
+/**
+ * Full-screen after you die (with the countdown to respawn) and when the match ends. At the end,
+ * players vote for a rematch: it starts when everyone is ready, or shortly after more than half are.
+ */
+const RespawnPopup = ({ reSpawnHandler, leaderboard, isGameOver, killedBy, myId, rematch, onRematch, onLeave }) => {
   const [wait, setWait] = useState(RESPAWN_DELAY);
   const respawnRef = useRef(null);
+  const againRef = useRef(null);
   const ranked = rankPlayers(leaderboard);
+  const { votes, startsIn } = rematch;
+  const voted = votes.includes(myId);
 
   useEffect(() => {
     if (isGameOver) return;
@@ -32,8 +38,13 @@ const RespawnPopup = ({ reSpawnHandler, leaderboard, isGameOver, killedBy, myId 
     return () => clearTimeout(id);
   }, [wait, isGameOver]);
 
+  useEffect(() => {
+    if (isGameOver) againRef.current?.focus();
+  }, [isGameOver]);
+
   const title = isGameOver ? 'Match over' : killedBy ? `${killedBy} got you` : 'You were eliminated';
   const subtitle = isGameOver ? winnerLine(ranked, myId) : null;
+  const ready = `${votes.length} of ${ranked.length} ready`;
 
   return (
     <section className={`${styles.screen} ${isGameOver ? styles.over : styles.dead}`} aria-labelledby="outcome">
@@ -45,13 +56,27 @@ const RespawnPopup = ({ reSpawnHandler, leaderboard, isGameOver, killedBy, myId 
             </h1>
             {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
           </div>
-          {!isGameOver && (
+          {isGameOver ? (
+            <div className={styles.actions}>
+              <div className={styles.buttons}>
+                <Button variant="quiet" onClick={onLeave}>
+                  Leave
+                </Button>
+                <Button ref={againRef} className={styles.again} disabled={voted} onClick={onRematch}>
+                  {voted ? 'Ready' : 'Play again'}
+                </Button>
+              </div>
+              <p className={styles.votes} role="status">
+                {startsIn ? `${ready}, starting in ${startsIn}` : ready}
+              </p>
+            </div>
+          ) : (
             <Button ref={respawnRef} className={styles.respawn} disabled={wait > 0} onClick={reSpawnHandler}>
               {wait > 0 ? `Respawn in ${wait}` : 'Respawn'}
             </Button>
           )}
         </header>
-        <LeaderBoard ranked={ranked} myId={myId} />
+        <LeaderBoard ranked={ranked} myId={myId} ready={isGameOver ? votes : null} />
       </div>
     </section>
   );
