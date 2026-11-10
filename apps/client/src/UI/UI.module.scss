@@ -1,13 +1,21 @@
+@use '@/styles/kit' as *;
+
+// Centre dot and four ticks, outlined so it reads on sky and on rock.
 .aim {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  transform: translate3d(-50%, -50%, 0);
-  border: 2px solid white;
+  width: 24px;
+  height: 24px;
+  translate: -50% -50%;
   z-index: 2;
+  background:
+    radial-gradient(circle, var(--bone) 0 1.6px, transparent 2.2px) center / 6px 6px no-repeat,
+    linear-gradient(var(--bone), var(--bone)) center top / 2px 7px no-repeat,
+    linear-gradient(var(--bone), var(--bone)) center bottom / 2px 7px no-repeat,
+    linear-gradient(var(--bone), var(--bone)) left center / 7px 2px no-repeat,
+    linear-gradient(var(--bone), var(--bone)) right center / 7px 2px no-repeat;
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.9));
 }
 
 // Four short diagonal ticks around the crosshair.
@@ -74,14 +82,39 @@
   }
 }
 
+// Under the crosshair, with a bar that fills over the reload time.
 .reloading {
   position: absolute;
   left: 50%;
-  top: 60%;
-  transform: translateX(-50%);
-  color: #fff;
-  font-size: 18px;
-  text-shadow: 0 0 4px #000;
-  letter-spacing: 3px;
+  top: calc(50% + 48px);
+  translate: -50% 0;
   z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  font-weight: 700;
+  font-size: 1rem;
+  @include over-scene;
+}
+
+.progress {
+  width: 72px;
+  height: 3px;
+  background: rgb(var(--canopy-rgb) / 0.6);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.4);
+
+  &::after {
+    content: '';
+    display: block;
+    height: 100%;
+    background: var(--bone);
+    transform-origin: left;
+    animation: reload var(--reload-time) linear forwards;
+  }
+}
+
+@keyframes reload {
+  from {
+    transform: scaleX(0);
+  }
 }

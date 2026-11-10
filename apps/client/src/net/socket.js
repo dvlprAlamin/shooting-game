@@ -75,8 +75,8 @@ class GameSocket {
 
   #joinRoom(info) {
     const roomId = String(info?.roomId ?? '').trim();
-    if (!ROOM_ID_PATTERN.test(roomId)) return this.#fire('notification', { message: 'Invalid room id!' });
-    if (this.#join) return this.#fire('notification', { message: 'Already in a room!' });
+    if (!ROOM_ID_PATTERN.test(roomId)) return this.#fire('notification', { message: "That room code isn't valid." });
+    if (this.#join) return this.#fire('notification', { message: "You're already in a room." });
     this.#join = { ...info, roomId, playerKey: PLAYER_KEY };
     this.#retry = 0;
     this.#open();
@@ -127,8 +127,8 @@ class GameSocket {
     this.id = null;
     // A refused join (4000) already came with a notification saying why.
     if (code === REPLACED) this.#fire('notification', { message: 'You joined from another tab or device.' });
-    else if (wasJoined) this.#fire('notification', { message: 'Lost connection to the server!' });
-    else if (code !== 4000) this.#fire('notification', { message: "Can't reach the game server!" });
+    else if (wasJoined) this.#fire('notification', { message: 'Lost the connection to the game server.' });
+    else if (code !== 4000) this.#fire('notification', { message: "Can't reach the game server. Check your connection and try again." });
     this.#fire('disconnect', code);
   }
 }

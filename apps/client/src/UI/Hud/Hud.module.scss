@@ -1,0 +1,172 @@
+@use '@/styles/kit' as *;
+
+// Everything here sits over the touch controls, so only the Copy button takes touches.
+.hud {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-hud);
+  pointer-events: none;
+}
+
+// Top centre: kills, time left, deaths.
+.match {
+  position: absolute;
+  top: calc(var(--safe-top) + 10px);
+  left: 50%;
+  translate: -50% 0;
+  display: flex;
+  align-items: stretch;
+  gap: 3px;
+}
+
+.stat,
+.timer {
+  display: flex;
+  align-items: center;
+  background: rgb(var(--canopy-rgb) / 0.72);
+}
+
+.stat {
+  gap: 0.4rem;
+  padding: 0 0.75rem;
+  font-weight: 700;
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    color: var(--sand);
+  }
+
+  // The strip's two outer bottom corners are cut.
+  &:first-child {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  }
+
+  &:last-child {
+    @include chamfer(8px);
+  }
+}
+
+.timer {
+  @include stencil;
+  min-width: 4.4ch;
+  justify-content: center;
+  padding: 0.3rem 0.8rem 0.35rem;
+  font-size: 2rem;
+  background: rgb(var(--canopy-rgb) / 0.86);
+
+  &.low {
+    color: var(--red);
+  }
+
+  @include short {
+    padding: 0.2rem 0.7rem 0.25rem;
+    font-size: 1.65rem;
+  }
+}
+
+// Top right: the room code, with a Copy button for inviting friends mid-match.
+.room {
+  position: absolute;
+  top: calc(var(--safe-top) + 10px);
+  right: calc(var(--safe-right) + 12px);
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
+  background: rgb(var(--canopy-rgb) / 0.72);
+  pointer-events: auto;
+}
+
+.roomLabel {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--sand);
+}
+
+.roomCode {
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+}
+
+// Bottom left on desktop; bottom centre on touch, between the stick and the buttons.
+.health {
+  position: absolute;
+  left: calc(var(--safe-left) + 24px);
+  bottom: calc(var(--safe-bottom) + 22px);
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  @include over-scene;
+
+  :global(html.touch) & {
+    left: 50%;
+    bottom: calc(var(--safe-bottom) + 14px);
+    translate: calc(-100% - 12px) 0; // ends just left of centre: the rifle is on the right
+    gap: 0.5rem;
+  }
+}
+
+.hp {
+  @include stencil;
+  min-width: 2.2ch;
+  font-size: 3.25rem;
+  text-align: right;
+
+  :global(html.touch) & {
+    font-size: 2.25rem;
+  }
+}
+
+.bar {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 0.45rem;
+
+  i {
+    width: 14px;
+    height: 12px;
+    background: rgb(var(--canopy-rgb) / 0.6);
+    box-shadow: inset 0 0 0 1px rgb(238 231 212 / 0.35);
+    transform: skewX(-18deg);
+  }
+
+  .on {
+    background: var(--bone);
+    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35);
+  }
+
+  :global(html.touch) & {
+    margin-bottom: 0.3rem;
+
+    i {
+      width: 10px;
+      height: 9px;
+    }
+  }
+}
+
+.low {
+  .hp {
+    color: var(--red);
+  }
+
+  .on {
+    background: var(--red);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .hp {
+      animation: pulse 1s ease-in-out infinite;
+    }
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.55;
+  }
+}

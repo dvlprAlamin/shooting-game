@@ -78,8 +78,8 @@ export class GameRoom {
      */
     join(id, playerName, key = null) {
         if (this.players[id]) return 'Already in a room!';
-        if (this.ended) return 'This game is already over!';
-        if (this.playersLimit <= Object.keys(this.players).length) return 'Room is full!';
+        if (this.ended) return 'That match is already over.';
+        if (this.playersLimit <= Object.keys(this.players).length) return 'That room is full.';
 
         this.send(id, 'joinedRoom', { message: 'Joined Room Successful!', id });
         const player = {

@@ -3,6 +3,7 @@ import { IAimingStore, useAimingStore } from '@/store/AimingStore.ts';
 import { IHudStore, useHudStore } from '@/store/HudStore.ts';
 import styles from '@/UI/UI.module.scss';
 import blood from '@/assets/textures/blood_256x256.png';
+import Reloading from '@/UI/Reloading.jsx';
 // import QuickAccessSlots from "@/UI/QuickAccessSlots/QuickAccessSlots.tsx";
 
 const HitMarker = () => {
@@ -46,7 +47,7 @@ const UI = () => {
       {!isAiming && <div className={styles.aim} />}
       <HitMarker />
       <DamageOverlay />
-      {isReloading && <div className={styles.reloading}>Reloading</div>}
+      {isReloading && <Reloading />}
       <NumberOfRounds />
       {/* <QuickAccessSlots /> */}
     </div>

@@ -1,0 +1,321 @@
+@use '@/styles/kit' as *;
+
+// Left-aligned over a scrim that fades out to the right, so the canyon (and the rifle) stay in view.
+// Phones in landscape: brand on the left, form on the right, exactly one screen tall.
+.menu {
+  position: relative;
+  isolation: isolate;
+  min-height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 30rem);
+  align-content: center;
+  gap: clamp(1.25rem, 4vh, 2.25rem);
+  padding: calc(var(--safe-top) + clamp(1rem, 4vh, 3rem)) calc(var(--safe-right) + 1rem)
+    calc(var(--safe-bottom) + clamp(1rem, 4vh, 3rem)) calc(var(--safe-left) + clamp(1.25rem, 7vw, 6rem));
+
+  &::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(
+      90deg,
+      rgb(var(--canopy-rgb) / 0.94) 0%,
+      rgb(var(--canopy-rgb) / 0.8) 38%,
+      rgb(var(--canopy-rgb) / 0) 72%
+    );
+  }
+
+  @include short {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    align-items: center;
+    column-gap: clamp(1rem, 4vw, 2.5rem);
+    max-width: 62rem;
+    padding: calc(var(--safe-top) + 0.75rem) calc(var(--safe-right) + 1rem) calc(var(--safe-bottom) + 0.75rem)
+      calc(var(--safe-left) + 1.25rem);
+
+    &::before {
+      background: linear-gradient(90deg, rgb(var(--canopy-rgb) / 0.94) 0%, rgb(var(--canopy-rgb) / 0.6) 100%);
+    }
+  }
+
+  @media (max-width: 34rem) {
+    grid-template-columns: minmax(0, 1fr);
+    padding-inline: calc(var(--safe-left) + 1rem) calc(var(--safe-right) + 1rem);
+
+    &::before {
+      background: rgb(var(--canopy-rgb) / 0.85);
+    }
+  }
+}
+
+.title {
+  @include stencil;
+  font-size: clamp(3.5rem, min(11vw, 12.5vh), 8.5rem);
+  line-height: 0.82;
+  color: var(--bone);
+
+  span {
+    display: block;
+  }
+
+  @include short {
+    font-size: clamp(2.6rem, 17vh, 5.25rem);
+  }
+}
+
+.tagline {
+  max-width: 26ch;
+  margin-top: 0.9rem;
+  font-size: 1.15rem;
+  color: var(--sand);
+
+  @include short {
+    margin-top: 0.6rem;
+    font-size: 1rem;
+  }
+}
+
+// Create / Join: two radio buttons styled as tabs on top of the panel.
+.tabs {
+  display: flex;
+  border: 0;
+}
+
+.tab {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  min-height: 48px;
+  padding: 0 1rem;
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--muted);
+  background: rgb(var(--canopy-rgb) / 0.5);
+  box-shadow: inset 0 -1px 0 var(--line);
+  cursor: pointer;
+  transition: color 0.15s, background-color 0.15s;
+
+  input {
+    @include visually-hidden;
+  }
+
+  &:hover {
+    color: var(--bone);
+  }
+
+  &:has(:checked) {
+    color: var(--bone);
+    background: var(--panel);
+    box-shadow: inset 0 3px 0 var(--bone);
+  }
+
+  &:has(:focus-visible) {
+    outline: 2px solid var(--bone);
+    outline-offset: -4px;
+  }
+
+  @include short {
+    min-height: 40px;
+    font-size: 1.05rem;
+  }
+}
+
+.panel {
+  @include panel;
+  @include chamfer(18px);
+  display: grid;
+  gap: 1.1rem;
+  padding: 1.5rem 1.5rem 1.75rem;
+
+  @include short {
+    gap: 0.6rem;
+    padding: 0.8rem 1rem 1rem;
+  }
+}
+
+.field {
+  display: grid;
+  gap: 0.35rem;
+
+  label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--sand);
+  }
+
+  input {
+    height: 48px;
+    padding: 0 0.85rem;
+    font-weight: 600;
+    font-size: 1.2rem;
+    background: rgb(0 0 0 / 0.35);
+    border: 1px solid var(--line);
+    border-radius: 0;
+    transition: border-color 0.15s;
+
+    &::placeholder {
+      color: rgb(238 231 212 / 0.38);
+      font-weight: 500;
+    }
+
+    &:hover {
+      border-color: rgb(213 154 98 / 0.7);
+    }
+
+    &:focus-visible {
+      outline-offset: 0;
+      border-color: transparent;
+    }
+
+    // Only after the player has typed (or tried to submit), never on load.
+    &:user-invalid {
+      border-color: var(--red);
+    }
+  }
+
+  @include short {
+    gap: 0.2rem;
+
+    label {
+      font-size: 0.875rem;
+    }
+
+    input {
+      height: 40px;
+      font-size: 1.05rem; // at least 16px, or iOS zooms in on focus
+    }
+  }
+}
+
+.panes {
+  display: grid;
+}
+
+// Buttons sit at the bottom of the pane, so Start and Join are in the same spot.
+.pane {
+  grid-area: 1 / 1;
+  min-width: 0;
+  display: grid;
+  align-content: space-between;
+  gap: 1.1rem;
+  border: 0;
+
+  &:disabled {
+    visibility: hidden;
+  }
+
+  @include short {
+    gap: 0.6rem;
+  }
+}
+
+.settings {
+  display: grid;
+  gap: 1.1rem;
+
+  @include short {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+.choices {
+  min-width: 0;
+  border: 0;
+
+  legend {
+    margin-bottom: 0.35rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--sand);
+
+    @include short {
+      margin-bottom: 0.2rem;
+      font-size: 0.875rem;
+    }
+  }
+}
+
+.chips {
+  display: flex;
+  gap: 4px;
+}
+
+.chip {
+  @include stencil;
+  flex: 1;
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  font-size: 1.5rem;
+  color: var(--muted);
+  background: rgb(0 0 0 / 0.35);
+  box-shadow: inset 0 0 0 1px var(--line);
+  cursor: pointer;
+  transition: color 0.15s, background-color 0.15s;
+
+  input {
+    @include visually-hidden;
+  }
+
+  &:hover {
+    color: var(--bone);
+  }
+
+  &:has(:checked) {
+    color: var(--canopy);
+    background: var(--bone);
+    box-shadow: none;
+  }
+
+  &:has(:focus-visible) {
+    outline: 2px solid var(--bone);
+    outline-offset: 2px;
+  }
+
+  @include short {
+    min-height: 36px;
+    font-size: 1.3rem;
+  }
+}
+
+// wrap-reverse: if the room code doesn't fit beside the button it moves above it, never below,
+// so the button stays at the bottom of the pane.
+.actions {
+  display: flex;
+  flex-wrap: wrap-reverse;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  margin-top: 0.35rem;
+
+  @include short {
+    margin-top: 0.15rem;
+  }
+}
+
+// Shown before starting, so friends can be sent the code right away.
+.code {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--sand);
+
+  strong {
+    font-weight: 700;
+    font-size: 1.3rem;
+    letter-spacing: 0.04em;
+    color: var(--bone);
+  }
+
+  @include short {
+    gap: 0.45rem;
+    font-size: 0.875rem;
+
+    strong {
+      font-size: 1.15rem;
+    }
+  }
+}

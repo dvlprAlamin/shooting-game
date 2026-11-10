@@ -25,7 +25,7 @@ function makeNameTag(name) {
   canvas.width = 256;
   canvas.height = 64;
   const ctx = canvas.getContext('2d');
-  ctx.font = 'bold 30px Juvanze, sans-serif';
+  ctx.font = '700 32px "Barlow Semi Condensed", sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.lineWidth = 6;

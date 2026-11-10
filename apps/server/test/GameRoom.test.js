@@ -61,13 +61,13 @@ test('joining sends the room to the newcomer and the newcomer to everyone else',
 test('a full or finished room turns players away', () => {
     const { room } = setup({ playersLimit: 5 });
     for (let i = 0; i < 5; i++) assert.equal(room.join('P' + i, 'P'), null);
-    assert.equal(room.join('late', 'Late'), 'Room is full!');
+    assert.equal(room.join('late', 'Late'), 'That room is full.');
     assert.equal(room.join('P0', 'again'), 'Already in a room!');
 
     const { room: over } = setup();
     over.join('A', 'Alice');
     over.ended = true;
-    assert.equal(over.join('B', 'Bob'), 'This game is already over!');
+    assert.equal(over.join('B', 'Bob'), 'That match is already over.');
 });
 
 test('movement is relayed to the others as a volatile event and ignored when malformed', () => {

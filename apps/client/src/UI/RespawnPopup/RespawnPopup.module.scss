@@ -1,0 +1,106 @@
+@use '@/styles/kit' as *;
+
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-screen);
+  display: grid;
+  place-items: center;
+  padding: calc(var(--safe-top) + clamp(1rem, 5vh, 2.5rem)) calc(var(--safe-right) + 1rem)
+    calc(var(--safe-bottom) + clamp(1rem, 5vh, 2.5rem)) calc(var(--safe-left) + 1rem);
+  background: rgb(var(--canopy-rgb) / 0.62);
+
+  @include short {
+    padding: calc(var(--safe-top) + 0.6rem) calc(var(--safe-right) + 0.75rem) calc(var(--safe-bottom) + 0.6rem)
+      calc(var(--safe-left) + 0.75rem);
+  }
+}
+
+// Dying tints the edges red; the end of the match doesn't.
+.dead {
+  background:
+    radial-gradient(ellipse at center, transparent 35%, rgb(120 10 4 / 0.55) 100%),
+    rgb(var(--canopy-rgb) / 0.55);
+}
+
+.over {
+  background: rgb(var(--canopy-rgb) / 0.78);
+}
+
+.card {
+  @include panel;
+  @include chamfer(18px);
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 42rem);
+  max-height: 100%;
+  padding: 1.75rem 1.75rem 1.25rem;
+
+  @include short {
+    height: 100%;
+    padding: 0.85rem 1rem 0.5rem;
+  }
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+
+  @include short {
+    flex-wrap: nowrap;
+    align-items: center;
+    margin-bottom: 0.6rem;
+  }
+}
+
+.outcome {
+  min-width: 0;
+}
+
+.title {
+  @include stencil;
+  font-size: clamp(2.5rem, 7vw, 4.25rem);
+  overflow-wrap: anywhere;
+
+  .dead & {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: land 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+    }
+  }
+
+  @include short {
+    font-size: clamp(1.9rem, 11vh, 2.6rem);
+  }
+}
+
+.subtitle {
+  margin-top: 0.5rem;
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: var(--sand);
+
+  @include short {
+    margin-top: 0.2rem;
+    font-size: 1rem;
+  }
+}
+
+// Wide enough for "Respawn in 5", so the button doesn't jump when the countdown ends.
+.respawn {
+  min-width: 12.5rem;
+
+  @include short {
+    min-width: 10.5rem;
+  }
+}
+
+@keyframes land {
+  from {
+    opacity: 0;
+    scale: 1.15;
+  }
+}

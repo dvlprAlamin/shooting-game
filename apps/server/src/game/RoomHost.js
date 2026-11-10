@@ -87,7 +87,7 @@ export class RoomHost {
         const key = typeof playerKey === 'string' && playerKey.length <= MAX_KEY_LENGTH ? playerKey : null;
 
         if (!this.game) {
-            if (!isCreate) return this.reject(conn, 'Room not exist!');
+            if (!isCreate) return this.reject(conn, 'No room has that code. Check it with whoever made the room.');
             this.game = new GameRoom({
                 duration,
                 playersLimit,

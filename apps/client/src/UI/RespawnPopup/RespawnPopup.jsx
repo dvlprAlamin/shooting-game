@@ -1,89 +1,59 @@
-import { useEffect, useState } from 'react';
-import PrimaryButton from '../elements/Primarybutton';
-import { Box, Dialog, Typography } from '@mui/material';
+import { useEffect, useRef, useState } from 'react';
+import Button from '../elements/Button';
 import LeaderBoard from '../LeaderBoard/LeaderBoard';
-import { SHORT_SCREEN_MEDIA } from '../../theme/shortScreen';
+import styles from './RespawnPopup.module.scss';
 
-const RespawnPopup = ({ reSpawnHandler, leaderboard, isGameOver }) => {
-  const [activeButton, setActiveButton] = useState(false);
-  const [waitingTime, setWaitingTime] = useState(5);
+const RESPAWN_DELAY = 5; // seconds before the Respawn button unlocks
+
+/** Most kills first; fewer deaths breaks a tie. */
+const rankPlayers = (players) => Object.values(players ?? {}).sort((a, b) => b.kills - a.kills || a.deaths - b.deaths);
+
+const winnerLine = (ranked, myId) => {
+  const [first, second] = ranked;
+  if (!first) return null;
+  const kills = `${first.kills} kill${first.kills === 1 ? '' : 's'}`;
+  if (second && second.kills === first.kills) return `Tied at ${kills}`;
+  return first.id === myId ? `You win with ${kills}` : `${first.playerName} wins with ${kills}`;
+};
+
+/** Full-screen after you die (with the countdown to respawn) and when the match ends. */
+const RespawnPopup = ({ reSpawnHandler, leaderboard, isGameOver, killedBy, myId }) => {
+  const [wait, setWait] = useState(RESPAWN_DELAY);
+  const respawnRef = useRef(null);
+  const ranked = rankPlayers(leaderboard);
 
   useEffect(() => {
-    const timeOutId = setTimeout(() => {
-      setActiveButton(true);
-    }, 5000);
+    if (isGameOver) return;
+    if (wait <= 0) {
+      respawnRef.current?.focus(); // so Enter or Space respawns
+      return;
+    }
+    const id = setTimeout(() => setWait((w) => w - 1), 1000);
+    return () => clearTimeout(id);
+  }, [wait, isGameOver]);
 
-    const intervalId = setInterval(() => {
-      setWaitingTime((preValue) => (preValue > 0 ? preValue - 1 : preValue));
-    }, 1000);
-
-    return () => {
-      clearTimeout(timeOutId);
-      clearInterval(intervalId);
-    };
-  }, []);
+  const title = isGameOver ? 'Match over' : killedBy ? `${killedBy} got you` : 'You were eliminated';
+  const subtitle = isGameOver ? winnerLine(ranked, myId) : null;
 
   return (
-    <div>
-      <Dialog
-        open={true}
-        fullWidth
-        PaperProps={{
-          sx: {
-            boxShadow: 'none',
-            background: '#00000080',
-            // The paper is a flex column: the header keeps its size and only the leaderboard scrolls.
-            height: '90%',
-            overflow: 'hidden',
-            // Keep the default 32px on top: on touch the kill feed snackbars sit at the top centre.
-            [SHORT_SCREEN_MEDIA]: {
-              m: 1.5,
-              mt: 4,
-              width: 'calc(100% - 24px)',
-              height: 'calc(100% - 44px)',
-              maxHeight: 'none',
-            },
-          },
-        }}
-      >
-        <Box
-          sx={{
-            p: 3,
-            textAlign: 'center',
-            flexShrink: 0,
-            // Phone in landscape: title and respawn button on one row to leave room for the leaderboard.
-            [SHORT_SCREEN_MEDIA]: {
-              p: 1.5,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 3,
-            },
-          }}
-        >
-          <Box
-            component="h1"
-            sx={{ color: '#fff', mb: 1, [SHORT_SCREEN_MEDIA]: { mb: 0, fontSize: 24 } }}
-          >
-            {isGameOver ? 'Game Over!' : 'You are dead!'}
-          </Box>
-          {!isGameOver ? (
-            <Box sx={{ height: 40, display: 'grid', placeItems: 'center' }}>
-              {!activeButton ? (
-                <Typography sx={{ fontSize: 18, color: '#fff' }}>
-                  Wait {waitingTime} second{waitingTime > 1 ? 's' : ''}
-                </Typography>
-              ) : (
-                <PrimaryButton onClick={reSpawnHandler}>Respawn</PrimaryButton>
-              )}
-            </Box>
-          ) : (
-            <></>
+    <section className={`${styles.screen} ${isGameOver ? styles.over : styles.dead}`} aria-labelledby="outcome">
+      <div className={styles.card}>
+        <header className={styles.head}>
+          <div className={styles.outcome}>
+            <h1 id="outcome" className={styles.title}>
+              {title}
+            </h1>
+            {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
+          </div>
+          {!isGameOver && (
+            <Button ref={respawnRef} className={styles.respawn} disabled={wait > 0} onClick={reSpawnHandler}>
+              {wait > 0 ? `Respawn in ${wait}` : 'Respawn'}
+            </Button>
           )}
-        </Box>
-        <LeaderBoard leaderboard={leaderboard} />
-      </Dialog>
-    </div>
+        </header>
+        <LeaderBoard ranked={ranked} myId={myId} />
+      </div>
+    </section>
   );
 };
 

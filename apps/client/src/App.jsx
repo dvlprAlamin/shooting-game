@@ -21,10 +21,10 @@ import { useHudStore } from './store/HudStore';
 import { RemotePlayer } from './RemotePlayer';
 import RoomSelector from './UI/RoomSelector/RoomSelector';
 import UI from './UI/UI';
-import { useSnackbar } from 'notistack';
-import InviteFriends from './UI/InviteFriend/InviteFriends';
+import Hud from './UI/Hud/Hud';
+import { Loading, Reconnecting } from './UI/Status/Status';
+import { useFeedStore } from './store/FeedStore';
 import TouchControls from './components/TouchControls';
-import { Box } from '@mui/material';
 
 export { socket };
 
@@ -33,13 +33,15 @@ const App = () => {
   const leaderboard = usePlayerStore((s) => s.leaderboard);
   const [isDead, setIsDead] = useState(false);
   const [isJoinedRoom, setIsJoinedRoom] = useState(false);
-  const { enqueueSnackbar } = useSnackbar();
+  const [roomId, setRoomId] = useState(null);
+  const [killedBy, setKilledBy] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [isGameOver, setIsGameOver] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
 
   useEffect(() => {
     const { setPlayers, setPlayer, updatePlayer, removePlayer, setLeaderboard } = usePlayerStore.getState();
+    const { pushKill, pushNotice } = useFeedStore.getState();
     const respawnTimeouts = new Set();
 
     // The connection opens when joining a room. 'disconnect' means joining failed or the connection
@@ -76,26 +78,13 @@ const App = () => {
     const onPlayerDead = (player) => {
       updatePlayer(player.id, 'isDead', true);
 
-      if (player.shooter === socket.id) {
+      const you = player.shooter === socket.id ? 'killer' : player.id === socket.id ? 'victim' : null;
+      pushKill({ killer: player.shooterName, victim: player.playerName, you });
+      if (you === 'killer') {
         useHudStore.getState().showHitMarker(true);
-        enqueueSnackbar({
-          message: `You killed ${player.playerName}!`,
-          variant: 'success',
-          hideIconVariant: true,
-        });
-      } else if (player.id === socket.id) {
-        enqueueSnackbar({
-          message: `${player.shooterName} killed you!`,
-          variant: 'error',
-          hideIconVariant: true,
-        });
+      } else if (you === 'victim') {
+        setKilledBy(player.shooterName);
         setIsDead(true);
-      } else {
-        enqueueSnackbar({
-          message: `${player.shooterName} killed ${player.playerName}!`,
-          variant: 'info',
-          hideIconVariant: true,
-        });
       }
     };
 
@@ -114,12 +103,7 @@ const App = () => {
       respawnTimeouts.add(timeoutId);
     };
 
-    const onNotification = ({ message }) => {
-      enqueueSnackbar({
-        message: message,
-        variant: 'warning',
-      });
-    };
+    const onNotification = ({ message }) => pushNotice(message);
 
     const onTimerUpdate = (remaining) => setTimeRemaining(remaining);
     const onGameOver = () => setIsGameOver(true);
@@ -164,6 +148,7 @@ const App = () => {
   };
 
   const handleJoinRoom = (roomInfo) => {
+    setRoomId(roomInfo.roomId);
     socket.emit('joinRoom', roomInfo);
   };
 
@@ -178,33 +163,21 @@ const App = () => {
           isGameOver={isGameOver}
           leaderboard={leaderboard}
           reSpawnHandler={reSpawnHandler}
+          killedBy={killedBy}
+          myId={socket.id}
         />
       ) : (
         <></>
       )}
-      {isReconnecting && (
-        <Box
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 1500,
-            display: 'grid',
-            placeItems: 'center',
-            background: 'rgba(0, 0, 0, 0.5)',
-            color: '#fff',
-          }}
-        >
-          <h1>Reconnecting...</h1>
-        </Box>
-      )}
+      {isReconnecting && <Reconnecting />}
 
-      <HUD
+      <Hud
         timeRemaining={timeRemaining}
         health={players[socket.id]?.health}
         deaths={players[socket.id]?.deaths}
         kills={players[socket.id]?.kills}
+        roomId={roomId}
       />
-      <InviteFriends />
       <UI />
       {IS_TOUCH && !isDead && !isGameOver && <TouchControls />}
       <Canvas
@@ -215,7 +188,7 @@ const App = () => {
         <Suspense
           fallback={
             <Html center>
-              <h1 style={{ color: '#fff', marginTop: 40 }}>Loading...</h1>
+              <Loading />
             </Html>
           }
         >
@@ -288,34 +261,5 @@ const Scene = ({ players, isDead, isGameOver }) => {
         )}
       </Physics>
     </>
-  );
-};
-
-const HUD = ({ health, deaths, kills, timeRemaining }) => {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 'calc(var(--safe-top) + 10px)',
-        right: 'calc(var(--safe-right) + 10px)',
-        color: 'white',
-        background: 'rgba(0, 0, 0, 0.5)',
-        padding: '5px',
-        borderRadius: '5px',
-        zIndex: 99,
-      }}
-    >
-      <div>Health: {health >= 0 ? health : 0}</div>
-      <div>Kills: {kills || 0}</div>
-      <div>Respawn: {deaths || 0}</div>
-      {timeRemaining ? (
-        <div>
-          Time: {Math.floor(timeRemaining / 60)}:
-          {String(timeRemaining % 60).padStart(2, '0')}
-        </div>
-      ) : (
-        <></>
-      )}
-    </div>
   );
 };

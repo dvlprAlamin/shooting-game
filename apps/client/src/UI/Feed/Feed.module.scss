@@ -1,0 +1,119 @@
+@use '@/styles/kit' as *;
+
+// Below the FPS meter in the top-left corner.
+.kills {
+  position: fixed;
+  top: calc(var(--safe-top) + 58px);
+  left: calc(var(--safe-left) + 12px);
+  z-index: var(--z-feed);
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  list-style: none;
+  pointer-events: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 28px;
+    padding: 0 0.7rem;
+    font-weight: 700;
+    font-size: 1rem;
+    background: rgb(var(--canopy-rgb) / 0.72);
+    @include chamfer(8px);
+    animation: fade-out 0.4s ease-in calc(var(--ttl) - 0.4s) forwards;
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation:
+        slide-in 0.18s ease-out,
+        fade-out 0.4s ease-in calc(var(--ttl) - 0.4s) forwards;
+    }
+  }
+
+  // Kills you made or took.
+  .mine {
+    box-shadow: inset 3px 0 0 var(--blaze);
+  }
+
+  @include short {
+    top: calc(var(--safe-top) + 54px);
+
+    li {
+      min-height: 24px;
+      font-size: 0.9rem;
+    }
+  }
+}
+
+.you {
+  color: var(--blaze);
+}
+
+.icon {
+  width: 26px;
+  height: 10px;
+  color: var(--sand);
+  flex-shrink: 0;
+}
+
+// Under the match timer, and at the top of the menu.
+.notices {
+  position: fixed;
+  top: calc(var(--safe-top) + 64px);
+  left: 50%;
+  translate: -50% 0;
+  z-index: var(--z-notice);
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  pointer-events: none;
+
+  p {
+    padding: 0.55rem 1rem;
+    font-weight: 600;
+    font-size: 1.05rem;
+    text-align: center;
+    background: var(--panel);
+    box-shadow: inset 0 -3px 0 var(--sand);
+    @include chamfer(10px);
+    animation: fade-out 0.4s ease-in calc(var(--ttl) - 0.4s) forwards;
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation:
+        drop-in 0.2s ease-out,
+        fade-out 0.4s ease-in calc(var(--ttl) - 0.4s) forwards;
+    }
+  }
+
+  @include short {
+    top: calc(var(--safe-top) + 52px);
+
+    p {
+      padding: 0.4rem 0.85rem;
+      font-size: 0.95rem;
+    }
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    translate: -10px 0;
+  }
+}
+
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    translate: 0 -8px;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}

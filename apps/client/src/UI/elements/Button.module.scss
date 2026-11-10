@@ -1,0 +1,64 @@
+@use '@/styles/kit' as *;
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  border: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s, color 0.15s;
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.primary {
+  @include stencil;
+  @include chamfer(12px);
+  min-height: 52px;
+  padding: 0 1.5em 0.08em;
+  font-size: 1.75rem;
+  background: var(--blaze);
+  color: var(--canopy);
+
+  &:hover:not(:disabled) {
+    background: #ff8442;
+  }
+
+  &:active:not(:disabled) {
+    translate: 0 1px;
+  }
+
+  // Drawn inside: the chamfer's clip-path would cut an outside ring.
+  &:focus-visible {
+    outline: 2px solid var(--canopy);
+    outline-offset: -6px;
+  }
+
+  &:disabled {
+    background: rgb(213 154 98 / 0.2);
+    color: var(--muted);
+  }
+
+  @include short {
+    min-height: 44px;
+    font-size: 1.45rem;
+  }
+}
+
+.quiet {
+  min-height: 36px;
+  padding: 0 0.85em;
+  font-weight: 700;
+  font-size: 0.95rem;
+  background: rgb(var(--canopy-rgb) / 0.4);
+  color: var(--bone);
+  box-shadow: inset 0 0 0 1px var(--line);
+
+  &:hover {
+    background: rgb(238 231 212 / 0.1);
+  }
+}

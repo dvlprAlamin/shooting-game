@@ -1,0 +1,64 @@
+@use '@/styles/kit' as *;
+
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-screen) + 1); // over the death screen too
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  text-align: center;
+  background: rgb(var(--canopy-rgb) / 0.94);
+}
+
+.loading {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  width: max-content;
+  @include over-scene;
+}
+
+.title {
+  @include stencil;
+  font-size: clamp(2.5rem, 9vh, 4rem);
+}
+
+.text {
+  max-width: 30ch;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--sand);
+}
+
+// Indeterminate: a short bone segment running along a sandstone track. Static with reduced motion.
+.bar {
+  position: relative;
+  width: 160px;
+  height: 4px;
+  overflow: hidden;
+  background: rgb(213 154 98 / 0.3);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: 40%;
+    background: var(--bone);
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation: run 1.1s ease-in-out infinite;
+    }
+  }
+}
+
+@keyframes run {
+  from {
+    translate: -100% 0;
+  }
+  to {
+    translate: 250% 0;
+  }
+}

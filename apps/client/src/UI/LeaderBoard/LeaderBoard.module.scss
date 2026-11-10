@@ -1,0 +1,76 @@
+@use '@/styles/kit' as *;
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgb(213 154 98 / 0.55) transparent;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+
+  th,
+  td {
+    padding: 0.7rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid rgb(213 154 98 / 0.18);
+
+    @include short {
+      padding: 0.35rem 0.6rem;
+    }
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+    padding-block: 0.4rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--sand);
+    background: var(--canopy);
+    border-bottom-color: var(--line);
+  }
+
+  tbody td,
+  .name {
+    font-weight: 600;
+    font-size: 1.15rem;
+
+    @include short {
+      font-size: 1rem;
+    }
+  }
+
+  // Right-aligned so the digits line up (nested to outrank the th/td rule above).
+  .num {
+    width: 5rem;
+    text-align: right;
+  }
+}
+
+.rank {
+  width: 2.5rem;
+  color: var(--sand);
+}
+
+.name {
+  overflow-wrap: anywhere;
+}
+
+// Your row: the blaze bar on the left edge.
+.me {
+  background: rgb(255 106 31 / 0.1);
+
+  > :first-child {
+    box-shadow: inset 3px 0 0 var(--blaze);
+  }
+}
+
+.you {
+  font-weight: 500;
+  color: var(--blaze);
+}

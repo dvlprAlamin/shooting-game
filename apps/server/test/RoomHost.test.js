@@ -52,7 +52,7 @@ function setup() {
 test('the first join creates the room; joining a room that does not exist is refused', () => {
     const { host, join } = setup();
     const lost = join('Lost');
-    assert.deepEqual(lost.notes(), ['Room not exist!']);
+    assert.deepEqual(lost.notes(), ['No room has that code. Check it with whoever made the room.']);
     assert.equal(lost.closedWith.code, CLOSE.JOIN_FAILED);
     assert.equal(host.game, null);
 
@@ -146,7 +146,7 @@ test('the room ends when the last player is gone, timer included', () => {
     advance(RECONNECT_GRACE_MS);
     assert.equal(host.game, null);
     assert.equal(intervals.size, 0);
-    assert.deepEqual(join('Late').notes(), ['Room not exist!']);
+    assert.deepEqual(join('Late').notes(), ['No room has that code. Check it with whoever made the room.']);
 });
 
 test('full and finished rooms refuse new players but let dropped players back in', () => {
@@ -154,11 +154,11 @@ test('full and finished rooms refuse new players but let dropped players back in
     join('P0', { isCreate: true, playersLimit: '5' });
     for (let i = 1; i < 5; i++) join('P' + i);
     const late = join('Late');
-    assert.deepEqual(late.notes(), ['Room is full!']);
+    assert.deepEqual(late.notes(), ['That room is full.']);
     assert.equal(late.closedWith.code, CLOSE.JOIN_FAILED);
 
     host.game.ended = true;
-    assert.deepEqual(join('Later').notes(), ['This game is already over!']);
+    assert.deepEqual(join('Later').notes(), ['That match is already over.']);
     const back = join('P1');
     assert.deepEqual(back.events().slice(-1), ['gameOver']);
 });

@@ -1,7 +1,7 @@
 .root {
   position: fixed;
   inset: 0;
-  z-index: 5; // above .ui-root (crosshair), below the HUD and dialogs
+  z-index: var(--z-touch); // above .ui-root (crosshair), below the HUD and screens
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -17,8 +17,8 @@
   height: 128px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  background: rgba(0, 0, 0, 0.18);
+  border: 2px solid rgb(238 231 212 / 0.35);
+  background: rgb(var(--canopy-rgb) / 0.2);
   opacity: 0.55;
   pointer-events: none;
   transition: opacity 0.15s;
@@ -28,7 +28,7 @@
   }
 
   &.sprint .knob {
-    background: rgba(255, 196, 64, 0.85);
+    background: var(--blaze);
   }
 }
 
@@ -40,7 +40,7 @@
   height: 56px;
   margin: -28px 0 0 -28px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgb(238 231 212 / 0.75);
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
 }
 
@@ -50,9 +50,9 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.55);
-  background: rgba(0, 0, 0, 0.3);
-  color: #fff;
+  border: 2px solid rgb(238 231 212 / 0.55);
+  background: rgb(var(--canopy-rgb) / 0.35);
+  color: var(--bone);
 
   svg {
     width: 46%;
@@ -62,8 +62,8 @@
 
   &.pressed,
   &.on {
-    background: rgba(255, 255, 255, 0.35);
-    border-color: #fff;
+    background: rgb(238 231 212 / 0.35);
+    border-color: var(--bone);
   }
 }
 
@@ -72,11 +72,11 @@
   bottom: calc(var(--safe-bottom) + 64px);
   width: 88px;
   height: 88px;
-  border-color: rgba(255, 90, 70, 0.8);
-  background: rgba(150, 20, 10, 0.35);
+  border-color: rgb(255 106 31 / 0.85);
+  background: rgb(140 45 5 / 0.35);
 
   &.pressed {
-    background: rgba(255, 70, 50, 0.55);
+    background: rgb(255 106 31 / 0.55);
   }
 }
 
@@ -110,8 +110,11 @@
   justify-content: center;
   padding: 24px;
   text-align: center;
-  font-size: 22px;
-  background: rgba(0, 0, 0, 0.85);
+  font-family: var(--font-stencil);
+  font-weight: 800;
+  font-size: 2.25rem;
+  line-height: 1;
+  background: rgb(var(--canopy-rgb) / 0.92);
 
   @media (orientation: portrait) {
     display: flex;
