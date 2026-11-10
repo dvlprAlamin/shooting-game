@@ -1,5 +1,5 @@
 // Client-side gameplay tuning. Numbers the server also needs (hitbox, damage, fire rate, ...)
-// live in src/shared/gameplay.js, a copy of the server's shared/ folder.
+// live in @shooter/shared (packages/shared/gameplay.js).
 export {
   FIRE_INTERVAL,
   MAG_SIZE,
@@ -7,7 +7,7 @@ export {
   PLAYER_CENTER_TO_FEET,
   PLAYER_HALF_HEIGHT,
   PLAYER_RADIUS,
-} from '@/shared/gameplay';
+} from '@shooter/shared';
 
 export const EYE_HEIGHT = 0.7; // camera height above the capsule centre
 

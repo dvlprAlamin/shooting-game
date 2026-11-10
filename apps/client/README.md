@@ -28,7 +28,7 @@ Requirements: Android Studio (with the Android SDK) for Android; Xcode on macOS 
    VITE_SERVER_URL=https://your-game-server.example.com
    ```
 
-   This is the Cloudflare Worker in `shooting-game-server/worker` (its `workers.dev` URL or your own domain).
+   This is the Cloudflare Worker in `apps/server` (its `workers.dev` URL or your own domain).
    The client no longer talks to the old Node + Socket.IO server.
 
    Use `https://` in production: Android and iOS block plain `http://` / `ws://` by default.
@@ -90,7 +90,7 @@ For Google Play, run the same `cap build` with `--androidreleasetype AAB` and wi
 ### Testing against a server on your LAN (Android)
 
 For a quick test with the game server running on your computer (`pnpm dev --ip 0.0.0.0` in
-`shooting-game-server/worker`):
+`apps/server`):
 
 ```
 VITE_SERVER_URL=http://192.168.x.x:8787 pnpm build
@@ -109,12 +109,5 @@ a release build so it isn't shipped. On iOS, use an `https://` server.
 
 ## Gameplay numbers shared with the server
 
-Values both sides must agree on (hitbox size, damage, fire rate, magazine size, room options) live in
-`shooting-game-server/shared/`. `src/shared/` is a copy of that folder: don't edit it here. After changing the
-server's copy, run:
-
-```
-pnpm sync:shared   # expects ../shooting-game-server next to this repo; or: pnpm sync:shared <path>
-```
-
-The server's `npm test` fails while the two copies differ.
+Values both sides must agree on (hitbox size, damage, fire rate, magazine size, room options) come from
+`@shooter/shared` (`packages/shared/` in the repo root). Edit them there; the server picks up the same change.

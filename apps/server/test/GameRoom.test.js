@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { GameRoom } from '../src/GameRoom.js';
-import { DAMAGE, FIRE_INTERVAL, MAX_HEALTH, ROOM_DURATIONS, PLAYER_LIMITS } from '../shared/gameplay.js';
+import { GameRoom } from '../src/game/GameRoom.js';
+import { DAMAGE, FIRE_INTERVAL, MAX_HEALTH, ROOM_DURATIONS, PLAYER_LIMITS } from '@shooter/shared';
 
 // A room with a fake clock and a log of everything it sends.
 function setup(options = {}) {

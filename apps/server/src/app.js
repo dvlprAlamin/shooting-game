@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { ROOM_ID_PATTERN } from '../../shared/gameplay.js';
+import { ROOM_ID_PATTERN } from '@shooter/shared';
 
 const app = new Hono();
 

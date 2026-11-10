@@ -1,5 +1,5 @@
 import {create} from "zustand";
-import { MAG_SIZE } from "@/shared/gameplay";
+import { MAG_SIZE } from "@shooter/shared";
 
 const defaultCountOfRounds = MAG_SIZE;
 

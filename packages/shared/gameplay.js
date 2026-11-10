@@ -1,8 +1,5 @@
-// Gameplay numbers the client and the server must agree on.
-//
-// Source of truth: shooting-game-server/shared/. The client keeps an identical copy in
-// shooting-game/src/shared/: after editing here, run `npm run sync:shared` in shooting-game/.
-// The server's `npm test` fails while the two copies differ. Types: gameplay.d.ts.
+// Gameplay numbers the client and the server must agree on. Both import this file as
+// `@shooter/shared`. Types: gameplay.d.ts.
 
 // Player capsule: 0.35 radius, 1.8 m tall. Positions sent over the network are the capsule centre.
 export const PLAYER_RADIUS = 0.35;

@@ -5,7 +5,7 @@ import {
     MAX_SHOT_DISTANCE,
     PLAYER_LIMITS,
     ROOM_DURATIONS,
-} from '../shared/gameplay.js';
+} from '@shooter/shared';
 import { findTarget, validateHit } from './hits.js';
 import { randomSpawn } from './spawns.js';
 
@@ -42,7 +42,7 @@ const pushHistory = (player, now) => {
  *
  * It knows nothing about sockets. A transport passes client messages in (join, move, shoot,
  * respawn, leave), calls tick() once a second, and delivers whatever the room hands to `send`.
- * That keeps the rules in one place whether they run behind Socket.IO or a Durable Object.
+ * That keeps the rules apart from the transport (RoomHost.js) and testable without one.
  *
  * Reconnecting: a transport that can tell a dropped connection from a deliberate leave calls
  * drop() instead of leave(). The player stays in the match for RECONNECT_GRACE_MS; joining again

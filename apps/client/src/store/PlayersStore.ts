@@ -9,19 +9,16 @@ interface Player {
   kills: number;
   isDead?: boolean;
 }
+type Players = Record<string, Player>; // by player id
 export interface IPlayerStore {
   currentPlayer: Player | null;
   setCurrentPlayer: (player: Player) => void;
-  players: any;
-  leaderboard: any;
-  setLeaderboard: (players: any) => void;
-  setPlayers: (players: any) => void;
+  players: Players;
+  leaderboard: Players;
+  setLeaderboard: (players: Players) => void;
+  setPlayers: (players: Players) => void;
   setPlayer: (player: Player) => void;
-  updatePlayer: (
-    id: string,
-    key: string,
-    value: string | number | boolean
-  ) => void;
+  updatePlayer: <K extends keyof Player>(id: string, key: K, value: Player[K]) => void;
   removePlayer: (playerId: string) => void;
 }
 
@@ -46,7 +43,7 @@ export const usePlayerStore = create<IPlayerStore>()(
       set((state) => {
         state.players[player.id] = player;
       }),
-    updatePlayer: (id: string, key: string, value: string | number | boolean) =>
+    updatePlayer: (id, key, value) =>
       set((state) => {
         if (state.players[id]) {
           state.players[id][key] = value;

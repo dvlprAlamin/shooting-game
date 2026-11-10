@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import rayIntersectsBox from '../src/rayIntersectsBox.js';
+import rayIntersectsBox from '../src/game/rayIntersectsBox.js';
 
 const min = { x: -1, y: -1, z: -1 };
 const max = { x: 1, y: 1, z: 1 };

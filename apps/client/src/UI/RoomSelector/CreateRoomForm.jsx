@@ -2,7 +2,7 @@ import { Box, MenuItem, TextField } from '@mui/material';
 import React from 'react';
 import PrimaryButton from '../elements/Primarybutton';
 import { SHORT_SCREEN_MEDIA, useShortScreen } from '../../theme/shortScreen';
-import { PLAYER_LIMITS, ROOM_DURATIONS } from '@/shared/gameplay';
+import { PLAYER_LIMITS, ROOM_DURATIONS } from '@shooter/shared';
 
 const CreateRoomForm = ({ handleSubmit }) => {
   const isShortScreen = useShortScreen();

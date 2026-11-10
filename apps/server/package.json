@@ -1,5 +1,5 @@
 {
-  "name": "shooting-game-worker",
+  "name": "@shooter/server",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,15 +9,10 @@
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
+    "@shooter/shared": "workspace:*",
     "hono": "^4.13.17"
   },
   "devDependencies": {
     "wrangler": "^4.160.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "workerd"
-    ]
   }
 }

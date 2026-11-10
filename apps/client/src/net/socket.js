@@ -1,5 +1,5 @@
 import { SERVER_URL } from '@/config';
-import { ROOM_ID_PATTERN } from '@/shared/gameplay';
+import { ROOM_ID_PATTERN } from '@shooter/shared';
 
 // Connection to the game server: one WebSocket per room, `<server>/rooms/<roomId>`, carrying JSON
 // frames {"e": event, "d": data}. The API matches what the game used with Socket.IO: on/off,
@@ -12,7 +12,7 @@ import { ROOM_ID_PATTERN } from '@/shared/gameplay';
 // 'disconnect' (couldn't join, or gave up reconnecting).
 
 const RETRY_DELAYS = [500, 1000, 2000, 3000, 3000]; // ~9.5 s in total, inside the server's grace period
-// Close codes from the server (shooting-game-server/src/RoomHost.js) that mean "don't retry".
+// Close codes from the server (apps/server/src/game/RoomHost.js) that mean "don't retry".
 const FINAL_CLOSE_CODES = new Set([4000, 4001, 4002, 4003]);
 const REPLACED = 4003;
 

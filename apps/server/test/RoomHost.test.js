@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CLOSE, RoomHost } from '../src/RoomHost.js';
-import { RECONNECT_GRACE_MS } from '../src/GameRoom.js';
+import { CLOSE, RoomHost } from '../src/game/RoomHost.js';
+import { RECONNECT_GRACE_MS } from '../src/game/GameRoom.js';
 
 // A RoomHost on a fake clock with hand-driven timers, and fake sockets that record frames.
 function setup() {

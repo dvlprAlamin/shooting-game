@@ -1,0 +1,40 @@
+import { defineConfig, globalIgnores } from 'eslint/config';
+import js from '@eslint/js';
+import globals from 'globals';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
+import tseslint from 'typescript-eslint';
+
+export default defineConfig([
+  globalIgnores([
+    '**/dist/',
+    '**/.wrangler/',
+    'apps/client/public/',
+    'apps/client/android/',
+    'apps/client/ios/',
+    // The two repos this one replaced, while they still sit next to it.
+    'shooting-game/',
+    'shooting-game-server/',
+  ]),
+  js.configs.recommended,
+  tseslint.configs.recommended,
+  {
+    files: ['apps/client/src/**/*.{js,jsx,ts,tsx}'],
+    languageOptions: { globals: globals.browser },
+    plugins: { 'react-hooks': reactHooks, 'react-refresh': reactRefresh },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+    },
+  },
+  {
+    // Node: build scripts, config files, tests
+    files: ['*.js', 'apps/client/*.{js,ts}', 'apps/client/scripts/**', 'apps/server/test/**'],
+    languageOptions: { globals: globals.node },
+  },
+  {
+    // Cloudflare Workers runtime
+    files: ['apps/server/src/**'],
+    languageOptions: { globals: { ...globals.serviceworker, WebSocketPair: 'readonly' } },
+  },
+]);

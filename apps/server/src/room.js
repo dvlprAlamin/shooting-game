@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import { RoomHost } from '../../src/RoomHost.js';
+import { RoomHost } from './game/RoomHost.js';
 
 /**
  * One game room. It uses plain (not hibernating) WebSockets, so the room stays in memory while
