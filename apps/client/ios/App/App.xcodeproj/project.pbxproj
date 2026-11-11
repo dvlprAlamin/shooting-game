@@ -16,6 +16,11 @@
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
+		A7E1C0012F0B000100A1B201 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E1C0022F0B000100A1B201 /* MainViewController.swift */; };
+		A7E1C0032F0B000100A1B201 /* LanPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E1C0042F0B000100A1B201 /* LanPlugin.swift */; };
+		A7E1C0052F0B000100A1B201 /* LanServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E1C0062F0B000100A1B201 /* LanServer.swift */; };
+		A7E1C0072F0B000100A1B201 /* WebSocketPeer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E1C0082F0B000100A1B201 /* WebSocketPeer.swift */; };
+		A7E1C0092F0B000100A1B201 /* LanNetwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E1C00A2F0B000100A1B201 /* LanNetwork.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +35,11 @@
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		A7E1C0022F0B000100A1B201 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
+		A7E1C0042F0B000100A1B201 /* LanPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanPlugin.swift; sourceTree = "<group>"; };
+		A7E1C0062F0B000100A1B201 /* LanServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanServer.swift; sourceTree = "<group>"; };
+		A7E1C0082F0B000100A1B201 /* WebSocketPeer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketPeer.swift; sourceTree = "<group>"; };
+		A7E1C00A2F0B000100A1B201 /* LanNetwork.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanNetwork.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -65,6 +75,8 @@
 			isa = PBXGroup;
 			children = (
 				9582B6822FE993A50072D4E8 /* SceneDelegate.swift */,
+				A7E1C0022F0B000100A1B201 /* MainViewController.swift */,
+				A7E1C00B2F0B000100A1B201 /* Lan */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
@@ -75,6 +87,17 @@
 				50B271D01FEDC1A000F3C39B /* public */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		A7E1C00B2F0B000100A1B201 /* Lan */ = {
+			isa = PBXGroup;
+			children = (
+				A7E1C0042F0B000100A1B201 /* LanPlugin.swift */,
+				A7E1C0062F0B000100A1B201 /* LanServer.swift */,
+				A7E1C0082F0B000100A1B201 /* WebSocketPeer.swift */,
+				A7E1C00A2F0B000100A1B201 /* LanNetwork.swift */,
+			);
+			path = Lan;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -160,6 +183,11 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
+				A7E1C0012F0B000100A1B201 /* MainViewController.swift in Sources */,
+				A7E1C0032F0B000100A1B201 /* LanPlugin.swift in Sources */,
+				A7E1C0052F0B000100A1B201 /* LanServer.swift in Sources */,
+				A7E1C0072F0B000100A1B201 /* WebSocketPeer.swift in Sources */,
+				A7E1C0092F0B000100A1B201 /* LanNetwork.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -10,7 +10,7 @@ import { getProfileId } from './profile';
 // key, and the server gives you your player back (score and all) during its 10 s grace period.
 //
 // A nearby game (net/lan) is joined the same way, with `server` in the join info: the address of the phone
-// hosting it (through a tunnel), in place of the game server's.
+// hosting it (through a tunnel on Android), in place of the game server's.
 //
 // Events it adds on top of the server's: 'reconnecting' (connection lost, retrying) and
 // 'disconnect' (couldn't join, gave up reconnecting, the room closed, or you left).

@@ -1,4 +1,4 @@
-import { LAN_PORT, Lan, NEARBY_VERSION } from './native';
+import { LAN_PORT, Lan, NEARBY_VERSION, TUNNELS } from './native';
 
 const LOOK_EVERY = 3000; // ms between checks on the games found
 const PROBE_TIMEOUT = 2500;
@@ -8,8 +8,8 @@ const tunnels = new Map();
 
 const keyOf = (host, port) => `${host}:${port}`;
 
-/** A port on 127.0.0.1 that leads to host:port. The page can't open ws:// to another device itself. */
-export function tunnelTo(host, port) {
+// A port on 127.0.0.1 that leads to host:port, on Android.
+function tunnelTo(host, port) {
   const key = keyOf(host, port);
   if (!tunnels.has(key)) {
     const opening = Lan.openTunnel({ host, port }).then((r) => r.port);
@@ -17,6 +17,11 @@ export function tunnelTo(host, port) {
     tunnels.set(key, opening);
   }
   return tunnels.get(key);
+}
+
+/** The ws:// address to connect to for the game at host:port: through a tunnel on Android. */
+export async function serverAt(host, port) {
+  return TUNNELS ? `ws://127.0.0.1:${await tunnelTo(host, port)}` : `ws://${host}:${port}`;
 }
 
 /** Closes the tunnels, but the one to `keep` ("host:port"). */
@@ -41,10 +46,10 @@ export function parseAddress(text) {
  * Null if nothing answers there.
  */
 export async function probe(host, port) {
-  const local = await tunnelTo(host, port).catch(() => null);
-  if (!local) return null;
+  const server = await serverAt(host, port).catch(() => null);
+  if (!server) return null;
   const info = await new Promise((resolve) => {
-    const ws = new WebSocket(`ws://127.0.0.1:${local}/info`);
+    const ws = new WebSocket(`${server}/info`);
     const done = (value) => {
       clearTimeout(timer);
       ws.onmessage = ws.onclose = null;
@@ -77,10 +82,12 @@ export async function probe(host, port) {
 
 /**
  * Looks for games on the networks this phone is on, until the returned function is called: ones advertised
- * nearby (NSD), and one on the gateway of a hotspot this phone joined (the phone sharing it is the likely host).
- * `onChange` gets the list, in the order they were found, whenever it changes.
+ * nearby (NSD or Bonjour), and one on the gateway of a hotspot this phone joined (the phone sharing it is the
+ * likely host).
+ * `onChange` gets the list, in the order they were found, whenever it changes. `onBlocked` gets whether the phone
+ * keeps the app off the local network (on iOS, while Local Network access is off for it in Settings).
  */
-export function watchNearby(onChange) {
+export function watchNearby(onChange, onBlocked = () => {}) {
   const places = new Map(); // key -> { host, port, name }: where to look; name is NSD's, null for a gateway
   const games = new Map(); // key -> list entry
   let live = true;
@@ -121,6 +128,7 @@ export function watchNearby(onChange) {
       }
       emit();
     }),
+    Lan.addListener('blocked', ({ blocked }) => live && onBlocked(!!blocked)),
   ];
   Lan.startDiscovery().catch(() => {}); // the gateway and typed addresses still work
   look();

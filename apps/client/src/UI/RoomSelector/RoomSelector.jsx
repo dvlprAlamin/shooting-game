@@ -9,7 +9,7 @@ import { getProfileId } from '@/net/profile';
 import { socket } from '@/net/socket';
 import { NEARBY } from '@/net/lan/native';
 import { startHosting } from '@/net/lan/host';
-import { closeTunnels, parseAddress, probe, tunnelTo, watchNearby } from '@/net/lan/nearby';
+import { closeTunnels, parseAddress, probe, serverAt, watchNearby } from '@/net/lan/nearby';
 import { useFeedStore } from '@/store/FeedStore';
 import Account from './Account';
 import styles from './RoomSelector.module.scss';
@@ -18,7 +18,7 @@ const TABS = [
   { value: 'quick', label: 'Quick play' },
   { value: 'create', label: 'Create room' },
   { value: 'join', label: 'Join room' },
-  // Games over Wi-Fi or a hotspot, no internet needed (net/lan): the Android app only.
+  // Games over Wi-Fi or a hotspot, no internet needed (net/lan): the mobile apps only.
   ...(NEARBY ? [{ value: 'nearby', label: 'Nearby' }] : []),
 ];
 const TAB_IDS = TABS.map((t) => t.value);
@@ -124,8 +124,9 @@ const Choices = ({ legend, name, options }) => (
 /**
  * Games found on this phone's Wi-Fi and hotspot, as chips: the host's name, then map, mode and players. A game
  * from another version of the app can't be joined. Beside them, an address to type, for a game that isn't found.
+ * `blocked`: the phone keeps the app off the local network, so none can be found.
  */
-const NearbyGames = ({ games, pick, onPick, address, onAddress }) => (
+const NearbyGames = ({ games, blocked, pick, onPick, address, onAddress }) => (
   <div className={styles.nearby}>
     <fieldset className={styles.choices}>
       <legend>Games nearby</legend>
@@ -153,7 +154,11 @@ const NearbyGames = ({ games, pick, onPick, address, onAddress }) => (
           ))}
         </div>
       ) : (
-        <p className={styles.looking}>Looking on your Wi-Fi and hotspot…</p>
+        <p className={styles.looking}>
+          {blocked
+            ? 'Turn on Local Network for RimFire in Settings to find games nearby.'
+            : 'Looking on your Wi-Fi and hotspot…'}
+        </p>
       )}
     </fieldset>
     <div className={styles.field}>
@@ -188,6 +193,7 @@ const RoomSelector = ({ joinRoom }) => {
   // Nearby: finding games to join, or setting up one to host (with the Create room settings).
   const [hosting, setHosting] = useState(false);
   const [games, setGames] = useState([]);
+  const [blocked, setBlocked] = useState(false); // iOS: Local Network access is off
   const [pick, setPick] = useState(null); // the key of the nearby game picked
   const [address, setAddress] = useState('');
   const joining = useRef(null); // the nearby game being joined, whose tunnel stays open
@@ -219,7 +225,8 @@ const RoomSelector = ({ joinRoom }) => {
   useEffect(() => {
     if (!looking) return;
     setGames([]);
-    const stop = watchNearby(setGames);
+    setBlocked(false);
+    const stop = watchNearby(setGames, setBlocked);
     return () => {
       stop();
       closeTunnels(joining.current);
@@ -271,9 +278,9 @@ const RoomSelector = ({ joinRoom }) => {
     }
     setFinding(true);
     try {
-      const port = await tunnelTo(game.host, game.port);
+      const server = await serverAt(game.host, game.port);
       joining.current = game.key;
-      joinRoom({ roomId: NEARBY_ROOM, playerName, server: `ws://127.0.0.1:${port}`, nearby: game.host });
+      joinRoom({ roomId: NEARBY_ROOM, playerName, server, nearby: game.host });
     } catch {
       notice(`Can't reach ${game.host}.`);
       setFinding(false);
@@ -473,6 +480,7 @@ const RoomSelector = ({ joinRoom }) => {
                 <legend className="sr-only">Nearby games</legend>
                 <NearbyGames
                   games={games}
+                  blocked={blocked}
                   pick={pick}
                   onPick={(key) => {
                     setPick(key);
