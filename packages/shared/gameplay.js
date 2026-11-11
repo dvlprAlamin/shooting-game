@@ -25,5 +25,10 @@ export const TEAMS = ['a', 'b'];
 export const ROOM_DURATIONS = [5, 10, 15, 20, 25, 30]; // minutes
 export const PLAYER_LIMITS = [5, 10, 15];
 
+// Quick play: public rooms anyone can be sent to. New ones get these settings and a random map.
+export const QUICK_PLAY = { mode: 'ffa', duration: 10, playersLimit: 10 };
+
 // Room ids: letters, digits, '_' and '-' (what the client's generated ids use), up to 32 characters.
 export const ROOM_ID_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
+// Profile ids: made on the device (a random UUID) and kept there. Whoever has one can read that profile.
+export const PROFILE_ID_PATTERN = /^[A-Za-z0-9-]{16,64}$/;

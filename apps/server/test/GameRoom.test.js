@@ -752,3 +752,73 @@ test('lopsided teams are evened out as players respawn and at a rematch', () => 
     assert.deepEqual(started.data.teamScores, { a: 0, b: 0 });
     assert.equal(started.data.players.E.team, 'b');
 });
+
+// --- Profiles ---
+
+test('a finished match hands each profile its results, wins included, once', () => {
+    const results = [];
+    const s = setup({ onResults: (r) => results.push(...r) });
+    s.room.join('A', 'Alice', null, 'profile-alice-0001');
+    s.room.join('B', 'Bob', null, 'profile-bob-000001');
+    s.room.join('C', 'Cleo'); // no profile
+    s.clock.t += SPAWN_PROTECTION;
+    placeA(s);
+    placeB(s);
+    killB(s);
+    s.clock.t += 60_000;
+    s.room.duration = 1;
+    s.room.tick();
+    s.room.leave('A'); // after the end: already counted
+    const byId = Object.fromEntries(results.map((r) => [r.profileId, r]));
+    assert.equal(results.length, 2);
+    assert.deepEqual(byId['profile-alice-0001'], {
+        profileId: 'profile-alice-0001',
+        name: 'Alice',
+        kills: 1,
+        deaths: 0,
+        bestStreak: 1,
+        matches: 1,
+        wins: 1,
+        seconds: Math.round((SPAWN_PROTECTION + KILL_SHOTS * FIRE_INTERVAL + 60_000) / 1000),
+    });
+    assert.equal(byId['profile-bob-000001'].wins, 0);
+    assert.equal(byId['profile-bob-000001'].deaths, 1);
+});
+
+test('leaving mid-match hands over what was done, without counting a match', () => {
+    const results = [];
+    const s = setup({ onResults: (r) => results.push(...r) });
+    s.room.join('A', 'Alice', null, 'profile-alice-0001');
+    s.room.join('B', 'Bob');
+    s.clock.t += 30_000;
+    s.room.leave('A');
+    assert.deepEqual(
+        results.map((r) => [r.matches, r.wins, r.seconds]),
+        [[0, 0, 30]]
+    );
+});
+
+test('a tie wins nobody anything; in a team match the whole winning team wins', () => {
+    const results = [];
+    const s = setup({ onResults: (r) => results.push(...r) });
+    s.room.join('A', 'Alice', null, 'profile-alice-0001');
+    s.room.join('B', 'Bob', null, 'profile-bob-000001');
+    s.room.duration = 1;
+    s.room.tick();
+    assert.deepEqual(results.map((r) => r.wins), [0, 0]);
+
+    results.length = 0;
+    const t = setup({ mode: 'tdm', onResults: (r) => results.push(...r) });
+    for (const id of ['A', 'B', 'C']) t.room.join(id, id, null, `profile-${id}-0000000`);
+    t.room.teamScores.a = 2;
+    t.room.duration = 1;
+    t.room.tick();
+    assert.deepEqual(results.map((r) => [r.name, r.wins]), [['A', 1], ['B', 0], ['C', 1]]);
+
+    // A rematch is a new match to count.
+    results.length = 0;
+    for (const id of ['A', 'B', 'C']) t.room.rematch(id);
+    t.room.duration = 1;
+    t.room.tick();
+    assert.equal(results.length, 3);
+});

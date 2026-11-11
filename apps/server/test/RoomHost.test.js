@@ -1,10 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CLOSE, RoomHost } from '../src/game/RoomHost.js';
+import { CLOSE, REPORT_EVERY, RoomHost } from '../src/game/RoomHost.js';
+import { QUICK_PLAY } from '@shooter/shared';
 import { GAME_OVER_TTL_MS, RECONNECT_GRACE_MS } from '../src/game/GameRoom.js';
 
 // A RoomHost on a fake clock with hand-driven timers, and fake sockets that record frames.
-function setup() {
+function setup(options = {}) {
     const clock = { t: 1_000_000 };
     const timeouts = new Map();
     const intervals = new Map();
@@ -16,7 +17,7 @@ function setup() {
         clearInterval: (id) => intervals.delete(id),
     };
     let ids = 0;
-    const host = new RoomHost({ now: () => clock.t, timers, newId: () => `p${++ids}` });
+    const host = new RoomHost({ now: () => clock.t, timers, newId: () => `p${++ids}`, ...options });
 
     // Advance the clock a second at a time, firing due timeouts and the room timer.
     const advance = (ms) => {
@@ -243,4 +244,58 @@ test('connections that flood, send huge frames or never join are closed', () => 
     const idle = open();
     advance(10_000);
     assert.equal(idle.closedWith.code, CLOSE.JOIN_TIMEOUT);
+});
+
+test('a quick-play join opens a public room with the quick-play settings on a random map', () => {
+    const reports = [];
+    const { host, join } = setup({ random: () => 0.99, onReport: (s) => reports.push(s) });
+    const alice = join('Alice', { quick: true, mode: 'tdm', duration: '30', map: 'canyon' });
+    assert.equal(alice.frames[0].e, 'joinedRoom');
+    assert.equal(host.game.mode, QUICK_PLAY.mode);
+    assert.equal(host.game.matchLength, QUICK_PLAY.duration * 60);
+    assert.equal(host.game.playersLimit, QUICK_PLAY.playersLimit);
+    assert.equal(host.game.map.id, 'outpost'); // the last map, for random() = 0.99
+    assert.deepEqual(reports, [{ players: 1, limit: QUICK_PLAY.playersLimit, ended: false, secondsLeft: 600 }]);
+
+    // Friends can still join by code.
+    join('Bob');
+    assert.equal(reports.at(-1).players, 2);
+});
+
+test('a public room reports changes at once and its state every few seconds; null when it closes', () => {
+    const reports = [];
+    const { host, join, advance } = setup({ onReport: (s) => reports.push(s) });
+    const alice = join('Alice', { quick: true });
+    reports.length = 0;
+    advance(1000);
+    assert.equal(reports.length, 0, 'only the timer changed');
+    advance((REPORT_EVERY - 1) * 1000);
+    assert.equal(reports.length, 1);
+    assert.equal(reports[0].secondsLeft, QUICK_PLAY.duration * 60 - REPORT_EVERY);
+
+    host.game.duration = 1;
+    advance(1000);
+    assert.equal(reports.at(-1).ended, true);
+    alice.say('leave');
+    assert.equal(reports.at(-1), null);
+    assert.equal(host.game, null);
+});
+
+test('private rooms never report', () => {
+    const reports = [];
+    const { join, advance } = setup({ onReport: (s) => reports.push(s) });
+    join('Alice', { isCreate: true });
+    advance(REPORT_EVERY * 2000);
+    assert.deepEqual(reports, []);
+});
+
+test('a valid profile id goes with the player; results are handed on', () => {
+    const results = [];
+    const { host, join } = setup({ onResults: (r) => results.push(...r) });
+    join('Alice', { isCreate: true, profileId: 'b6f0c2d4-1a2b-4c3d-8e9f-0123456789ab' });
+    join('Bob', { profileId: 'not valid!' });
+    assert.deepEqual(Object.values(host.game.players).map((p) => p.profileId), ['b6f0c2d4-1a2b-4c3d-8e9f-0123456789ab', null]);
+    host.game.duration = 1;
+    host.game.tick();
+    assert.deepEqual(results.map((r) => r.name), ['Alice']);
 });

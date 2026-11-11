@@ -93,6 +93,9 @@ const pushHistory = (player, now) => {
  * each other, spawns keep away from the other team only, and every kill scores for the killer's team
  * (`teamScores`). Teams that have drifted two or more apart are evened out as players respawn, and at a rematch.
  *
+ * Profiles: a player who joined with a profile id has what they did handed to `onResults` (to be saved), once per
+ * match: when it ends, or when they leave before that. Only finished matches count as played (and maybe won).
+ *
  * Weapons (@shooter/shared/weapons): every player carries all of them and the room keeps count of each
  * one's magazine, so a client can't fire faster, longer or harder than its gun allows. Reloads and medkits
  * are timed here too, and finish on the player's next message after their time is up.
@@ -106,11 +109,13 @@ export class GameRoom {
      * @param {number|string} [options.playersLimit] one of PLAYER_LIMITS
      * @param {string} [options.map] map id (see @shooter/shared/maps); unknown ids get the default map
      * @param {string} [options.mode] one of MODES; anything else gets the default (free-for-all)
+     * @param {(results: object[]) => void} [options.onResults] gets players' results for their profiles
      * @param {() => number} [options.now] clock in ms
      * @param {() => number} [options.random] random number in [0, 1)
      */
-    constructor({ send, duration, playersLimit, map, mode, now = Date.now, random = Math.random }) {
+    constructor({ send, duration, playersLimit, map, mode, onResults = null, now = Date.now, random = Math.random }) {
         this.send = send;
+        this.onResults = onResults;
         this.now = now;
         this.random = random;
         this.map = getMap(map);
@@ -141,10 +146,10 @@ export class GameRoom {
     }
 
     /**
-     * Adds a player. `key` is the client's secret reconnect key (never sent to anyone else).
-     * Returns an error message for the client, or null on success.
+     * Adds a player. `key` is the client's secret reconnect key and `profileId` their profile's id (neither is
+     * ever sent to anyone else). Returns an error message for the client, or null on success.
      */
-    join(id, playerName, key = null) {
+    join(id, playerName, key = null, profileId = null) {
         if (this.players[id]) return 'Already in a room!';
         if (this.ended) return 'That match is already over.';
         if (this.playersLimit <= Object.keys(this.players).length) return 'That room is full.';
@@ -168,6 +173,9 @@ export class GameRoom {
             history: [],
             key,
             droppedAt: null,
+            profileId,
+            since: now, // when they started playing this match, for the time on their profile
+            reported: false, // their results for this match have gone to onResults
             team: this.teams ? this.smallerTeam() : null,
             weapon: DEFAULT_WEAPON,
             rounds: null, // magazine of each gun, by id
@@ -225,7 +233,9 @@ export class GameRoom {
     }
 
     leave(id) {
-        if (!this.players[id]) return;
+        const player = this.players[id];
+        if (!player) return;
+        if (!this.ended) this.reportResults([player], false);
         delete this.players[id];
         this.broadcast('playerDisconnected', id);
         this.broadcastLeaderboard();
@@ -454,6 +464,7 @@ export class GameRoom {
             this.ended = true;
             this.endedAt = now;
             this.broadcast('gameOver');
+            this.reportResults(Object.values(this.players), true);
         }
     }
 
@@ -499,6 +510,8 @@ export class GameRoom {
                 lastShotAt: 0,
                 lastHitAt: 0,
                 history: [],
+                since: now,
+                reported: false,
             });
             rearm(p);
             placed.push(p);
@@ -509,6 +522,39 @@ export class GameRoom {
             duration: this.duration,
             teamScores: this.teamScores,
         });
+    }
+
+    // Hands the results of `players` who have a profile to onResults, once per match each. `finished`: the match
+    // ran to its end with them in it.
+    reportResults(players, finished) {
+        if (!this.onResults) return;
+        const now = this.now();
+        const results = [];
+        for (const p of players) {
+            if (!p.profileId || p.reported) continue;
+            p.reported = true;
+            results.push({
+                profileId: p.profileId,
+                name: p.playerName,
+                kills: p.kills,
+                deaths: p.deaths,
+                bestStreak: p.bestStreak,
+                matches: finished ? 1 : 0,
+                wins: finished && this.won(p) ? 1 : 0,
+                seconds: Math.max(0, Math.round((now - p.since) / 1000)),
+            });
+        }
+        if (results.length) this.onResults(results);
+    }
+
+    // Won the match: their team has more kills than the other, or (free-for-all) they have more than anyone else.
+    won(player) {
+        if (this.teams) {
+            const other = TEAMS.find((t) => t !== player.team);
+            return this.teamScores[player.team] > this.teamScores[other];
+        }
+        if (player.kills === 0) return false;
+        return Object.values(this.players).every((p) => p === player || p.kills < player.kills);
     }
 
     // Puts the player on one of the map's spawn points, away from `enemies`, facing the way the point says

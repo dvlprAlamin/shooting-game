@@ -3,10 +3,19 @@
   "name": "shooting-game",
   "main": "src/index.js",
   "compatibility_date": "2026-11-01",
-  // One Durable Object per game room, looked up by room id.
+  // One Durable Object per game room, looked up by room id, and one Lobby for quick play.
   "durable_objects": {
-    "bindings": [{ "name": "ROOMS", "class_name": "Room" }]
+    "bindings": [
+      { "name": "ROOMS", "class_name": "Room" },
+      { "name": "LOBBY", "class_name": "Lobby" }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Room"] },
+    { "tag": "v2", "new_sqlite_classes": ["Lobby"] }
+  ],
+  // Player profiles. No database_id: `wrangler deploy` provisions the database the first time (it creates its own
+  // table, see src/profiles.js). The game runs without it, minus profiles.
+  "d1_databases": [{ "binding": "DB", "database_name": "shooting-game" }],
   "observability": { "enabled": true }
 }

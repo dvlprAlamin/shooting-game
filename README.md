@@ -6,7 +6,7 @@ server. This repo is one pnpm workspace:
 | Folder | Package | What it is |
 |---|---|---|
 | [`apps/client`](apps/client) | `@shooter/client` | The game: Vite + React Three Fiber, wrapped as Android/iOS apps with Capacitor |
-| [`apps/server`](apps/server) | `@shooter/server` | The game server: a Cloudflare Worker with one Durable Object per room |
+| [`apps/server`](apps/server) | `@shooter/server` | The game server: a Cloudflare Worker with one Durable Object per room, a Lobby for quick play, and D1 for profiles |
 | [`packages/shared`](packages/shared) | `@shooter/shared` | Gameplay numbers both sides must agree on (hitbox, room options), the weapon table and the maps |
 
 ## Setup

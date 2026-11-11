@@ -115,6 +115,14 @@ Values both sides must agree on (hitbox size, room options) come from `@shooter/
 (damage, fire rate, magazine, reload, spread, recoil, speed) from `@shooter/shared/weapons`
 (`packages/shared/` in the repo root). Edit them there; the server picks up the same change.
 
+## Quick play and profiles
+
+The menu's first tab, Quick play, asks the server for a public room with free slots (`POST /quickplay`, see
+`src/net/api.js`) and joins it. The same tab shows your record (matches, wins, kills, K/D) from
+`GET /profile/<id>`. The id is made once per device and kept in `localStorage` (`src/net/profile.js`); every
+join sends it, and the server adds each match to it. Without profiles on the server the tab shows a line about
+quick play instead.
+
 ## Team matches
 
 Picking Teams in the menu makes a team match (`mode: 'tdm'`). The two teams' names and colours are in

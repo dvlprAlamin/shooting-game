@@ -1,3 +1,5 @@
+import { PROFILE_ID_PATTERN, QUICK_PLAY } from '@shooter/shared';
+import { MAPS } from '@shooter/shared/maps';
 import { GameRoom } from './GameRoom.js';
 
 // Close codes the client acts on (4000-4999 are free for applications). After any of these the
@@ -15,6 +17,8 @@ const MAX_MESSAGE_LENGTH = 4096;
 // A normal client sends 20 moves plus up to 15 shots (the SMG) a second.
 const MAX_MESSAGES_PER_SECOND = 60;
 const MAX_KEY_LENGTH = 64;
+// A public room tells the lobby how it's doing at least this often (s), on top of every change.
+export const REPORT_EVERY = 15;
 const GAME_EVENTS = new Set(['move', 'shoot', 'switchWeapon', 'reload', 'heal', 'respawn', 'rematch']);
 
 const randomId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 8);
@@ -29,6 +33,10 @@ const randomId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 8);
  *
  * A socket is anything with send(text) and close(code, reason). Call connect(socket) when it
  * opens, message(conn, text) for each frame, and closed(conn) when it closes.
+ *
+ * Quick play: a join with `quick: true` creates the room, if it doesn't exist yet, as a public one with
+ * QUICK_PLAY settings on a random map. A public room hands its state to `onReport` (for the Lobby's
+ * Matchmaker) whenever it changes and every REPORT_EVERY seconds, and null when it closes.
  */
 export class RoomHost {
     /**
@@ -36,12 +44,28 @@ export class RoomHost {
      * @param {() => number} [options.now]
      * @param {{ setTimeout, clearTimeout, setInterval, clearInterval }} [options.timers]
      * @param {() => string} [options.newId] player id generator
+     * @param {() => number} [options.random] random number in [0, 1), for quick play's map
+     * @param {(state: object | null) => void} [options.onReport] a public room's state, for the lobby
+     * @param {(results: object[]) => void} [options.onResults] players' results, for their profiles
      */
-    constructor({ now = Date.now, timers = globalThis, newId = randomId } = {}) {
+    constructor({
+        now = Date.now,
+        timers = globalThis,
+        newId = randomId,
+        random = Math.random,
+        onReport = null,
+        onResults = null,
+    } = {}) {
         this.now = now;
         this.timers = timers;
         this.newId = newId;
+        this.random = random;
+        this.onReport = onReport;
+        this.onResults = onResults;
         this.game = null; // GameRoom while the room exists
+        this.public = false; // a quick-play room
+        this.reported = null; // the last state handed to onReport, as JSON
+        this.reportIn = 0; // seconds until the next report is due anyway
         this.interval = null;
         this.connections = new Map(); // player id -> its current connection
     }
@@ -93,19 +117,22 @@ export class RoomHost {
 
     join(conn, data) {
         if (conn.playerId) return this.notify(conn, 'Already in a room!');
-        const { playerName, isCreate, duration, playersLimit, map, mode, playerKey } = data || {};
+        const { playerName, isCreate, duration, playersLimit, map, mode, playerKey, quick, profileId } = data || {};
         const key = typeof playerKey === 'string' && playerKey.length <= MAX_KEY_LENGTH ? playerKey : null;
+        const profile = typeof profileId === 'string' && PROFILE_ID_PATTERN.test(profileId) ? profileId : null;
 
         if (!this.game) {
-            if (!isCreate) return this.reject(conn, 'No room has that code. Check it with whoever made the room.');
+            if (!isCreate && !quick) return this.reject(conn, 'No room has that code. Check it with whoever made the room.');
+            const settings = quick
+                ? { ...QUICK_PLAY, map: MAPS[Math.floor(this.random() * MAPS.length)].id }
+                : { duration, playersLimit, map, mode };
             this.game = new GameRoom({
-                duration,
-                playersLimit,
-                map,
-                mode,
+                ...settings,
                 now: this.now,
                 send: (id, event, payload) => this.send(id, event, payload),
+                onResults: (results) => this.onResults?.(results),
             });
+            this.public = !!quick;
             this.interval = this.timers.setInterval(() => this.tick(), 1000);
         }
 
@@ -116,6 +143,7 @@ export class RoomHost {
             this.bind(conn, existing);
             if (previous) this.close(previous, CLOSE.REPLACED, 'Connected again elsewhere');
             this.game.resume(existing);
+            this.report();
             return;
         }
 
@@ -123,18 +151,40 @@ export class RoomHost {
         do id = this.newId();
         while (this.game.players[id]);
         this.bind(conn, id); // before join(), which already sends to the new player
-        const error = this.game.join(id, playerName, key);
+        const error = this.game.join(id, playerName, key, profile);
         if (error) {
             this.connections.delete(id);
             conn.playerId = null;
             this.reject(conn, error);
         }
+        this.report();
     }
 
     tick() {
         this.game.tick();
         if (this.game.expired) this.closeRoom('The match is over and the room has closed.');
         else this.cleanup();
+        if (this.game && --this.reportIn <= 0) this.report(true);
+        else this.report();
+    }
+
+    // Tells the lobby how a public room is doing, if that changed (or `due` anyway). Null once it has closed.
+    report(due = false) {
+        if (!this.public || !this.onReport) return;
+        const g = this.game;
+        const state = g && {
+            players: Object.keys(g.players).length,
+            limit: g.playersLimit,
+            ended: g.ended,
+            secondsLeft: g.duration,
+        };
+        // The timer changes every second; only whole changes of state count, besides the regular report.
+        const json = JSON.stringify(state && { ...state, secondsLeft: undefined });
+        if (!due && json === this.reported) return;
+        this.reported = json;
+        this.reportIn = REPORT_EVERY;
+        this.onReport(state);
+        if (!state) this.public = false;
     }
 
     // Ends the room and sends everyone back to the menu.
@@ -144,6 +194,7 @@ export class RoomHost {
         this.timers.clearInterval(this.interval);
         this.interval = null;
         this.game = null;
+        this.report();
         for (const conn of conns) {
             this.notify(conn, message);
             this.close(conn, CLOSE.ROOM_CLOSED, 'Room closed');
@@ -206,5 +257,6 @@ export class RoomHost {
         this.timers.clearInterval(this.interval);
         this.interval = null;
         this.game = null;
+        this.report();
     }
 }

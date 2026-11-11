@@ -26,7 +26,18 @@ to the player who created them.
   has 10 seconds to come back with their score), the timer, closing a finished room nobody restarts (after
   3 minutes), and limits on what one connection may send.
 - `src/app.js` is the Hono app: it routes `/rooms/<roomId>` to that room's Durable Object (`src/room.js`), which
-  holds a RoomHost.
+  holds a RoomHost. It also answers `POST /quickplay` and `GET /profile/<id>` (both allow any origin).
+- Quick play: `POST /quickplay` asks the one Lobby Durable Object (`src/lobby.js`, logic in
+  `src/game/Matchmaker.js`) for a room and answers `{ roomId }`. The client joins it with `quick: true`, which
+  creates the room, if it doesn't exist yet, as a public one with `QUICK_PLAY` settings (`@shooter/shared`) on a
+  random map. Public rooms report their player count to the Lobby on every change and every 15 seconds; it sends
+  players to the fullest room with a free slot and at least 90 seconds left, and holds each slot it hands out
+  for 10 seconds. Its list lives in memory, kept alive and rebuilt by those reports. Rooms made with a code are
+  never listed.
+- Profiles: the client makes a profile id once and sends it as `profileId` when joining. At the end of a match
+  (or when a player leaves before it) the room adds their kills, deaths, best streak, time, and whether they
+  played the match through and won, to their row in D1 (`src/profiles.js`, binding `DB`). The table is made on
+  first use. Without the `DB` binding the game runs as before and `/profile` answers 503.
 - Gameplay numbers and maps the client also uses come from `@shooter/shared` and `@shooter/shared/maps`
   (`packages/shared/` in the repo root).
 
@@ -49,6 +60,12 @@ pnpm run deploy       # deploy; prints the URL, e.g. https://shooting-game.<your
 
 Use `pnpm run deploy`, not `pnpm deploy`: `pnpm deploy` is a built-in pnpm command that does something else.
 From the repo root, `pnpm deploy:server` does the same.
+
+The first deploy also provisions the D1 database for profiles (the `DB` binding in `wrangler.jsonc` has no
+`database_id`, so wrangler creates it). Locally, `pnpm dev` gives it a local database.
+
+Cost: the Lobby is one more Durable Object, awake while any quick-play room is open (the rooms' reports keep
+it up), so it adds about one room's worth of duration. D1 writes are one row per player per match.
 
 Then set `VITE_SERVER_URL` in `apps/client/.env` to the Worker's URL (or a custom domain routed to it) and
 rebuild the client.
