@@ -71,7 +71,7 @@ Generate APKs.
 1. Create a signing key once, and back it up: you need the same key for every future update.
 
    ```
-   keytool -genkey -v -keystore ~/shooterfree-release.jks -alias shooterfree -keyalg RSA -keysize 2048 -validity 10000
+   keytool -genkey -v -keystore ~/rimfire-release.jks -alias rimfire -keyalg RSA -keysize 2048 -validity 10000
    ```
 
 2. Build and sign (`apksigner` comes from the SDK build tools):
@@ -80,7 +80,7 @@ Generate APKs.
    export PATH="$PATH:$(ls -d $ANDROID_HOME/build-tools/* | tail -1)"
    pnpm build && pnpm exec cap sync android
    pnpm exec cap build android --androidreleasetype APK --signing-type apksigner \
-     --keystorepath ~/shooterfree-release.jks --keystorealias shooterfree \
+     --keystorepath ~/rimfire-release.jks --keystorealias rimfire \
      --keystorepass <password> --keystorealiaspass <password>
    ```
 
@@ -102,7 +102,7 @@ client id. Not on iOS yet: that needs an iOS client id, and Sign in with Apple a
    - Create a client of type **Web application**. Its id (`….apps.googleusercontent.com`) is the one the app and
      the server use. For the web build, add the game's address under Authorized JavaScript origins and the same
      address with a trailing `/` under Authorized redirect URIs.
-   - Create a client of type **Android** for package `com.dvlpralamin.shooterfree` and the SHA-1 of the key that
+   - Create a client of type **Android** for package `com.dvlpralamin.rimfire` and the SHA-1 of the key that
      signs the APK: one per key (the debug key from `cd android && ./gradlew signingReport`, your release key,
      and Play App Signing's key if the app is on Google Play). Its id isn't used anywhere: Google only checks that
      the APK's key is registered.
@@ -127,7 +127,7 @@ a release build so it isn't shipped. On iOS, use an `https://` server.
 
 ### App details
 
-- App id: `com.dvlpralamin.shooterfree` (`capacitor.config.ts`). Change it before the first store upload;
+- App id: `com.dvlpralamin.rimfire` (`capacitor.config.ts`). Change it before the first store upload;
   it can't be changed afterwards.
 - Landscape only, full screen (status/navigation bars hidden; an edge swipe shows them briefly).
 - The Draco decoder for the map models is bundled in `public/draco/`, so the app needs no CDN.

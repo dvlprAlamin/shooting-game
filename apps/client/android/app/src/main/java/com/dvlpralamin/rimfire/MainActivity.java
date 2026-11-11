@@ -1,4 +1,4 @@
-package com.dvlpralamin.shooterfree;
+package com.dvlpralamin.rimfire;
 
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;

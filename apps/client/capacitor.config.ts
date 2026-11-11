@@ -6,7 +6,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const allowInsecure = process.env.CAP_ALLOW_INSECURE === '1';
 
 const config: CapacitorConfig = {
-  appId: 'com.dvlpralamin.shooterfree',
+  appId: 'com.dvlpralamin.rimfire',
   appName: 'RimFire',
   webDir: 'dist',
   backgroundColor: '#000000',
