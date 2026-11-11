@@ -17,5 +17,12 @@
   // Player profiles. No database_id: `wrangler deploy` provisions the database the first time (it creates its own
   // table, see src/profiles.js). The game runs without it, minus profiles.
   "d1_databases": [{ "binding": "DB", "database_name": "shooting-game" }],
+  // The address the apps use for now (VITE_SERVER_URL in apps/client/.env.production).
+  "workers_dev": true,
+  "vars": {
+    // Sign in with Google: the Web OAuth client id from Google Cloud (comma-separated for several), the same one
+    // as VITE_GOOGLE_WEB_CLIENT_ID in the client. Not a secret. Empty: sign-in is off.
+    "GOOGLE_CLIENT_ID": ""
+  },
   "observability": { "enabled": true }
 }

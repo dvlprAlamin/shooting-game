@@ -5,8 +5,9 @@ import { DEFAULT_MAP, MAPS, getMap } from '@shooter/shared/maps';
 import Button from '../elements/Button';
 import CopyButton from '../elements/CopyButton';
 import { fetchProfile, quickPlay } from '@/net/api';
-import { PROFILE_ID } from '@/net/profile';
+import { getProfileId } from '@/net/profile';
 import { useFeedStore } from '@/store/FeedStore';
+import Account from './Account';
 import styles from './RoomSelector.module.scss';
 
 const TABS = [
@@ -67,7 +68,8 @@ const ModeChoice = ({ value, onChange }) => (
 );
 
 // Your profile's totals, in the same row of boxes as the match options. `profile` null: no matches yet.
-const Record = ({ profile, note }) => {
+// Under them (`children`): signing in to keep the record.
+const Record = ({ profile, note, children }) => {
   const { matches = 0, wins = 0, kills = 0, deaths = 0 } = profile ?? {};
   const stats = [
     ['Matches', matches],
@@ -89,6 +91,7 @@ const Record = ({ profile, note }) => {
           </div>
         ))}
       </dl>
+      {children}
     </div>
   );
 };
@@ -120,7 +123,7 @@ const RoomSelector = ({ joinRoom }) => {
 
   useEffect(() => {
     let live = true;
-    fetchProfile(PROFILE_ID)
+    fetchProfile(getProfileId())
       .then((p) => live && setProfile(p))
       .catch(() => {}); // no record to show
     return () => {
@@ -232,7 +235,9 @@ const RoomSelector = ({ joinRoom }) => {
             <fieldset className={styles.pane} disabled={tab !== 'quick'}>
               <legend className="sr-only">Quick play</legend>
               {profile !== undefined ? (
-                <Record profile={profile} note={quickNote} />
+                <Record profile={profile} note={quickNote}>
+                  <Account onProfile={setProfile} />
+                </Record>
               ) : (
                 <p className={styles.blurb}>
                   Jump into a public match with free slots, or open one others can join. Bots play until people

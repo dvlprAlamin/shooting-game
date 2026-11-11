@@ -38,6 +38,9 @@ importers:
       '@capacitor/ios':
         specifier: ^8.6.0
         version: 8.6.0(@capacitor/core@8.6.0)
+      '@capgo/capacitor-social-login':
+        specifier: ^8.7.7
+        version: 8.7.7(@capacitor/core@8.6.0)
       '@fontsource/barlow-semi-condensed':
         specifier: ^5.3.0
         version: 5.3.0
@@ -230,6 +233,11 @@ packages:
     resolution: {integrity: sha512-Y2PE4zoBqMrSTWoVMJmX2byBznjn6egmATzoEUJiGVbVubkNpAvkF/tl0SBKDyP67ngyedTx1tQq5IGYIhby1A==}
     peerDependencies:
       '@capacitor/core': ^8.6.0
+
+  '@capgo/capacitor-social-login@8.7.7':
+    resolution: {integrity: sha512-8El/LzJkwvHDalbtaqKz3Qrd61OiPWHOB5qrt/ExYFrI9Jzjjk4c6GT+Gg9IJ14AMaboJAhI+0sLZghDBG17NQ==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
 
   '@cesium/core@0.1.1':
     resolution: {integrity: sha512-2twC6bAYWdrJ4YVS2UPCpgkE7EZWHl+GVuh5n9IT6gVL9W9OYPas29Vh+wrUVI/9Hs8TeiNtis+Du2U9b+ce6A==}
@@ -2882,6 +2890,11 @@ snapshots:
   '@capacitor/ios@8.6.0(@capacitor/core@8.6.0)':
     dependencies:
       '@capacitor/core': 8.6.0
+
+  '@capgo/capacitor-social-login@8.7.7(@capacitor/core@8.6.0)':
+    dependencies:
+      '@capacitor/core': 8.6.0
+      tslib: 2.9.1
 
   '@cesium/core@0.1.1':
     dependencies:

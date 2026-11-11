@@ -55,6 +55,7 @@ To add a block map, write a module like `maps/outpost.js` and add it to `MAPS` i
 
 ## The old Node server
 
-App builds from before the Worker talk to a Node + Socket.IO server. It lives on in the
+App builds from before the Worker talk to a Node + Socket.IO server. Its code lives on in the
 [shooting-game-server](https://github.com/dvlprAlamin/shooting-game-server) repo and isn't part of this one.
-Keep it running until players have updated, then shut it down.
+Their address, `shooter-free-api.anmeson.com`, now belongs to the Worker, so those builds can't connect any more:
+players need a current build.

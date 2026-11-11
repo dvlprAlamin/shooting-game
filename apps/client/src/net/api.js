@@ -8,7 +8,7 @@ const TIMEOUT_MS = 8000;
 const request = async (path, init) => {
   const res = await fetch(`${BASE}${path}`, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
   if (!res.ok) throw Object.assign(new Error(`${path}: ${res.status}`), { status: res.status });
-  return res.json();
+  return res.status === 204 ? null : res.json();
 };
 
 /** Quick play: the id of a public room with a free slot (or a new one). Join it with `quick: true`. */
@@ -24,3 +24,15 @@ export const fetchProfile = async (id) => {
     throw e;
   }
 };
+
+/** Signs this device in with a Google ID token. Returns `{ profileId, profile }`: the profile to play as from now
+ *  on (the account's, with the record so far added to it) and its totals, or null if it has none yet. */
+export const exchangeGoogleToken = (idToken, profileId) =>
+  request('/auth/google', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idToken, profileId }),
+  });
+
+/** Deletes a profile's record, and its link to an account. */
+export const deleteProfile = (id) => request(`/profile/${encodeURIComponent(id)}`, { method: 'DELETE' });

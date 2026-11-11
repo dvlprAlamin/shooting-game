@@ -22,6 +22,11 @@ const config: CapacitorConfig = {
       hidden: true,
       initialViewportFitValueHint: 'cover',
     },
+    // Sign in with Google (src/net/account.js). Providers left out aren't bundled; Apple comes later.
+    SocialLogin: {
+      providers: { google: true, apple: false, facebook: false, twitter: false },
+      logLevel: 1, // warnings and errors
+    },
   },
 };
 

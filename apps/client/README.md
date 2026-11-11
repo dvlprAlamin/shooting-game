@@ -24,13 +24,14 @@ Native projects live in `android/` and `ios/`.
 
 Requirements: Android Studio (with the Android SDK) for Android; Xcode on macOS for iOS (deployment target iOS 15).
 
-1. Point the app at your game server. The app can't derive it from its own address, so create `.env` with:
+1. Point the app at your game server. The app can't derive it from its own address, so builds read it from
+   `.env.production`, which points at the deployed Worker:
 
    ```
-   VITE_SERVER_URL=https://your-game-server.example.com
+   VITE_SERVER_URL=https://shooting-game.services-65f.workers.dev
    ```
 
-   This is the Cloudflare Worker in `apps/server` (its `workers.dev` URL or your own domain).
+   This is the Cloudflare Worker in `apps/server`, on its `workers.dev` address for now (a custom domain later).
    The client no longer talks to the old Node + Socket.IO server.
 
    Use `https://` in production: Android and iOS block plain `http://` / `ws://` by default.
@@ -88,6 +89,28 @@ Generate APKs.
 For Google Play, run the same `cap build` with `--androidreleasetype AAB` and without `--signing-type apksigner`
 (app bundles are signed with the default `jarsigner`), then upload
 `android/app/build/outputs/bundle/release/app-release-signed.aab`.
+
+### Sign in with Google
+
+Optional for players: signing in keeps their record on any device and after reinstalling. The button sits under
+"Your record" on the Quick play tab, and stays hidden until the app and the server both have the Web OAuth
+client id. Not on iOS yet: that needs an iOS client id, and Sign in with Apple alongside it.
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), in one project, under Google Auth Platform:
+   - Set up the consent screen as External. While it's in Testing, only the accounts listed under Audience >
+     Test users can sign in; publish it to let everyone in (the basic profile and email need no review).
+   - Create a client of type **Web application**. Its id (`….apps.googleusercontent.com`) is the one the app and
+     the server use. For the web build, add the game's address under Authorized JavaScript origins and the same
+     address with a trailing `/` under Authorized redirect URIs.
+   - Create a client of type **Android** for package `com.dvlpralamin.shooterfree` and the SHA-1 of the key that
+     signs the APK: one per key (the debug key from `cd android && ./gradlew signingReport`, your release key,
+     and Play App Signing's key if the app is on Google Play). Its id isn't used anywhere: Google only checks that
+     the APK's key is registered.
+2. Put the Web client id in `.env.production` as `VITE_GOOGLE_WEB_CLIENT_ID` and in `GOOGLE_CLIENT_ID` in
+   `apps/server/wrangler.jsonc`, deploy the server, and rebuild the app.
+
+Signed in, a player can sign out (the device starts a new record; the account keeps its own) or delete their
+record. Google Play wants that in-app deletion, and also a web page where people can ask for it.
 
 ### Testing against a server on your LAN (Android)
 

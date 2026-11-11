@@ -29,6 +29,11 @@ if (IS_NATIVE && !env.VITE_SERVER_URL) {
 // Without VITE_SERVER_URL: the same host on port 8787, where `wrangler dev` serves the game server.
 export const SERVER_URL: string =
   env.VITE_SERVER_URL || `${window.location.protocol}//${window.location.hostname}:8787`;
+// Sign in with Google (optional; keeps your record on any device): the Web OAuth client id from Google Cloud,
+// the same one as the server's GOOGLE_CLIENT_ID. Not set: no sign-in. iOS needs a client id of its own as well,
+// so for now it's Android and the web.
+export const GOOGLE_WEB_CLIENT_ID: string = env.VITE_GOOGLE_WEB_CLIENT_ID || '';
+export const GOOGLE_SIGN_IN: boolean = Boolean(GOOGLE_WEB_CLIENT_ID) && Capacitor.getPlatform() !== 'ios';
 export const SHOOT_BUTTON = int(env.VITE_SHOOT_BUTTON, 0);
 export const AIM_BUTTON = int(env.VITE_AIM_BUTTON, 2);
 export const RELOAD_BUTTON_CODE: string = env.VITE_RELOAD_BUTTON_CODE || 'KeyR';

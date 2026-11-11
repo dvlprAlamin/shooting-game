@@ -1,6 +1,6 @@
 import { SERVER_URL } from '@/config';
 import { ROOM_ID_PATTERN } from '@shooter/shared';
-import { PROFILE_ID } from './profile';
+import { getProfileId } from './profile';
 
 // Connection to the game server: one WebSocket per room, `<server>/rooms/<roomId>`, carrying JSON
 // frames {"e": event, "d": data}. The API matches what the game used with Socket.IO: on/off,
@@ -94,7 +94,7 @@ class GameSocket {
     const roomId = String(info?.roomId ?? '').trim();
     if (!ROOM_ID_PATTERN.test(roomId)) return this.#fire('notification', { message: "That room code isn't valid." });
     if (this.#join) return this.#fire('notification', { message: "You're already in a room." });
-    this.#join = { ...info, roomId, playerKey: PLAYER_KEY, profileId: PROFILE_ID };
+    this.#join = { ...info, roomId, playerKey: PLAYER_KEY, profileId: getProfileId() };
     this.#retry = 0;
     this.#open();
   }

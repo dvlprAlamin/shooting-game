@@ -12,9 +12,6 @@ export default defineConfig([
     'apps/client/public/',
     'apps/client/android/',
     'apps/client/ios/',
-    // The two repos this one replaced, while they still sit next to it.
-    'shooting-game/',
-    'shooting-game-server/',
   ]),
   js.configs.recommended,
   tseslint.configs.recommended,

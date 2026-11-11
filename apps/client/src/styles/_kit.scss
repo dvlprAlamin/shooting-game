@@ -9,6 +9,15 @@ $short: '(max-height: 500px)';
   }
 }
 
+// Shorter still: a phone in landscape in the browser, with the address bar showing (~300px).
+$shortest: '(max-height: 340px)';
+
+@mixin shortest {
+  @media #{$shortest} {
+    @content;
+  }
+}
+
 // One cut corner, like a stencilled crate. Note: clip-path also clips the element's own outline,
 // so chamfered controls draw their focus ring inside (negative outline-offset).
 @mixin chamfer($size: 12px, $corner: br) {

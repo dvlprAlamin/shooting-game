@@ -1,0 +1,120 @@
+@use '@/styles/kit' as *;
+
+// Under the record: one row the height of a quiet button, so the quick play pane stays no taller than the others.
+.account {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+
+  p {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @include short {
+    margin-top: 0.35rem;
+    font-size: 0.8rem;
+  }
+
+  // Beside "Your record" (see .record in RoomSelector.module.scss), without the line about it.
+  @include shortest {
+    grid-area: 1 / 2;
+    justify-content: flex-end;
+    margin: 0 0 0.2rem;
+
+    > p:not(.who) {
+      display: none;
+    }
+  }
+}
+
+// Google's dark sign-in button (#131314, a #8e918f outline, #e3e3e3 text, the G at 18 px), in the kit's type.
+.google {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 36px;
+  padding: 0 0.9rem 0 0.75rem;
+  border: 1px solid #8e918f;
+  border-radius: 4px;
+  background: #131314;
+  color: #e3e3e3;
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: #2a2b2c;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--bone);
+    outline-offset: 2px;
+  }
+
+  @include short {
+    min-height: 32px;
+  }
+
+  @include shortest {
+    min-height: 28px;
+  }
+}
+
+.mark {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+.who {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--bone);
+
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.buttons {
+  flex: none;
+  display: flex;
+  gap: 0.4rem;
+
+  @include short {
+    > button {
+      min-height: 32px;
+    }
+  }
+
+  @include shortest {
+    > button {
+      min-height: 28px;
+    }
+  }
+}
+
+// The second tap deletes. Under .buttons so it wins over the quiet button's own colours.
+.buttons .danger {
+  color: var(--red);
+  box-shadow: inset 0 0 0 1px var(--red);
+}
