@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CLOSE, REPORT_EVERY, RoomHost } from '../src/game/RoomHost.js';
+import { CLOSE, REPORT_EVERY, RoomHost } from '../src/RoomHost.js';
 import { QUICK_PLAY } from '@rimfire/shared';
-import { GAME_OVER_TTL_MS, RECONNECT_GRACE_MS } from '../src/game/GameRoom.js';
+import { GAME_OVER_TTL_MS, RECONNECT_GRACE_MS } from '../src/GameRoom.js';
 
 // A RoomHost on a fake clock with hand-driven timers, and fake sockets that record frames.
 function setup(options = {}) {
@@ -325,4 +325,19 @@ test('a quick-play room counts only people when it reports', () => {
     const { join } = setup({ onReport: (s) => reports.push(s) });
     join('Alice', { quick: true });
     assert.equal(reports.at(-1).players, 1);
+});
+
+test('fixed settings make the room whatever the creating join asks for, and it never goes public', () => {
+    const reports = [];
+    const settings = { duration: 5, playersLimit: 10, map: 'outpost', mode: 'tdm', bots: 4 };
+    const { host, join, intervals } = setup({ settings, onReport: (s) => reports.push(s) });
+    join('Alice', { isCreate: true, quick: true, map: 'depot', mode: 'ffa', duration: '30', playersLimit: '5' });
+    assert.equal(host.game.map.id, 'outpost');
+    assert.equal(host.game.mode, 'tdm');
+    assert.equal(host.game.duration, 300);
+    assert.equal(host.game.playersLimit, 10);
+    assert.equal(Object.values(host.game.players).filter((p) => p.bot).length, 3);
+    assert.equal(intervals.size, 2, 'the room timer and the bot timer');
+    assert.equal(host.public, false);
+    assert.deepEqual(reports, []);
 });

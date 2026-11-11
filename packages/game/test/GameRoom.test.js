@@ -7,7 +7,7 @@ import {
     REGEN_PER_TICK,
     REMATCH_WAIT,
     TIMING_SLACK,
-} from '../src/game/GameRoom.js';
+} from '../src/GameRoom.js';
 import {
     MAX_HEALTH,
     PLAYER_LIMITS,

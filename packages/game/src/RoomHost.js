@@ -39,6 +39,9 @@ const randomId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 8);
  * QUICK_PLAY settings (bots included) on a random map bots can play. `practice: true` makes the same room,
  * private. A public room hands its state to `onReport` (for the Lobby's Matchmaker) whenever it changes and
  * every REPORT_EVERY seconds, and null when it closes; its player count leaves bots out.
+ *
+ * Fixed settings (`settings`): the room is made with those, whatever the creating join asks for, and is never
+ * public. A phone hosting a nearby game uses this for its owner's choices, bots included.
  */
 export class RoomHost {
     /**
@@ -49,6 +52,7 @@ export class RoomHost {
      * @param {() => number} [options.random] random number in [0, 1), for quick play's map
      * @param {(state: object | null) => void} [options.onReport] a public room's state, for the lobby
      * @param {(results: object[]) => void} [options.onResults] players' results, for their profiles
+     * @param {{ duration, playersLimit, map, mode, bots }} [options.settings] the room's settings, fixed
      */
     constructor({
         now = Date.now,
@@ -57,6 +61,7 @@ export class RoomHost {
         random = Math.random,
         onReport = null,
         onResults = null,
+        settings = null,
     } = {}) {
         this.now = now;
         this.timers = timers;
@@ -64,6 +69,7 @@ export class RoomHost {
         this.random = random;
         this.onReport = onReport;
         this.onResults = onResults;
+        this.settings = settings;
         this.game = null; // GameRoom while the room exists
         this.botTimer = null; // drives the bots, in a room that has them
         this.public = false; // a quick-play room
@@ -131,16 +137,17 @@ export class RoomHost {
             }
             const botMaps = MAPS.filter(botsCanPlay);
             const settings =
-                quick || practice
+                this.settings ??
+                (quick || practice
                     ? { ...QUICK_PLAY, map: botMaps[Math.floor(this.random() * botMaps.length)].id }
-                    : { duration, playersLimit, map, mode };
+                    : { duration, playersLimit, map, mode });
             this.game = new GameRoom({
                 ...settings,
                 now: this.now,
                 send: (id, event, payload) => this.send(id, event, payload),
                 onResults: (results) => this.onResults?.(results),
             });
-            this.public = !!quick;
+            this.public = !!quick && !this.settings;
             this.interval = this.timers.setInterval(() => this.tick(), 1000);
             if (this.game.director) this.botTimer = this.timers.setInterval(() => this.game?.updateBots(), UPDATE_MS);
         }

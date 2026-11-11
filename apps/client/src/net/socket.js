@@ -9,11 +9,14 @@ import { getProfileId } from './profile';
 // It connects when you join a room. If the connection drops mid-game it reconnects with a per-tab
 // key, and the server gives you your player back (score and all) during its 10 s grace period.
 //
+// A nearby game (net/lan) is joined the same way, with `server` in the join info: the address of the phone
+// hosting it (through a tunnel), in place of the game server's.
+//
 // Events it adds on top of the server's: 'reconnecting' (connection lost, retrying) and
 // 'disconnect' (couldn't join, gave up reconnecting, the room closed, or you left).
 
 const RETRY_DELAYS = [500, 1000, 2000, 3000, 3000]; // ~9.5 s in total, inside the server's grace period
-// Close codes from the server (apps/server/src/game/RoomHost.js) that mean "don't retry".
+// Close codes from the server (packages/game/src/RoomHost.js) that mean "don't retry".
 const FINAL_CLOSE_CODES = new Set([4000, 4001, 4002, 4003, 4004]);
 const REPLACED = 4003;
 // A refused join (4000) and a closed room (4004) already came with a notification saying why.
@@ -41,6 +44,7 @@ class GameSocket {
   id = null;
   #listeners = new Map();
   #ws = null;
+  #base = WS_BASE; // where the room is: the game server, or the phone hosting a nearby game
   #join = null; // the join request, re-sent when reconnecting
   #joined = false;
   #reconnecting = false;
@@ -90,17 +94,18 @@ class GameSocket {
     this.#ws.send(JSON.stringify(data === undefined ? { e: event } : { e: event, d: data }));
   }
 
-  #joinRoom(info) {
-    const roomId = String(info?.roomId ?? '').trim();
+  #joinRoom({ server, ...info } = {}) {
+    const roomId = String(info.roomId ?? '').trim();
     if (!ROOM_ID_PATTERN.test(roomId)) return this.#fire('notification', { message: "That room code isn't valid." });
     if (this.#join) return this.#fire('notification', { message: "You're already in a room." });
+    this.#base = server ?? WS_BASE;
     this.#join = { ...info, roomId, playerKey: PLAYER_KEY, profileId: getProfileId() };
     this.#retry = 0;
     this.#open();
   }
 
   #open() {
-    const ws = new WebSocket(`${WS_BASE}/rooms/${encodeURIComponent(this.#join.roomId)}`);
+    const ws = new WebSocket(`${this.#base}/rooms/${encodeURIComponent(this.#join.roomId)}`);
     this.#ws = ws;
     ws.onopen = () => this.#send('joinRoom', this.#join);
     ws.onmessage = (message) => {
@@ -137,6 +142,7 @@ class GameSocket {
       return;
     }
     const wasJoined = this.#joined;
+    const nearby = this.#base !== WS_BASE;
     clearTimeout(this.#retryTimer);
     this.#join = null;
     this.#joined = false;
@@ -145,8 +151,11 @@ class GameSocket {
     if (code === REPLACED) this.#fire('notification', { message: 'You joined from another tab or device.' });
     else if (EXPLAINED_CLOSE_CODES.has(code)) {
       // The server's notification said why.
-    } else if (wasJoined) this.#fire('notification', { message: 'Lost the connection to the game server.' });
-    else this.#fire('notification', { message: "Can't reach the game server. Check your connection and try again." });
+    } else if (wasJoined) {
+      this.#fire('notification', { message: `Lost the connection to the ${nearby ? 'host' : 'game server'}.` });
+    } else if (nearby) {
+      this.#fire('notification', { message: "Can't reach that game. Check you're on the host's Wi-Fi or hotspot." });
+    } else this.#fire('notification', { message: "Can't reach the game server. Check your connection and try again." });
     this.#fire('disconnect', code);
   }
 }

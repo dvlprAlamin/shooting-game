@@ -8,6 +8,7 @@ server. This repo is one pnpm workspace:
 | [`apps/client`](apps/client) | `@rimfire/client` | The game: Vite + React Three Fiber, wrapped as Android/iOS apps with Capacitor |
 | [`apps/server`](apps/server) | `@rimfire/server` | The game server: a Cloudflare Worker with one Durable Object per room, a Lobby for quick play, and D1 for profiles |
 | [`packages/shared`](packages/shared) | `@rimfire/shared` | Gameplay numbers both sides must agree on (hitbox, room options), the weapon table and the maps |
+| [`packages/game`](packages/game) | `@rimfire/game` | The game's rules (`GameRoom`), the room host that serves them and the bots: run by the Worker, and by the phone hosting a nearby game |
 
 ## Setup
 
@@ -48,9 +49,9 @@ Maps live in `packages/shared/maps/` and are imported as `@rimfire/shared/maps`.
 (`maps/build.js` has the helpers), so one file drives everything: the client draws them and makes their
 colliders, and the server picks spawn points from them and refuses shots that go through their walls.
 
-To add a block map, write a module like `maps/outpost.js` and add it to `MAPS` in `maps/index.js`. The server's
-`test/maps.test.js` then checks it: spawn points clear of boxes with a floor under them, ramps no steeper than
-30°, and no way to see or walk out. Materials (`m`) are the keys of `MATERIALS` in
+To add a block map, write a module like `maps/outpost.js` and add it to `MAPS` in `maps/index.js`. Then
+`packages/game/test/maps.test.js` checks it: spawn points clear of boxes with a floor under them, ramps no steeper
+than 30°, and no way to see or walk out. Materials (`m`) are the keys of `MATERIALS` in
 `apps/client/src/maps/textures.js`.
 
 ## The old Node server

@@ -103,11 +103,22 @@ const TeamScore = ({ team, score, mine }) => (
 );
 
 /**
- * Match info at the top, health at the bottom, and the map and room code to send to friends. In a team match
+ * Match info at the top, health at the bottom, and the map and room code to send to friends (in a nearby game,
+ * the host's address, for typing in if the game doesn't show up in their list). In a team match
  * (`teamScores` set) the top strip has your team's score left of the timer and theirs on the right, with your
  * own kills and deaths under it.
  */
-const Hud = ({ health, kills = 0, deaths = 0, timeRemaining, roomId, mapName, teamScores = null, myTeam = null }) => {
+const Hud = ({
+  health,
+  kills = 0,
+  deaths = 0,
+  timeRemaining,
+  roomId,
+  nearby = null,
+  mapName,
+  teamScores = null,
+  myTeam = null,
+}) => {
   const teams = !!(teamScores && myTeam);
   const timer = timeRemaining != null && (
     <span className={`${styles.timer} ${timeRemaining <= LOW_TIME ? styles.low : ''}`} role="timer" aria-label="Time left">
@@ -136,12 +147,12 @@ const Hud = ({ health, kills = 0, deaths = 0, timeRemaining, roomId, mapName, te
         </div>
       )}
 
-      {roomId && (
+      {(roomId || nearby) && (
         <div className={styles.room}>
           {mapName && <span className={styles.mapName}>{mapName}</span>}
-          <span className={styles.roomLabel}>Room</span>
-          <span className={styles.roomCode}>{roomId}</span>
-          <CopyButton text={roomId} />
+          <span className={styles.roomLabel}>{nearby ? 'Nearby' : 'Room'}</span>
+          <span className={styles.roomCode}>{nearby ?? roomId}</span>
+          {!nearby && <CopyButton text={roomId} />}
         </div>
       )}
 

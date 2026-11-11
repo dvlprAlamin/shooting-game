@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { QUICK_PLAY } from '@rimfire/shared';
-import { MIN_TIME_LEFT, Matchmaker, RESERVATION_MS, STALE_MS } from '../src/game/Matchmaker.js';
+import { MIN_TIME_LEFT, Matchmaker, RESERVATION_MS, STALE_MS } from '../src/Matchmaker.js';
 
 function setup() {
     const clock = { t: 1_000_000 };

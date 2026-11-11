@@ -147,6 +147,29 @@ private room of your own against bots. Bots show a Bot tag on the scoreboard. Th
 join sends it, and the server adds each match to it. Without profiles on the server the tab shows a line about
 quick play instead.
 
+## Nearby games (Android)
+
+The Nearby tab plays over Wi-Fi or a phone's hotspot, with no internet: one phone hosts, the others join it.
+It shows only in the Android app (a browser can't take connections). Hosting uses the Create room settings plus
+Bots, which fill the match until people take their places (Depot and Outpost only), so it also works as offline
+practice. Nearby matches don't count towards your record.
+
+- The host runs the same `RoomHost` as the server (`@rimfire/game`) in a Web Worker
+  (`src/net/lan/hostWorker.js`). The app's own Capacitor plugin (`android/app/src/main/java/.../lan/`) runs the
+  WebSocket server players connect to, port 7350 or the next free one, and relays every player to the worker
+  over one loopback WebSocket (`packages/game/src/relay.js` has the frames). The host's own game joins on
+  `ws://127.0.0.1`, like any other player.
+- Players find games advertised on the network (NSD, `_rimfire._tcp`), and the phone sharing the hotspot
+  they're on, by asking each for `/info` (name, map, mode, players). Or they type the address the host's HUD
+  shows. The page is served from `https://localhost` and can't open `ws://` to another device, so it connects
+  through a loopback tunnel the plugin opens to the host (`TcpTunnel.java`), bound to the network the host is on.
+- Android blocks plain `ws://` by default (`ERR_CLEARTEXT_NOT_PERMITTED`), so
+  `res/xml/network_security_config.xml` allows it to `127.0.0.1` only. A `CAP_ALLOW_INSECURE=1` sync switches
+  to `network_security_config_insecure.xml` (`app/build.gradle`), since the config overrides
+  `usesCleartextTraffic`.
+- When the host leaves, everyone is told and sent back to the menu. Hosts and players must run the same
+  `NEARBY_VERSION` (`src/net/lan/native.js`); bump it when the messages between them change.
+
 ## Team matches
 
 Picking Teams in the menu makes a team match (`mode: 'tdm'`). The two teams' names and colours are in

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { box, mirrorZ, quarterTurn, ramp, turnedBlock } from '@rimfire/shared/maps/build';
-import { firstWallHit, wallBetween } from '../src/game/walls.js';
+import { firstWallHit, wallBetween } from '../src/walls.js';
 
 let n = 0;
 const mapOf = (boxes) => ({ id: `test-${++n}`, boxes });

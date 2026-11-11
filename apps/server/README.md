@@ -5,7 +5,9 @@ to the player who created them.
 
 ## Layout
 
-- `src/game/GameRoom.js` is one match: players, scores, timer, and the checks on moves, shots and respawns,
+- The game itself is the `@rimfire/game` package (`packages/game/` in the repo root), shared with the app, which
+  hosts nearby games with it. Its tests are there too.
+- `GameRoom.js` (in `@rimfire/game`) is one match: players, scores, timer, and the checks on moves, shots and respawns,
   plus headshots, spawn protection, health regeneration, kill streaks and rematch votes. It knows nothing about
   sockets, so the tests drive it directly.
 - Weapons come from `@rimfire/shared/weapons`. Every player carries all of them; `switchWeapon`, `reload` and
@@ -20,16 +22,16 @@ to the player who created them.
   players respawn and when a rematch starts.
 - The room plays on the map its creator picked (`map` in `joinRoom`; every `joinedRoom` says which). Players
   spawn on that map's points. A shot only counts if it starts within 3 m of the shooter's eyes, on their side
-  of any wall, and no box of the map is in its way before the target (`src/game/walls.js`). Canyon has no boxes,
+  of any wall, and no box of the map is in its way before the target (`walls.js`). Canyon has no boxes,
   so it gets only the first check.
-- `src/game/RoomHost.js` serves one room over plain WebSockets: joining, leaving, reconnecting (a dropped player
+- `RoomHost.js` (in `@rimfire/game`) serves one room over plain WebSockets: joining, leaving, reconnecting (a dropped player
   has 10 seconds to come back with their score), the timer, closing a finished room nobody restarts (after
   3 minutes), and limits on what one connection may send.
 - `src/app.js` is the Hono app: it routes `/rooms/<roomId>` to that room's Durable Object (`src/room.js`), which
   holds a RoomHost. It also answers `POST /quickplay`, `GET` and `DELETE /profile/<id>` and `POST /auth/google`
   (all allow any origin).
 - Quick play: `POST /quickplay` asks the one Lobby Durable Object (`src/lobby.js`, logic in
-  `src/game/Matchmaker.js`) for a room and answers `{ roomId }`. The client joins it with `quick: true`, which
+  `src/Matchmaker.js`) for a room and answers `{ roomId }`. The client joins it with `quick: true`, which
   creates the room, if it doesn't exist yet, as a public one with `QUICK_PLAY` settings (`@rimfire/shared`) on a
   random map. Public rooms report their player count to the Lobby on every change and every 15 seconds; it sends
   players to the fullest room with a free slot and at least 90 seconds left, and holds each slot it hands out
@@ -38,8 +40,8 @@ to the player who created them.
 - Bots: quick-play and practice rooms (`practice: true` in `joinRoom`: the same settings, but private) keep
   `QUICK_PLAY.bots` players in the match, adding bots while there are fewer people and dropping one whenever
   someone joins a full room. Bots are players like any other (same shot checks, same scores, marked `bot` in
-  the player list), driven 20 times a second by `src/game/bots/BotDirector.js`: they walk a grid worked out
-  from the map's boxes (`src/game/bots/nav.js`, floors, platforms and ramps included), see 130° ahead up to
+  the player list), driven 20 times a second by `bots/BotDirector.js` in `@rimfire/game`: they walk a grid worked out
+  from the map's boxes (`bots/nav.js`, floors, platforms and ramps included), see 130° ahead up to
   60 m with no box in the way, wait a moment before firing in bursts, hit more often up close, reload, heal,
   and respawn after a few seconds. They leave a player alone until that player's first move after spawning
   (their game is still loading). They don't vote for rematches, and a room with only bots left closes. They

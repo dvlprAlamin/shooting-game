@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import { RoomHost } from './game/RoomHost.js';
+import { RoomHost } from '@rimfire/game';
 import { lobbyOf } from './lobbyOf.js';
 import { saveResults } from './profiles.js';
 

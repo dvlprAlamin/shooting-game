@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { PLAYER_CENTER_TO_FEET, PLAYER_RADIUS } from '@rimfire/shared';
 import { DEFAULT_MAP, MAPS, getMap } from '@rimfire/shared/maps';
 import { rotate } from '@rimfire/shared/maps/build';
-import { firstWallHit } from '../src/game/walls.js';
+import { firstWallHit } from '../src/walls.js';
 
 const BLOCK_MAPS = MAPS.filter((map) => map.boxes.length);
 const MAX_SLOPE = 30; // degrees: steeper and the player can't walk up it

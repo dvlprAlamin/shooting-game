@@ -9,6 +9,7 @@
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
+    "@rimfire/game": "workspace:*",
     "@rimfire/shared": "workspace:*",
     "hono": "^4.13.17"
   },

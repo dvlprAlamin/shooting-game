@@ -6,6 +6,8 @@ import { DEFAULT_MAP, getMap } from '@rimfire/shared/maps';
 import { World } from '@/maps/World';
 import { Player } from '@/Player.jsx';
 import { socket } from '@/net/socket';
+import { stopHosting } from '@/net/lan/host';
+import { closeTunnels } from '@/net/lan/nearby';
 import {
   clearRemotes,
   dispatchShot,
@@ -46,6 +48,7 @@ const App = () => {
   const [isDead, setIsDead] = useState(false);
   const [isJoinedRoom, setIsJoinedRoom] = useState(false);
   const [roomId, setRoomId] = useState(null);
+  const [nearby, setNearby] = useState(null); // in a nearby game: the host's address
   const [mapId, setMapId] = useState(DEFAULT_MAP);
   const [killedBy, setKilledBy] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState(null);
@@ -73,6 +76,9 @@ const App = () => {
     // is gone for good (reconnecting gave up): go back to the room selector.
     const onReconnecting = () => setIsReconnecting(true);
     const onDisconnect = () => {
+      // Out of a nearby game: stop hosting it (its players are told), or close the way to it.
+      stopHosting();
+      closeTunnels();
       setIsReconnecting(false);
       setIsJoinedRoom(false);
       setIsDead(false);
@@ -258,8 +264,9 @@ const App = () => {
   const handleRematch = () => socket.emit('rematch');
   const handleLeave = () => socket.leave();
 
-  const handleJoinRoom = (roomInfo) => {
-    setRoomId(roomInfo.roomId);
+  const handleJoinRoom = ({ nearby: hostAddress = null, ...roomInfo }) => {
+    setRoomId(hostAddress ? null : roomInfo.roomId);
+    setNearby(hostAddress);
     socket.emit('joinRoom', roomInfo);
   };
 
@@ -295,6 +302,7 @@ const App = () => {
         deaths={players[socket.id]?.deaths}
         kills={players[socket.id]?.kills}
         roomId={roomId}
+        nearby={nearby}
         mapName={map.name}
         myTeam={myTeam}
         teamScores={mode === 'tdm' ? teamScores : null}

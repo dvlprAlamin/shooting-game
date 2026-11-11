@@ -26,8 +26,13 @@ export default defineConfig([
   },
   {
     // Node: build scripts, config files, tests
-    files: ['*.js', 'apps/client/*.{js,ts}', 'apps/client/scripts/**', 'apps/server/test/**'],
+    files: ['*.js', 'apps/client/*.{js,ts}', 'apps/client/scripts/**', 'apps/server/test/**', 'packages/*/test/**'],
     languageOptions: { globals: globals.node },
+  },
+  {
+    // The game's rules and room host: run by the Worker, by the phone hosting a nearby game, and by the tests
+    files: ['packages/game/src/**'],
+    languageOptions: { globals: { ...globals['shared-node-browser'], crypto: 'readonly' } },
   },
   {
     // Cloudflare Workers runtime

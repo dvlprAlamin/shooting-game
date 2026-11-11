@@ -56,6 +56,9 @@ importers:
       '@react-three/rapier':
         specifier: ^1.1.1
         version: 1.5.0(@react-three/fiber@8.18.0(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(three@0.167.1))(react@18.3.1)(three@0.167.1)
+      '@rimfire/game':
+        specifier: workspace:*
+        version: link:../../packages/game
       '@rimfire/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -114,6 +117,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@rimfire/game':
+        specifier: workspace:*
+        version: link:../../packages/game
       '@rimfire/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -124,6 +130,12 @@ importers:
       wrangler:
         specifier: ^4.160.0
         version: 4.160.0
+
+  packages/game:
+    dependencies:
+      '@rimfire/shared':
+        specifier: workspace:*
+        version: link:../shared
 
   packages/shared: {}
 

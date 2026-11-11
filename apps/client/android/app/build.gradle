@@ -10,6 +10,13 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // A network security config overrides android:usesCleartextTraffic, which is how a `CAP_ALLOW_INSECURE=1`
+        // sync (server.cleartext) allows plain http://, so that sync gets a config allowing it everywhere.
+        def capConfig = file('src/main/assets/capacitor.config.json')
+        def cleartext = capConfig.exists() && new groovy.json.JsonSlurper().parse(capConfig).server?.cleartext
+        manifestPlaceholders = [
+            networkSecurityConfig: cleartext ? '@xml/network_security_config_insecure' : '@xml/network_security_config'
+        ]
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
@@ -36,6 +43,8 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
+    // The WebSocket server of a nearby game this phone hosts (lan/LanServer.java)
+    implementation "org.java-websocket:Java-WebSocket:1.6.0"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A `CAP_ALLOW_INSECURE=1` sync (testing against a server on your LAN): plain http:// / ws:// anywhere.
+     Never in a release build. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

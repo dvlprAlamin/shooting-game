@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import { Matchmaker } from './game/Matchmaker.js';
+import { Matchmaker } from './Matchmaker.js';
 
 /**
  * Quick play's matchmaker: one of these for the whole game (named 'lobby', see lobbyOf.js). Public rooms report to it over RPC
