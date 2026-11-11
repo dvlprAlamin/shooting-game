@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Shooter Free</string>
-    <string name="title_activity_main">Shooter Free</string>
+    <string name="app_name">RimFire</string>
+    <string name="title_activity_main">RimFire</string>
     <string name="package_name">com.dvlpralamin.shooterfree</string>
     <string name="custom_url_scheme">com.dvlpralamin.shooterfree</string>
 </resources>

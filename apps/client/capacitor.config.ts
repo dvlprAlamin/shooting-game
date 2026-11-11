@@ -7,7 +7,7 @@ const allowInsecure = process.env.CAP_ALLOW_INSECURE === '1';
 
 const config: CapacitorConfig = {
   appId: 'com.dvlpralamin.shooterfree',
-  appName: 'Shooter Free',
+  appName: 'RimFire',
   webDir: 'dist',
   backgroundColor: '#000000',
   server: {

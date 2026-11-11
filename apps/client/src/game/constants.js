@@ -1,6 +1,6 @@
-// Client-side gameplay tuning. Numbers the server also needs (hitbox, ...) live in @shooter/shared
+// Client-side gameplay tuning. Numbers the server also needs (hitbox, ...) live in @rimfire/shared
 // (packages/shared/gameplay.js); each gun's (damage, fire rate, magazine, reload, spread, ...) in
-// @shooter/shared/weapons.
+// @rimfire/shared/weapons.
 export {
   EYE_HEIGHT,
   HEAD_HEIGHT,
@@ -8,7 +8,7 @@ export {
   PLAYER_CENTER_TO_FEET,
   PLAYER_HALF_HEIGHT,
   PLAYER_RADIUS,
-} from '@shooter/shared';
+} from '@rimfire/shared';
 
 // Movement (m/s)
 export const WALK_SPEED = 4.5;

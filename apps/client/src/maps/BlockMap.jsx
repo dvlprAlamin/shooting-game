@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { useEffect, useMemo } from 'react';
 import { useThree } from '@react-three/fiber';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
-import { rotate } from '@shooter/shared/maps/build';
+import { rotate } from '@rimfire/shared/maps/build';
 import { LOW_QUALITY } from '@/config';
 import { MATERIALS, textureFor } from './textures';
 
@@ -77,7 +77,7 @@ function boxGeometry(boxes, material) {
   return geometry;
 }
 
-/** A map built from boxes (see @shooter/shared/maps): meshes grouped by material, and a cuboid collider per box. */
+/** A map built from boxes (see @rimfire/shared/maps): meshes grouped by material, and a cuboid collider per box. */
 export const BlockMap = ({ map }) => {
   const gl = useThree((s) => s.gl);
 

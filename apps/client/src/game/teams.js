@@ -1,4 +1,4 @@
-// Names and colours of the two teams in a team match. The ids are TEAMS from @shooter/shared; the colours
+// Names and colours of the two teams in a team match. The ids are TEAMS from @rimfire/shared; the colours
 // are --team-a / --team-b in index.scss, repeated here for the 3D name tags. Blue and gold stay apart for
 // colour-blind players and from the kit's other colours (blaze is you, teal is spawn protection).
 export const TEAM_INFO = {

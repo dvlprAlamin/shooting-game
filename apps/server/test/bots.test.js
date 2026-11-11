@@ -4,7 +4,7 @@ import { GameRoom } from '../src/game/GameRoom.js';
 import { UPDATE_MS } from '../src/game/bots/BotDirector.js';
 import { buildNav, findPath } from '../src/game/bots/nav.js';
 import { firstWallHit, wallBetween } from '../src/game/walls.js';
-import { getMap } from '@shooter/shared/maps';
+import { getMap } from '@rimfire/shared/maps';
 
 // A room with bots, a fake clock and a seeded random, logging what it sends.
 function setup(options = {}) {

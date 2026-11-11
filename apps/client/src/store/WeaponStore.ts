@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { DEFAULT_WEAPON, MEDKIT, WEAPONS, getWeapon } from '@shooter/shared/weapons';
+import { DEFAULT_WEAPON, MEDKIT, WEAPONS, getWeapon } from '@rimfire/shared/weapons';
 
 const fullMagazines = () => Object.fromEntries(WEAPONS.map((w) => [w.id, w.magSize]));
 

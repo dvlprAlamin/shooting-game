@@ -1,5 +1,5 @@
 {
-  "name": "@shooter/shared",
+  "name": "@rimfire/shared",
   "private": true,
   "type": "module",
   "exports": {

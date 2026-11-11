@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MAX_HEALTH, SPAWN_PROTECTION } from '@shooter/shared';
+import { MAX_HEALTH, SPAWN_PROTECTION } from '@rimfire/shared';
 import { useHudStore } from '@/store/HudStore';
 import { otherTeam, teamName } from '@/game/teams';
 import CopyButton from '../elements/CopyButton';

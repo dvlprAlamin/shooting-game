@@ -2,7 +2,7 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Html, PointerLockControls, Stats } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
-import { DEFAULT_MAP, getMap } from '@shooter/shared/maps';
+import { DEFAULT_MAP, getMap } from '@rimfire/shared/maps';
 import { World } from '@/maps/World';
 import { Player } from '@/Player.jsx';
 import { socket } from '@/net/socket';

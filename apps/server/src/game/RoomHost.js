@@ -1,5 +1,5 @@
-import { PROFILE_ID_PATTERN, QUICK_PLAY } from '@shooter/shared';
-import { MAPS } from '@shooter/shared/maps';
+import { PROFILE_ID_PATTERN, QUICK_PLAY } from '@rimfire/shared';
+import { MAPS } from '@rimfire/shared/maps';
 import { GameRoom } from './GameRoom.js';
 import { UPDATE_MS, botsCanPlay } from './bots/BotDirector.js';
 

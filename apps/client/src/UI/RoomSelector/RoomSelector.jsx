@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { nanoid } from 'nanoid';
-import { MODES, PLAYER_LIMITS, QUICK_PLAY, ROOM_DURATIONS } from '@shooter/shared';
-import { DEFAULT_MAP, MAPS, getMap } from '@shooter/shared/maps';
+import { MODES, PLAYER_LIMITS, QUICK_PLAY, ROOM_DURATIONS } from '@rimfire/shared';
+import { DEFAULT_MAP, MAPS, getMap } from '@rimfire/shared/maps';
 import Button from '../elements/Button';
 import CopyButton from '../elements/CopyButton';
 import { fetchProfile, quickPlay } from '@/net/api';
@@ -17,13 +17,13 @@ const TABS = [
 ];
 const TAB_IDS = TABS.map((t) => t.value);
 const quickNote = `${QUICK_PLAY.duration} min, ${QUICK_PLAY.mode === 'tdm' ? 'teams' : 'free for all'}`;
-// Game modes (MODES in @shooter/shared). `short` is the label where space is tight.
+// Game modes (MODES in @rimfire/shared). `short` is the label where space is tight.
 const GAME_MODES = {
   ffa: { label: 'Free for all', short: 'FFA', blurb: 'Everyone against everyone' },
   tdm: { label: 'Teams', short: 'Teams', blurb: 'Two teams, no friendly fire. Most team kills wins' },
 };
 const NAME_MAX_LENGTH = 24; // the server keeps the first 24 characters
-// Same rule as ROOM_ID_PATTERN in @shooter/shared, written for the `pattern` attribute (which needs `\-`).
+// Same rule as ROOM_ID_PATTERN in @rimfire/shared, written for the `pattern` attribute (which needs `\-`).
 const ROOM_CODE_PATTERN = '[A-Za-z0-9_\\-]{1,32}';
 
 const read = (key) => {
@@ -190,7 +190,7 @@ const RoomSelector = ({ joinRoom }) => {
     <main className={styles.menu}>
       <header className={styles.brand}>
         <h1 className={styles.title}>
-          <span>Shooter</span> <span>Free</span>
+          <span>Rim</span><span>Fire</span>
         </h1>
         <p className={styles.tagline}>Deathmatch with friends. Create a room and share the code, or join theirs.</p>
       </header>

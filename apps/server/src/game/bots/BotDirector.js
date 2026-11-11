@@ -1,5 +1,5 @@
-import { EYE_HEIGHT, PLAYER_CENTER_TO_FEET } from '@shooter/shared';
-import { getWeapon } from '@shooter/shared/weapons';
+import { EYE_HEIGHT, PLAYER_CENTER_TO_FEET } from '@rimfire/shared';
+import { getWeapon } from '@rimfire/shared/weapons';
 import { wallBetween } from '../walls.js';
 import { buildNav, findPath } from './nav.js';
 

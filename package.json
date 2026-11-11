@@ -1,16 +1,16 @@
 {
-  "name": "shooter",
+  "name": "rimfire",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.27.0",
   "scripts": {
-    "dev": "pnpm --parallel --filter @shooter/client --filter @shooter/server dev",
-    "dev:client": "pnpm --filter @shooter/client dev",
-    "dev:server": "pnpm --filter @shooter/server dev",
-    "build": "pnpm --filter @shooter/client build",
+    "dev": "pnpm --parallel --filter @rimfire/client --filter @rimfire/server dev",
+    "dev:client": "pnpm --filter @rimfire/client dev",
+    "dev:server": "pnpm --filter @rimfire/server dev",
+    "build": "pnpm --filter @rimfire/client build",
     "test": "pnpm -r test",
     "lint": "eslint .",
-    "deploy:server": "pnpm --filter @shooter/server run deploy"
+    "deploy:server": "pnpm --filter @rimfire/server run deploy"
   },
   "devDependencies": {
     "@eslint/js": "^9.8.0",

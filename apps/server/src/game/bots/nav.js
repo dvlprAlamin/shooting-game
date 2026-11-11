@@ -1,4 +1,4 @@
-import { PLAYER_RADIUS } from '@shooter/shared';
+import { PLAYER_RADIUS } from '@rimfire/shared';
 import { wallBetween } from '../walls.js';
 
 // Where bots can walk on a block map, worked out from its boxes: a grid of points CELL metres apart, each one a

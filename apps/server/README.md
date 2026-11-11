@@ -8,7 +8,7 @@ to the player who created them.
 - `src/game/GameRoom.js` is one match: players, scores, timer, and the checks on moves, shots and respawns,
   plus headshots, spawn protection, health regeneration, kill streaks and rematch votes. It knows nothing about
   sockets, so the tests drive it directly.
-- Weapons come from `@shooter/shared/weapons`. Every player carries all of them; `switchWeapon`, `reload` and
+- Weapons come from `@rimfire/shared/weapons`. Every player carries all of them; `switchWeapon`, `reload` and
   `heal` tell the room what they do. The room keeps its own count of each magazine and times draws, reloads
   and the medkit (with 150 ms of slack for the network), so a shot is refused if it comes too fast for the gun
   in hand, from an empty magazine, mid-reload, mid-switch or mid-heal. Damage is the gun's, less with range
@@ -30,7 +30,7 @@ to the player who created them.
   (all allow any origin).
 - Quick play: `POST /quickplay` asks the one Lobby Durable Object (`src/lobby.js`, logic in
   `src/game/Matchmaker.js`) for a room and answers `{ roomId }`. The client joins it with `quick: true`, which
-  creates the room, if it doesn't exist yet, as a public one with `QUICK_PLAY` settings (`@shooter/shared`) on a
+  creates the room, if it doesn't exist yet, as a public one with `QUICK_PLAY` settings (`@rimfire/shared`) on a
   random map. Public rooms report their player count to the Lobby on every change and every 15 seconds; it sends
   players to the fullest room with a free slot and at least 90 seconds left, and holds each slot it hands out
   for 10 seconds. Its list lives in memory, kept alive and rebuilt by those reports. Rooms made with a code are
@@ -56,7 +56,7 @@ to the player who created them.
   as from then on. A new account takes the device's profile, so the record so far is kept; signing in to an
   account from another device adds that device's guest record to the account's and deletes the guest profile.
   With `GOOGLE_CLIENT_ID` empty (`vars` in `wrangler.jsonc`), sign-in answers 503.
-- Gameplay numbers and maps the client also uses come from `@shooter/shared` and `@shooter/shared/maps`
+- Gameplay numbers and maps the client also uses come from `@rimfire/shared` and `@rimfire/shared/maps`
   (`packages/shared/` in the repo root).
 
 ## Commands

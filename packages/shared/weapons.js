@@ -1,6 +1,6 @@
 // The guns everyone carries, and the medkit. Both sides read this table: the server for the rules (damage,
 // fire rate, magazine, reload and switch times), the client for those and for handling (spread, recoil,
-// speed, sights). Imported as `@shooter/shared/weapons`. Types: weapons.d.ts.
+// speed, sights). Imported as `@rimfire/shared/weapons`. Types: weapons.d.ts.
 //
 // Times are in ms, distances in m, angles in radians.
 

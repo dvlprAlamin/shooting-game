@@ -12,8 +12,8 @@ import { useHudStore } from '@/store/HudStore';
 import { ViewModel } from '@/ViewModel';
 import { Impacts } from '@/Impacts';
 import { SOUNDS } from '@/weapons/items';
-import { MAX_HEALTH } from '@shooter/shared';
-import { MEDKIT, WEAPONS, getWeapon } from '@shooter/shared/weapons';
+import { MAX_HEALTH } from '@rimfire/shared';
+import { MEDKIT, WEAPONS, getWeapon } from '@rimfire/shared/weapons';
 import {
   ADS_SPEED,
   AIR_ACCEL,

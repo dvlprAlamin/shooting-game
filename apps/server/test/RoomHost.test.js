@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CLOSE, REPORT_EVERY, RoomHost } from '../src/game/RoomHost.js';
-import { QUICK_PLAY } from '@shooter/shared';
+import { QUICK_PLAY } from '@rimfire/shared';
 import { GAME_OVER_TTL_MS, RECONNECT_GRACE_MS } from '../src/game/GameRoom.js';
 
 // A RoomHost on a fake clock with hand-driven timers, and fake sockets that record frames.

@@ -1,5 +1,5 @@
 {
-  "name": "@shooter/server",
+  "name": "@rimfire/server",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,7 @@
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
-    "@shooter/shared": "workspace:*",
+    "@rimfire/shared": "workspace:*",
     "hono": "^4.13.17"
   },
   "devDependencies": {

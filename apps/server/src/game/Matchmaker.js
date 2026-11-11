@@ -1,4 +1,4 @@
-import { QUICK_PLAY } from '@shooter/shared';
+import { QUICK_PLAY } from '@rimfire/shared';
 
 // Quick play never sends anyone into a match with less time left than this (s).
 export const MIN_TIME_LEFT = 90;

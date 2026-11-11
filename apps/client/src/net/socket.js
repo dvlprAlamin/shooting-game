@@ -1,5 +1,5 @@
 import { SERVER_URL } from '@/config';
-import { ROOM_ID_PATTERN } from '@shooter/shared';
+import { ROOM_ID_PATTERN } from '@rimfire/shared';
 import { getProfileId } from './profile';
 
 // Connection to the game server: one WebSocket per room, `<server>/rooms/<roomId>`, carrying JSON

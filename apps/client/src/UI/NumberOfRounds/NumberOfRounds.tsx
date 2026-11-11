@@ -1,4 +1,4 @@
-import { getWeapon } from '@shooter/shared/weapons';
+import { getWeapon } from '@rimfire/shared/weapons';
 import { useWeaponStore, IWeaponStore } from '@/store/WeaponStore.ts';
 import styles from '@/UI/NumberOfRounds/styles.module.scss';
 import { IS_TOUCH, RELOAD_BUTTON_NAME } from '@/config';

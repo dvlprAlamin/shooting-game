@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import type { Team } from '@shooter/shared';
+import type { Team } from '@rimfire/shared';
 interface Player {
   id: string;
   playerName: string;

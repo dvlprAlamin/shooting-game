@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PLAYER_CENTER_TO_FEET, PLAYER_RADIUS } from '@shooter/shared';
-import { DEFAULT_MAP, MAPS, getMap } from '@shooter/shared/maps';
-import { rotate } from '@shooter/shared/maps/build';
+import { PLAYER_CENTER_TO_FEET, PLAYER_RADIUS } from '@rimfire/shared';
+import { DEFAULT_MAP, MAPS, getMap } from '@rimfire/shared/maps';
+import { rotate } from '@rimfire/shared/maps/build';
 import { firstWallHit } from '../src/game/walls.js';
 
 const BLOCK_MAPS = MAPS.filter((map) => map.boxes.length);

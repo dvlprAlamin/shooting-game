@@ -134,8 +134,8 @@ a release build so it isn't shipped. On iOS, use an `https://` server.
 
 ## Gameplay numbers shared with the server
 
-Values both sides must agree on (hitbox size, room options) come from `@shooter/shared`, each gun's numbers
-(damage, fire rate, magazine, reload, spread, recoil, speed) from `@shooter/shared/weapons`
+Values both sides must agree on (hitbox size, room options) come from `@rimfire/shared`, each gun's numbers
+(damage, fire rate, magazine, reload, spread, recoil, speed) from `@rimfire/shared/weapons`
 (`packages/shared/` in the repo root). Edit them there; the server picks up the same change.
 
 ## Quick play and profiles

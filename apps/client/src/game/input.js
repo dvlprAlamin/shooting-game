@@ -1,7 +1,7 @@
 import { usePointerLockControlsStore } from '@/store/PointerLockControlStore';
 import { useAimingStore } from '@/store/AimingStore';
 import { AIM_BUTTON, RELOAD_BUTTON_CODE, SHOOT_BUTTON } from '@/config';
-import { WEAPONS } from '@shooter/shared/weapons';
+import { WEAPONS } from '@rimfire/shared/weapons';
 
 // Keyboard/mouse/touch state read every frame inside useFrame. Kept outside React so key
 // presses don't trigger re-renders.

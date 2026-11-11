@@ -56,7 +56,7 @@ importers:
       '@react-three/rapier':
         specifier: ^1.1.1
         version: 1.5.0(@react-three/fiber@8.18.0(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(three@0.167.1))(react@18.3.1)(three@0.167.1)
-      '@shooter/shared':
+      '@rimfire/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@tweenjs/tween.js':
@@ -114,7 +114,7 @@ importers:
 
   apps/server:
     dependencies:
-      '@shooter/shared':
+      '@rimfire/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       hono:

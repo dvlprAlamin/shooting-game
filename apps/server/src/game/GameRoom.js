@@ -8,9 +8,9 @@ import {
     ROOM_DURATIONS,
     SPAWN_PROTECTION,
     TEAMS,
-} from '@shooter/shared';
-import { getMap } from '@shooter/shared/maps';
-import { DEFAULT_WEAPON, MEDKIT, WEAPONS, damageAt, findWeapon, getWeapon } from '@shooter/shared/weapons';
+} from '@rimfire/shared';
+import { getMap } from '@rimfire/shared/maps';
+import { DEFAULT_WEAPON, MEDKIT, WEAPONS, damageAt, findWeapon, getWeapon } from '@rimfire/shared/weapons';
 import { findTarget, hitDistance } from './hits.js';
 import { safeSpawn } from './spawns.js';
 import { firstWallHit, wallBetween } from './walls.js';
@@ -103,7 +103,7 @@ const pushHistory = (player, now) => {
  * same rules (bots/BotDirector.js), driven by updateBots(). They don't vote for rematches, and a room with only
  * bots left counts as empty.
  *
- * Weapons (@shooter/shared/weapons): every player carries all of them and the room keeps count of each
+ * Weapons (@rimfire/shared/weapons): every player carries all of them and the room keeps count of each
  * one's magazine, so a client can't fire faster, longer or harder than its gun allows. Reloads and medkits
  * are timed here too, and finish on the player's next message after their time is up.
  */
@@ -114,7 +114,7 @@ export class GameRoom {
      *   Delivers one event to one player. `volatile` events may be dropped under load.
      * @param {number|string} [options.duration] match length in minutes, one of ROOM_DURATIONS
      * @param {number|string} [options.playersLimit] one of PLAYER_LIMITS
-     * @param {string} [options.map] map id (see @shooter/shared/maps); unknown ids get the default map
+     * @param {string} [options.map] map id (see @rimfire/shared/maps); unknown ids get the default map
      * @param {string} [options.mode] one of MODES; anything else gets the default (free-for-all)
      * @param {(results: object[]) => void} [options.onResults] gets players' results for their profiles
      * @param {number} [options.bots] players to keep in the match, filling up with bots (0: no bots)

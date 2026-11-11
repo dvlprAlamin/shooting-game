@@ -13,9 +13,9 @@ import {
     PLAYER_LIMITS,
     ROOM_DURATIONS,
     SPAWN_PROTECTION,
-} from '@shooter/shared';
-import { DEFAULT_MAP, getMap } from '@shooter/shared/maps';
-import { MEDKIT, damageAt, getWeapon } from '@shooter/shared/weapons';
+} from '@rimfire/shared';
+import { DEFAULT_MAP, getMap } from '@rimfire/shared/maps';
+import { MEDKIT, damageAt, getWeapon } from '@rimfire/shared/weapons';
 
 const SPAWN_POINTS = getMap(DEFAULT_MAP).spawns;
 // Everyone starts with the rifle; most tests use it at 10 m, inside its full-damage range.

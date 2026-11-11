@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { PROFILE_ID_PATTERN, ROOM_ID_PATTERN } from '@shooter/shared';
+import { PROFILE_ID_PATTERN, ROOM_ID_PATTERN } from '@rimfire/shared';
 import { verifyGoogleIdToken } from './googleAuth.js';
 import { lobbyOf } from './lobbyOf.js';
 import { deleteProfile, getProfile, signIn } from './profiles.js';

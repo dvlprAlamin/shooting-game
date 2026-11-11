@@ -3,7 +3,7 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'rea
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { Hud, PerspectiveCamera, useGLTF } from '@react-three/drei';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { getWeapon } from '@shooter/shared/weapons';
+import { getWeapon } from '@rimfire/shared/weapons';
 import FlashShoot from '@/assets/textures/flash_shoot_256x256.png';
 import { VIEWMODEL_ADS_FOV, VIEWMODEL_FOV, WALK_SPEED } from '@/game/constants';
 import { buildMedkit, buildPistol, buildScope, buildSmg } from '@/weapons/models';

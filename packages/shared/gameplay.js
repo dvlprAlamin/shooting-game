@@ -1,5 +1,5 @@
 // Gameplay numbers the client and the server must agree on. Both import this file as
-// `@shooter/shared`. Types: gameplay.d.ts.
+// `@rimfire/shared`. Types: gameplay.d.ts.
 
 // Player capsule: 0.35 radius, 1.8 m tall. Positions sent over the network are the capsule centre.
 export const PLAYER_RADIUS = 0.35;

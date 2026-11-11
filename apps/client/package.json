@@ -1,5 +1,5 @@
 {
-  "name": "@shooter/client",
+  "name": "@rimfire/client",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -22,7 +22,7 @@
     "@react-three/drei": "^9.85.0",
     "@react-three/fiber": "^8.14.3",
     "@react-three/rapier": "^1.1.1",
-    "@shooter/shared": "workspace:*",
+    "@rimfire/shared": "workspace:*",
     "@tweenjs/tween.js": "^25.0.0",
     "immer": "^10.1.1",
     "nanoid": "^5.0.7",

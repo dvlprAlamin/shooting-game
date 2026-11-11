@@ -1,4 +1,4 @@
-import { HEAD_HEIGHT, MAX_SHOT_DISTANCE, PLAYER_CENTER_TO_FEET, PLAYER_RADIUS } from '@shooter/shared';
+import { HEAD_HEIGHT, MAX_SHOT_DISTANCE, PLAYER_CENTER_TO_FEET, PLAYER_RADIUS } from '@rimfire/shared';
 import rayIntersectsBox from './rayIntersectsBox.js';
 
 // Player hitbox around the body centre (capsule radius 0.35, 1.8 m tall).

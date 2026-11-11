@@ -5,7 +5,7 @@ import { useGLTF } from '@react-three/drei';
 import { CapsuleCollider, RigidBody } from '@react-three/rapier';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import FlashShoot from '@/assets/textures/flash_shoot_256x256.png';
-import { DEFAULT_WEAPON } from '@shooter/shared/weapons';
+import { DEFAULT_WEAPON } from '@rimfire/shared/weapons';
 import { getRemoteWeapon, isProtected, sampleRemote, setShotListener } from '@/net/remotePlayers';
 import { createSoldierRig, getMuzzleWorld, GUN_MUZZLE } from '@/game/soldierRig';
 import { playSoundAt } from '@/game/audio';
