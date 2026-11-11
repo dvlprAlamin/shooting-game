@@ -2,6 +2,7 @@
 export declare const PLAYER_RADIUS: number;
 export declare const PLAYER_HALF_HEIGHT: number;
 export declare const PLAYER_CENTER_TO_FEET: number;
+export declare const EYE_HEIGHT: number;
 export declare const MAX_HEALTH: number;
 export declare const SPAWN_PROTECTION: number;
 export declare const DAMAGE: number;

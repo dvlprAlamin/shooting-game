@@ -80,6 +80,14 @@
   pointer-events: auto;
 }
 
+// The map, set off from the room code by a rule.
+.mapName {
+  padding-right: 0.55rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: inset -1px 0 0 var(--line);
+}
+
 .roomLabel {
   font-weight: 600;
   font-size: 0.9rem;

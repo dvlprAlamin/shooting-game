@@ -22,18 +22,22 @@ const rayToBox = (origin, direction, p, hw, bottom, top) =>
 // Did the shot ray pass through the target (or, with `head`, through its head) at any point in the recent past?
 // Clients detect hits against what they see (interpolated, slightly in the past),
 // so we accept a hit if any recent position matches within tolerance.
-export const validateHit = (origin, direction, target, now, head = false) => {
+// Returns how far along the ray the target's centre was (the nearest of the matching positions), or null.
+export const hitDistance = (origin, direction, target, now, head = false) => {
     const samples = target.history.length
         ? target.history
         : [{ t: now, x: target.position.x, y: target.position.y, z: target.position.z }];
     const hw = HITBOX_HALF_WIDTH + HIT_TOLERANCE;
     const top = HITBOX_HALF_HEIGHT + (head ? HEAD_TOLERANCE : HIT_TOLERANCE);
     const bottom = head ? HEAD_HEIGHT - HEAD_TOLERANCE : -top;
+    let nearest = null;
     for (const p of samples) {
         const t = rayToBox(origin, direction, p, hw, bottom, top);
-        if (t !== null && t <= MAX_SHOT_DISTANCE) return true;
+        if (t === null || t > MAX_SHOT_DISTANCE) continue;
+        const along = (p.x - origin.x) * direction.x + (p.y - origin.y) * direction.y + (p.z - origin.z) * direction.z;
+        if (nearest === null || along < nearest) nearest = along;
     }
-    return false;
+    return nearest;
 };
 
 // Fallback for clients that don't report a target: nearest player hit by the ray.

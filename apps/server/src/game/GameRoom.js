@@ -1,15 +1,19 @@
 import {
     DAMAGE,
+    EYE_HEIGHT,
     FIRE_INTERVAL,
     HEAD_DAMAGE,
     MAX_HEALTH,
     MAX_SHOT_DISTANCE,
     PLAYER_LIMITS,
+    PLAYER_RADIUS,
     ROOM_DURATIONS,
     SPAWN_PROTECTION,
 } from '@shooter/shared';
-import { findTarget, validateHit } from './hits.js';
+import { getMap } from '@shooter/shared/maps';
+import { findTarget, hitDistance } from './hits.js';
 import { safeSpawn } from './spawns.js';
+import { firstWallHit, wallBetween } from './walls.js';
 
 const MIN_FIRE_INTERVAL = FIRE_INTERVAL - 20; // allow some jitter
 const HISTORY_MS = 1000;
@@ -23,8 +27,14 @@ export const REGEN_PER_TICK = 20;
 export const REMATCH_WAIT = 10;
 // A finished match that nobody restarts closes after this long, so an idle tab doesn't keep the room running.
 export const GAME_OVER_TTL_MS = 3 * 60_000;
+// A shot must start this close to the shooter's eyes (where their last move put them), on the same side of any wall.
+export const MAX_ORIGIN_OFFSET = 3;
+// A box on the shot's path counts as in the way only if the path enters it this far (m) before the target's
+// body: the target's position is only known 20 times a second.
+const WALL_SLACK = 0.3;
 
 const isFiniteNumber = (n) => typeof n === 'number' && Number.isFinite(n);
+const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 const isVec3 = (v) => v && isFiniteNumber(v.x) && isFiniteNumber(v.y) && isFiniteNumber(v.z);
 // One of the offered options, or the default (first) one.
 const option = (options, value) => (options.includes(Number(value)) ? Number(value) : options[0]);
@@ -70,13 +80,15 @@ export class GameRoom {
      *   Delivers one event to one player. `volatile` events may be dropped under load.
      * @param {number|string} [options.duration] match length in minutes, one of ROOM_DURATIONS
      * @param {number|string} [options.playersLimit] one of PLAYER_LIMITS
+     * @param {string} [options.map] map id (see @shooter/shared/maps); unknown ids get the default map
      * @param {() => number} [options.now] clock in ms
      * @param {() => number} [options.random] random number in [0, 1)
      */
-    constructor({ send, duration, playersLimit, now = Date.now, random = Math.random }) {
+    constructor({ send, duration, playersLimit, map, now = Date.now, random = Math.random }) {
         this.send = send;
         this.now = now;
         this.random = random;
+        this.map = getMap(map);
         this.players = {};
         this.playersLimit = option(PLAYER_LIMITS, playersLimit);
         this.matchLength = option(ROOM_DURATIONS, duration) * 60; // seconds
@@ -105,12 +117,12 @@ export class GameRoom {
         if (this.ended) return 'That match is already over.';
         if (this.playersLimit <= Object.keys(this.players).length) return 'That room is full.';
 
-        this.send(id, 'joinedRoom', { message: 'Joined Room Successful!', id });
+        this.send(id, 'joinedRoom', this.joinedRoom(id));
         const now = this.now();
         const player = {
             id,
             playerName: String(playerName || '').trim().slice(0, MAX_NAME_LENGTH) || 'Player',
-            position: safeSpawn(this.enemyPositions(id), this.random),
+            position: null,
             rotation: { x: 0, y: 0, z: 0 },
             health: MAX_HEALTH,
             deaths: 0,
@@ -125,6 +137,7 @@ export class GameRoom {
             key,
             droppedAt: null,
         };
+        this.placeAtSpawn(player, this.enemyPositions(id));
         this.players[id] = player;
         pushHistory(player, now);
 
@@ -154,7 +167,7 @@ export class GameRoom {
         const player = this.players[id];
         if (!player) return;
         player.droppedAt = null;
-        this.send(id, 'joinedRoom', { message: 'Joined Room Successful!', id });
+        this.send(id, 'joinedRoom', this.joinedRoom(id));
         this.send(id, 'currentPlayers', this.publicPlayers());
         if (this.duration > 0) this.send(id, 'timerUpdate', this.duration);
         this.send(id, 'leaderboardAllPlayers', this.publicPlayers());
@@ -203,6 +216,9 @@ export class GameRoom {
         const shooter = this.players[id];
         if (!shooter || shooter.isDead || this.ended || !data) return;
         if (!isVec3(data.o) || !isVec3(data.d)) return;
+        // Shots start at the shooter's eyes, not anywhere they like (or on the far side of a wall).
+        const eye = { x: shooter.position.x, y: shooter.position.y + EYE_HEIGHT, z: shooter.position.z };
+        if (distance(data.o, eye) > MAX_ORIGIN_OFFSET || wallBetween(this.map, eye, data.o)) return;
 
         const now = this.now();
         if (now - shooter.lastShotAt < MIN_FIRE_INTERVAL) return;
@@ -221,20 +237,23 @@ export class GameRoom {
         // Let everyone else hear/see the shot.
         this.broadcast('playerShot', { id, o: data.o, d: direction }, id);
 
-        // The client names who it hit (null for a miss) and whether it was the head; the server checks both claims.
-        // Older clients send no target at all, so the server looks for one itself (body shots only).
+        // The client names who it hit (null for a miss) and whether it was the head; the server checks both
+        // claims, and that no wall was in the way. Older clients send no target at all, so the server looks for
+        // one itself (body shots only).
         let target = null;
         let headshot = false;
         if (typeof data.target === 'string') {
             const candidate = this.players[data.target];
-            if (candidate && !candidate.isDead && candidate.id !== id &&
-                validateHit(data.o, direction, candidate, now)) {
+            const along = candidate && !candidate.isDead && candidate.id !== id
+                ? hitDistance(data.o, direction, candidate, now)
+                : null;
+            if (along !== null && firstWallHit(this.map, data.o, direction, along) >= along - PLAYER_RADIUS - WALL_SLACK) {
                 target = candidate;
-                headshot = data.head === true && validateHit(data.o, direction, candidate, now, true);
+                headshot = data.head === true && hitDistance(data.o, direction, candidate, now, true) !== null;
             }
         } else if (data.target === undefined) {
-            target = findTarget(this.players, id, data.o, direction,
-                isFiniteNumber(data.dist) ? data.dist : MAX_SHOT_DISTANCE);
+            const reach = Math.min(isFiniteNumber(data.dist) ? data.dist : MAX_SHOT_DISTANCE, MAX_SHOT_DISTANCE);
+            target = findTarget(this.players, id, data.o, direction, firstWallHit(this.map, data.o, direction, reach));
         }
         if (!target || target.protectedUntil > now) return;
 
@@ -269,13 +288,13 @@ export class GameRoom {
         const player = this.players[id];
         if (!player || !player.isDead || this.ended) return;
         const now = this.now();
-        player.position = safeSpawn(this.enemyPositions(id), this.random);
+        this.placeAtSpawn(player, this.enemyPositions(id));
         player.health = MAX_HEALTH;
         player.isDead = false;
         player.protectedUntil = now + SPAWN_PROTECTION;
         player.history = [];
 
-        this.broadcast('playerRespawned', { ...publicPlayer(player, now), rotation: { x: 0, y: 0, z: 0 } });
+        this.broadcast('playerRespawned', publicPlayer(player, now));
         this.broadcastLeaderboard();
     }
 
@@ -343,9 +362,8 @@ export class GameRoom {
         const placed = [];
         for (const id in this.players) {
             const p = this.players[id];
+            this.placeAtSpawn(p, placed);
             Object.assign(p, {
-                position: safeSpawn(placed, this.random),
-                rotation: { x: 0, y: 0, z: 0 },
                 health: MAX_HEALTH,
                 deaths: 0,
                 kills: 0,
@@ -361,6 +379,18 @@ export class GameRoom {
             pushHistory(p, now);
         }
         this.broadcast('matchStarted', { players: this.publicPlayers(), duration: this.duration });
+    }
+
+    // Puts the player on one of the map's spawn points, away from `enemies`, facing the way the point says
+    // (or the way they were facing, if it doesn't say).
+    placeAtSpawn(player, enemies) {
+        const { x, y, z, yaw } = safeSpawn(this.map.spawns, enemies, this.random);
+        player.position = { x, y, z };
+        player.rotation = { x: 0, y: yaw ?? player.rotation.y, z: 0 };
+    }
+
+    joinedRoom(id) {
+        return { message: 'Joined Room Successful!', id, map: this.map.id };
     }
 
     // Where the living players other than `id` are, for spawning away from them.

@@ -1,6 +1,7 @@
 // Client-side gameplay tuning. Numbers the server also needs (hitbox, damage, fire rate, ...)
 // live in @shooter/shared (packages/shared/gameplay.js).
 export {
+  EYE_HEIGHT,
   FIRE_INTERVAL,
   HEAD_HEIGHT,
   MAG_SIZE,
@@ -10,8 +11,6 @@ export {
   PLAYER_RADIUS,
 } from '@shooter/shared';
 
-export const EYE_HEIGHT = 0.7; // camera height above the capsule centre
-
 // Movement (m/s)
 export const WALK_SPEED = 4.5;
 export const SPRINT_SPEED = 7;
@@ -19,7 +18,6 @@ export const ADS_SPEED = 2.6;
 export const GROUND_ACCEL = 14;
 export const AIR_ACCEL = 2.5;
 export const JUMP_VELOCITY = 5.2;
-export const FALL_RESET_Y = -15;
 
 // Weapon
 export const RELOAD_TIME = 2.4; // s, matches the "Reload" clip

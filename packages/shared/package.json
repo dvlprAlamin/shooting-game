@@ -6,6 +6,13 @@
     ".": {
       "types": "./gameplay.d.ts",
       "default": "./gameplay.js"
+    },
+    "./maps": {
+      "types": "./maps.d.ts",
+      "default": "./maps/index.js"
+    },
+    "./maps/build": {
+      "default": "./maps/build.js"
     }
   }
 }

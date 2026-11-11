@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { nanoid } from 'nanoid';
 import { PLAYER_LIMITS, ROOM_DURATIONS } from '@shooter/shared';
+import { DEFAULT_MAP, MAPS, getMap } from '@shooter/shared/maps';
 import Button from '../elements/Button';
 import CopyButton from '../elements/CopyButton';
 import styles from './RoomSelector.module.scss';
@@ -13,13 +14,28 @@ const NAME_MAX_LENGTH = 24; // the server keeps the first 24 characters
 // Same rule as ROOM_ID_PATTERN in @shooter/shared, written for the `pattern` attribute (which needs `\-`).
 const ROOM_CODE_PATTERN = '[A-Za-z0-9_\\-]{1,32}';
 
-const readName = () => {
+const read = (key) => {
   try {
-    return localStorage.getItem('playerName') || '';
+    return localStorage.getItem(key) || '';
   } catch {
     return '';
   }
 };
+
+/** The map, as chips like the other options. Each one's tooltip says what it's like. */
+const MapChoice = ({ value, onChange, away }) => (
+  <fieldset className={`${styles.choices} ${away ? styles.away : ''}`} disabled={away}>
+    <legend>Map</legend>
+    <div className={styles.chips}>
+      {MAPS.map((map) => (
+        <label key={map.id} className={`${styles.chip} ${styles.mapChip}`} title={map.blurb}>
+          <input type="radio" name="map" value={map.id} checked={value === map.id} onChange={() => onChange(map.id)} />
+          {map.name}
+        </label>
+      ))}
+    </div>
+  </fieldset>
+);
 
 /** One row of choices shown as chips (radio buttons): every option visible, one tap to pick. */
 const Choices = ({ legend, name, options }) => (
@@ -39,6 +55,7 @@ const Choices = ({ legend, name, options }) => (
 const RoomSelector = ({ joinRoom }) => {
   const [mode, setMode] = useState('create');
   const [newRoomId] = useState(() => nanoid(6));
+  const [mapId, setMapId] = useState(() => getMap(read('map') || DEFAULT_MAP).id);
   const isCreate = mode === 'create';
 
   const handleSubmit = (e) => {
@@ -50,12 +67,20 @@ const RoomSelector = ({ joinRoom }) => {
     try {
       localStorage.setItem('playerName', playerName);
       localStorage.setItem('roomId', roomId);
+      if (isCreate) localStorage.setItem('map', mapId);
     } catch {
       // Private mode: the name just isn't remembered.
     }
     joinRoom(
       isCreate
-        ? { roomId, playerName, isCreate, duration: data.get('duration'), playersLimit: data.get('playersLimit') }
+        ? {
+            roomId,
+            playerName,
+            isCreate,
+            map: mapId,
+            duration: data.get('duration'),
+            playersLimit: data.get('playersLimit'),
+          }
         : { roomId, playerName, isCreate }
     );
   };
@@ -81,21 +106,25 @@ const RoomSelector = ({ joinRoom }) => {
         </fieldset>
 
         <div className={styles.panel}>
-          <div className={styles.field}>
-            <label htmlFor="playerName">Your name</label>
-            <input
-              id="playerName"
-              name="playerName"
-              type="text"
-              required
-              maxLength={NAME_MAX_LENGTH}
-              pattern=".*\S.*"
-              title="Type at least one letter or number"
-              defaultValue={readName()}
-              autoComplete="nickname"
-              spellCheck={false}
-              enterKeyHint={isCreate ? 'go' : 'next'}
-            />
+          {/* The map sits beside the name, so picking one adds no height. Joining has no map to pick: see .away. */}
+          <div className={styles.identity}>
+            <div className={styles.field}>
+              <label htmlFor="playerName">Your name</label>
+              <input
+                id="playerName"
+                name="playerName"
+                type="text"
+                required
+                maxLength={NAME_MAX_LENGTH}
+                pattern=".*\S.*"
+                title="Type at least one letter or number"
+                defaultValue={read('playerName')}
+                autoComplete="nickname"
+                spellCheck={false}
+                enterKeyHint={isCreate ? 'go' : 'next'}
+              />
+            </div>
+            <MapChoice value={mapId} onChange={setMapId} away={!isCreate} />
           </div>
 
           {/* Both panes share one grid cell, so switching tabs never changes the layout. The hidden one is

@@ -7,7 +7,7 @@ server. This repo is one pnpm workspace:
 |---|---|---|
 | [`apps/client`](apps/client) | `@shooter/client` | The game: Vite + React Three Fiber, wrapped as Android/iOS apps with Capacitor |
 | [`apps/server`](apps/server) | `@shooter/server` | The game server: a Cloudflare Worker with one Durable Object per room |
-| [`packages/shared`](packages/shared) | `@shooter/shared` | Gameplay numbers both sides must agree on (hitbox, damage, fire rate, room options) |
+| [`packages/shared`](packages/shared) | `@shooter/shared` | Gameplay numbers both sides must agree on (hitbox, damage, fire rate, room options), and the maps |
 
 ## Setup
 
@@ -38,6 +38,18 @@ Commands for one app run from its folder (`cd apps/client && pnpm app:apk`) or f
 
 Edit `packages/shared/gameplay.js` (and `gameplay.d.ts` for the client's TypeScript files). The client and the
 server both import it as `@shooter/shared`, so a change reaches both at once with no copy step.
+
+## Maps
+
+Maps live in `packages/shared/maps/` and are imported as `@shooter/shared/maps`. Canyon is modelled in Blender
+(the GLBs in `apps/client/public/`). Depot and Outpost are built from boxes and ramps written as data
+(`maps/build.js` has the helpers), so one file drives everything: the client draws them and makes their
+colliders, and the server picks spawn points from them and refuses shots that go through their walls.
+
+To add a block map, write a module like `maps/outpost.js` and add it to `MAPS` in `maps/index.js`. The server's
+`test/maps.test.js` then checks it: spawn points clear of boxes with a floor under them, ramps no steeper than
+30°, and no way to see or walk out. Materials (`m`) are the keys of `MATERIALS` in
+`apps/client/src/maps/textures.js`.
 
 ## The old Node server
 

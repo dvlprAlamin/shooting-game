@@ -17,7 +17,6 @@ import {
   AIR_ACCEL,
   DRAW_TIME,
   EYE_HEIGHT,
-  FALL_RESET_Y,
   FIRE_INTERVAL,
   FLAG_AIM,
   FLAG_GROUNDED,
@@ -53,7 +52,9 @@ const _tmp = new THREE.Vector3();
 const round3 = (n) => Math.round(n * 1000) / 1000;
 const dampFactor = (rate, dt) => 1 - Math.exp(-rate * dt);
 
-export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, isDead }) => {
+// `initialYaw`: the way to face on spawning. `fall`: below this height you've fallen out of the map and are put
+// back at `fallReset`.
+export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, initialYaw, fall, fallReset, isDead }) => {
   const bodyRef = useRef(); // Rapier rigid body
   const anchorRef = useRef(); // child of the RigidBody group, used to read the interpolated position
   const viewModelRef = useRef();
@@ -101,11 +102,12 @@ export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, isDead }) => {
     document.addEventListener('mousedown', resumeAudio);
     document.addEventListener('touchend', resumeAudio);
 
-    // Fresh spawn: full magazine, level camera, draw animation.
+    // Fresh spawn: full magazine, level camera facing the way the spawn point says, draw animation.
     useRoundsStore.getState().reloadRounds();
     useHudStore.getState().setReloading(false);
     _euler.setFromQuaternion(camera.quaternion, 'YXZ');
-    camera.quaternion.setFromEuler(_euler.set(0, _euler.y, 0, 'YXZ'));
+    const yaw = Number.isFinite(initialYaw) ? initialYaw : _euler.y;
+    camera.quaternion.setFromEuler(_euler.set(0, yaw, 0, 'YXZ'));
     state.drawUntil = performance.now() + DRAW_TIME * 1000;
 
     const onHit = ({ health }) => {
@@ -285,8 +287,8 @@ export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, isDead }) => {
     state.speed = Math.hypot(linvel.x, linvel.z);
     state.verticalSpeed = linvel.y;
 
-    if (pos.y < FALL_RESET_Y) {
-      body.setTranslation({ x: -10, y: 40, z: 15 }, true);
+    if (pos.y < fall) {
+      body.setTranslation({ x: fallReset.x, y: fallReset.y, z: fallReset.z }, true);
       body.setLinvel({ x: 0, y: 0, z: 0 }, true);
     }
 

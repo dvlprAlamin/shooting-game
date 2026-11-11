@@ -7,7 +7,6 @@ import {
     REGEN_PER_TICK,
     REMATCH_WAIT,
 } from '../src/game/GameRoom.js';
-import { SPAWN_POINTS } from '../src/game/spawns.js';
 import {
     DAMAGE,
     FIRE_INTERVAL,
@@ -17,6 +16,9 @@ import {
     ROOM_DURATIONS,
     SPAWN_PROTECTION,
 } from '@shooter/shared';
+import { DEFAULT_MAP, getMap } from '@shooter/shared/maps';
+
+const SPAWN_POINTS = getMap(DEFAULT_MAP).spawns;
 
 // A room with a fake clock and a log of everything it sends.
 function setup(options = {}) {
@@ -45,11 +47,12 @@ function twoPlayers() {
     s.room.join('B', 'Bob');
     s.clock.t += SPAWN_PROTECTION;
     placeB(s);
-    s.room.move('A', { t: 1, p: [0, 0, 0], yaw: 0, pitch: 0, f: 1 });
+    placeA(s);
     s.take();
     return s;
 }
 
+const placeA = (s) => s.room.move('A', { t: 1, p: [0, 0, 0], yaw: 0, pitch: 0, f: 1 });
 const placeB = (s) => s.room.move('B', { t: 1, p: [0, 0, -10], yaw: 0, pitch: 0, f: 1 });
 
 const shootB = (s, extra = {}) => {
@@ -151,6 +154,7 @@ test('a player who just spawned cannot be hurt until the protection runs out or 
     s.room.join('B', 'Bob');
     const newcomer = s.sent.find((e) => e.event === 'newPlayer');
     assert.equal(newcomer.data.protection, SPAWN_PROTECTION);
+    placeA(s);
     placeB(s);
     s.take();
 
@@ -172,6 +176,7 @@ test('a player who just spawned cannot be hurt until the protection runs out or 
     t.room.join('A', 'Alice');
     t.room.join('B', 'Bob');
     t.clock.t += SPAWN_PROTECTION - FIRE_INTERVAL - 1;
+    placeA(t);
     placeB(t);
     shootB(t);
     assert.equal(t.room.players.B.health, MAX_HEALTH);
@@ -192,6 +197,83 @@ test('respawns pick a spawn point far from the living enemies', () => {
     s.room.random = () => 0.99; // the other of the two safe choices
     s.room.respawn('B');
     assert.deepEqual(s.room.players.B.position, second);
+});
+
+// Depot's warehouse: its west wall is solid from x = 16 to 16.5 between z = -4.5 and 4.5, with a 3 m high
+// door from z = -7.5 to -4.5.
+function depotDuel(a, b) {
+    const s = setup({ map: 'depot' });
+    s.room.join('A', 'Alice');
+    s.room.join('B', 'Bob');
+    s.clock.t += SPAWN_PROTECTION;
+    s.room.move('A', { t: 1, p: a, yaw: 0, pitch: 0, f: 1 });
+    s.room.move('B', { t: 1, p: b, yaw: 0, pitch: 0, f: 1 });
+    s.take();
+    return s;
+}
+
+const eyeOf = (s, id) => ({ ...s.room.players[id].position, y: s.room.players[id].position.y + 0.7 });
+const aimAt = (from, to) => {
+    const d = { x: to.x - from.x, y: to.y - from.y, z: to.z - from.z };
+    const length = Math.hypot(d.x, d.y, d.z);
+    return { x: d.x / length, y: d.y / length, z: d.z / length };
+};
+// A fires at B's body from A's eyes.
+const fireAtB = (s, extra = {}) => {
+    s.clock.t += FIRE_INTERVAL;
+    const o = eyeOf(s, 'A');
+    s.room.shoot('A', { o, d: aimAt(o, s.room.players.B.position), target: 'B', ...extra });
+};
+
+test('a room plays on the map it was made with, and spawns face the way the map says', () => {
+    const s = setup({ map: 'outpost' });
+    s.room.join('A', 'Alice');
+    assert.deepEqual(s.sent[0].data, { message: 'Joined Room Successful!', id: 'A', map: 'outpost' });
+    const a = s.room.players.A;
+    const point = getMap('outpost').spawns.find((p) => p.x === a.position.x && p.z === a.position.z);
+    assert.ok(point, 'spawned on one of the map\'s points');
+    assert.deepEqual(Object.keys(a.position), ['x', 'y', 'z']);
+    assert.equal(a.rotation.y, point.yaw);
+    assert.equal(s.sent.find((e) => e.event === 'currentPlayers').data.A.rotation.y, point.yaw);
+
+    assert.equal(setup({ map: 'nope' }).room.map.id, DEFAULT_MAP);
+    assert.equal(setup().room.map.id, DEFAULT_MAP);
+});
+
+test('shots through a wall do no damage; through a doorway they do', () => {
+    const behind = depotDuel([12, 0.95, 0], [20, 0.95, 0]);
+    fireAtB(behind);
+    fireAtB(behind, { target: undefined }); // older clients: the server looks for a target itself
+    assert.equal(behind.room.players.B.health, MAX_HEALTH);
+    assert.deepEqual(behind.events('B'), ['playerShot', 'playerShot'], 'B still hears the shots');
+
+    // Standing right against the far side doesn't help either.
+    const hugging = depotDuel([12, 0.95, 0], [16.9, 0.95, 0]);
+    fireAtB(hugging);
+    assert.equal(hugging.room.players.B.health, MAX_HEALTH);
+
+    const door = depotDuel([12, 0.95, -6], [19.8, 0.95, -6]);
+    fireAtB(door);
+    fireAtB(door, { target: undefined });
+    assert.equal(door.room.players.B.health, MAX_HEALTH - 2 * DAMAGE);
+});
+
+test('shots have to start at the shooter\'s eyes, on their side of any wall', () => {
+    const s = depotDuel([15.5, 0.95, 0], [20, 0.95, 0]);
+    const eye = eyeOf(s, 'A');
+    const far = { ...eye, z: eye.z + 5 };
+    const pastTheWall = { ...eye, x: 16.8 };
+    for (const o of [far, pastTheWall]) {
+        s.clock.t += FIRE_INTERVAL;
+        s.room.shoot('A', { o, d: aimAt(o, s.room.players.B.position), target: 'B' });
+    }
+    assert.deepEqual(s.take(), [], 'ignored altogether');
+    assert.equal(s.room.players.B.health, MAX_HEALTH);
+
+    // A little off (the shooter moved since their last update) is fine.
+    s.clock.t += FIRE_INTERVAL;
+    s.room.shoot('A', { o: { ...eye, z: eye.z + 1 }, d: { x: -1, y: 0, z: 0 }, target: null });
+    assert.deepEqual(s.events('B'), ['playerShot']);
 });
 
 test('the server rejects shots that are too fast, malformed, or claim a player the ray misses', () => {

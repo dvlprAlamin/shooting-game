@@ -58,12 +58,20 @@ test('the first join creates the room; joining a room that does not exist is ref
 
     const alice = join('Alice', { isCreate: true, duration: '10', playersLimit: '5' });
     assert.deepEqual(alice.events(), ['joinedRoom', 'currentPlayers', 'timerUpdate', 'leaderboardAllPlayers']);
-    assert.deepEqual(alice.frames[0].d, { message: 'Joined Room Successful!', id: 'p1' });
+    assert.deepEqual(alice.frames[0].d, { message: 'Joined Room Successful!', id: 'p1', map: 'canyon' });
     assert.equal(host.game.duration, 600);
 
     const bob = join('Bob');
     assert.equal(bob.frames[0].d.id, 'p2');
     assert.ok(alice.events().includes('newPlayer'));
+});
+
+test('the room is on the map its creator picked, and everyone who joins is told which', () => {
+    const { host, join } = setup();
+    join('Alice', { isCreate: true, map: 'outpost' });
+    const bob = join('Bob', { map: 'depot' });
+    assert.equal(host.game.map.id, 'outpost');
+    assert.equal(bob.frames[0].d.map, 'outpost');
 });
 
 test('game messages go to the GameRoom under the player id the server assigned', () => {

@@ -5,6 +5,7 @@
 export const PLAYER_RADIUS = 0.35;
 export const PLAYER_HALF_HEIGHT = 0.55; // half height of the capsule's cylinder part
 export const PLAYER_CENTER_TO_FEET = PLAYER_HALF_HEIGHT + PLAYER_RADIUS;
+export const EYE_HEIGHT = 0.7; // camera height above the capsule centre; shots start here
 
 export const MAX_HEALTH = 100;
 // A player who just spawned can't be hurt for this long, or until they fire.

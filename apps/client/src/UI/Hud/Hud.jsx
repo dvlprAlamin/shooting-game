@@ -74,8 +74,8 @@ const Protection = () => {
   );
 };
 
-/** Match info at the top, health at the bottom, and the room code to send to friends. */
-const Hud = ({ health, kills = 0, deaths = 0, timeRemaining, roomId }) => (
+/** Match info at the top, health at the bottom, and the map and room code to send to friends. */
+const Hud = ({ health, kills = 0, deaths = 0, timeRemaining, roomId, mapName }) => (
   <div className={styles.hud}>
     <div className={styles.match}>
       <span className={styles.stat}>
@@ -101,6 +101,7 @@ const Hud = ({ health, kills = 0, deaths = 0, timeRemaining, roomId }) => (
 
     {roomId && (
       <div className={styles.room}>
+        {mapName && <span className={styles.mapName}>{mapName}</span>}
         <span className={styles.roomLabel}>Room</span>
         <span className={styles.roomCode}>{roomId}</span>
         <CopyButton text={roomId} />

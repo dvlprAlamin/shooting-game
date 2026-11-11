@@ -1,8 +1,9 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Html, PointerLockControls, Sky, Stats } from '@react-three/drei';
-import { Ground } from '@/Ground.jsx';
+import { Html, PointerLockControls, Stats } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
+import { DEFAULT_MAP, getMap } from '@shooter/shared/maps';
+import { World } from '@/maps/World';
 import { Player } from '@/Player.jsx';
 import { socket } from '@/net/socket';
 import {
@@ -41,6 +42,7 @@ const App = () => {
   const [isDead, setIsDead] = useState(false);
   const [isJoinedRoom, setIsJoinedRoom] = useState(false);
   const [roomId, setRoomId] = useState(null);
+  const [mapId, setMapId] = useState(DEFAULT_MAP);
   const [killedBy, setKilledBy] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [isGameOver, setIsGameOver] = useState(false);
@@ -160,7 +162,8 @@ const App = () => {
       onCurrentPlayers(all);
       setLeaderboard(all);
     };
-    const onJoinedRoom = () => {
+    const onJoinedRoom = ({ map } = {}) => {
+      setMapId(map ?? DEFAULT_MAP);
       setIsJoinedRoom(true);
       setIsReconnecting(false);
     };
@@ -216,6 +219,8 @@ const App = () => {
     return <RoomSelector joinRoom={handleJoinRoom} />;
   }
 
+  const map = getMap(mapId);
+
   return (
     <>
       {isDead || isGameOver ? (
@@ -240,6 +245,7 @@ const App = () => {
         deaths={players[socket.id]?.deaths}
         kills={players[socket.id]?.kills}
         roomId={roomId}
+        mapName={map.name}
       />
       <UI />
       {IS_TOUCH && !isDead && !isGameOver && <TouchControls />}
@@ -255,7 +261,7 @@ const App = () => {
             </Html>
           }
         >
-          <Scene players={players} isDead={isDead} isGameOver={isGameOver} />
+          <Scene map={map} players={players} isDead={isDead} isGameOver={isGameOver} />
         </Suspense>
       </Canvas>
     </>
@@ -264,7 +270,7 @@ const App = () => {
 
 export default App;
 
-const Scene = ({ players, isDead, isGameOver }) => {
+const Scene = ({ map, players, isDead, isGameOver }) => {
   const pointerLockControlsLockHandler = () => {
     usePointerLockControlsStore.setState({ isLock: true });
   };
@@ -286,27 +292,18 @@ const Scene = ({ players, isDead, isGameOver }) => {
       ) : (
         <></>
       )}
-      <Sky sunPosition={[100, 20, 100]} />
-      <ambientLight intensity={1.5} />
-      <directionalLight
-        castShadow
-        intensity={1.5}
-        shadow-mapSize={2048}
-        shadow-camera-top={50}
-        shadow-camera-bottom={-50}
-        shadow-camera-left={50}
-        shadow-camera-right={-50}
-        position={[100, 100, 0]}
-      />
       {/* Step physics before any game logic so the player reads this frame's interpolated pose. */}
       <Physics gravity={[0, -9.8, 0]} updatePriority={-50}>
-        <Ground />
+        <World map={map} />
         {!isGameOver ? (
           Object.keys(players).map((id) =>
             id === socket.id ? (
               <Player
                 key={id}
                 initialPosition={players[id].position}
+                initialYaw={players[id].rotation?.y}
+                fall={map.fall.y}
+                fallReset={map.fall.reset ?? map.spawns[0]}
                 isDead={players[id].isDead}
               />
             ) : (

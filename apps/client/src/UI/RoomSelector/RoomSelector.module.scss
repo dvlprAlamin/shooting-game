@@ -134,6 +134,31 @@
   }
 }
 
+// Name and map share a row: the map takes the room its chips need, the name the rest. Stacked on narrow
+// screens; on the Join tab the name has the row to itself.
+.identity {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.75rem;
+
+  @media (max-width: 34rem) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.1rem;
+  }
+}
+
+// The map on the Join tab: gone, so the name gets the row (it's as tall as the map, so nothing moves).
+// Stacked on narrow screens it keeps its space instead, so the Join button stays where Start was.
+.away {
+  display: none;
+
+  @media (max-width: 34rem) {
+    display: block;
+    visibility: hidden;
+  }
+}
+
 .field {
   display: grid;
   gap: 0.35rem;
@@ -145,6 +170,8 @@
   }
 
   input {
+    width: 100%; // not the width its `size` asks for, which would spill past a narrow column
+    min-width: 0;
     height: 48px;
     padding: 0 0.85rem;
     font-weight: 600;
@@ -277,6 +304,19 @@
   @include short {
     min-height: 36px;
     font-size: 1.3rem;
+  }
+}
+
+// Map names are words, not numbers: a little smaller, padded, and as tall as the name field beside them.
+.mapChip {
+  min-height: 48px;
+  padding: 0 0.7rem;
+  font-size: 1.3rem;
+
+  @include short {
+    min-height: 40px;
+    padding: 0 0.45rem;
+    font-size: 1.1rem;
   }
 }
 

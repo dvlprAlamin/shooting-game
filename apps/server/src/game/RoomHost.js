@@ -93,7 +93,7 @@ export class RoomHost {
 
     join(conn, data) {
         if (conn.playerId) return this.notify(conn, 'Already in a room!');
-        const { playerName, isCreate, duration, playersLimit, playerKey } = data || {};
+        const { playerName, isCreate, duration, playersLimit, map, playerKey } = data || {};
         const key = typeof playerKey === 'string' && playerKey.length <= MAX_KEY_LENGTH ? playerKey : null;
 
         if (!this.game) {
@@ -101,6 +101,7 @@ export class RoomHost {
             this.game = new GameRoom({
                 duration,
                 playersLimit,
+                map,
                 now: this.now,
                 send: (id, event, payload) => this.send(id, event, payload),
             });
