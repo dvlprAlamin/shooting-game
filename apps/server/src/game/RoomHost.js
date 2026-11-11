@@ -1,6 +1,7 @@
 import { PROFILE_ID_PATTERN, QUICK_PLAY } from '@shooter/shared';
 import { MAPS } from '@shooter/shared/maps';
 import { GameRoom } from './GameRoom.js';
+import { UPDATE_MS, botsCanPlay } from './bots/BotDirector.js';
 
 // Close codes the client acts on (4000-4999 are free for applications). After any of these the
 // client doesn't try to reconnect.
@@ -35,8 +36,9 @@ const randomId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 8);
  * opens, message(conn, text) for each frame, and closed(conn) when it closes.
  *
  * Quick play: a join with `quick: true` creates the room, if it doesn't exist yet, as a public one with
- * QUICK_PLAY settings on a random map. A public room hands its state to `onReport` (for the Lobby's
- * Matchmaker) whenever it changes and every REPORT_EVERY seconds, and null when it closes.
+ * QUICK_PLAY settings (bots included) on a random map bots can play. `practice: true` makes the same room,
+ * private. A public room hands its state to `onReport` (for the Lobby's Matchmaker) whenever it changes and
+ * every REPORT_EVERY seconds, and null when it closes; its player count leaves bots out.
  */
 export class RoomHost {
     /**
@@ -63,6 +65,7 @@ export class RoomHost {
         this.onReport = onReport;
         this.onResults = onResults;
         this.game = null; // GameRoom while the room exists
+        this.botTimer = null; // drives the bots, in a room that has them
         this.public = false; // a quick-play room
         this.reported = null; // the last state handed to onReport, as JSON
         this.reportIn = 0; // seconds until the next report is due anyway
@@ -117,15 +120,20 @@ export class RoomHost {
 
     join(conn, data) {
         if (conn.playerId) return this.notify(conn, 'Already in a room!');
-        const { playerName, isCreate, duration, playersLimit, map, mode, playerKey, quick, profileId } = data || {};
+        const { playerName, isCreate, duration, playersLimit, map, mode, playerKey, quick, practice, profileId } =
+            data || {};
         const key = typeof playerKey === 'string' && playerKey.length <= MAX_KEY_LENGTH ? playerKey : null;
         const profile = typeof profileId === 'string' && PROFILE_ID_PATTERN.test(profileId) ? profileId : null;
 
         if (!this.game) {
-            if (!isCreate && !quick) return this.reject(conn, 'No room has that code. Check it with whoever made the room.');
-            const settings = quick
-                ? { ...QUICK_PLAY, map: MAPS[Math.floor(this.random() * MAPS.length)].id }
-                : { duration, playersLimit, map, mode };
+            if (!isCreate && !quick && !practice) {
+                return this.reject(conn, 'No room has that code. Check it with whoever made the room.');
+            }
+            const botMaps = MAPS.filter(botsCanPlay);
+            const settings =
+                quick || practice
+                    ? { ...QUICK_PLAY, map: botMaps[Math.floor(this.random() * botMaps.length)].id }
+                    : { duration, playersLimit, map, mode };
             this.game = new GameRoom({
                 ...settings,
                 now: this.now,
@@ -134,6 +142,7 @@ export class RoomHost {
             });
             this.public = !!quick;
             this.interval = this.timers.setInterval(() => this.tick(), 1000);
+            if (this.game.director) this.botTimer = this.timers.setInterval(() => this.game?.updateBots(), UPDATE_MS);
         }
 
         // Same key as a player already here: it's them coming back.
@@ -173,7 +182,7 @@ export class RoomHost {
         if (!this.public || !this.onReport) return;
         const g = this.game;
         const state = g && {
-            players: Object.keys(g.players).length,
+            players: g.humans,
             limit: g.playersLimit,
             ended: g.ended,
             secondsLeft: g.duration,
@@ -192,7 +201,9 @@ export class RoomHost {
         const conns = [...this.connections.values()];
         this.connections.clear(); // so closing them doesn't hand their players to the reconnect grace
         this.timers.clearInterval(this.interval);
+        this.timers.clearInterval(this.botTimer);
         this.interval = null;
+        this.botTimer = null;
         this.game = null;
         this.report();
         for (const conn of conns) {
@@ -255,7 +266,9 @@ export class RoomHost {
     cleanup() {
         if (!this.game?.isEmpty) return;
         this.timers.clearInterval(this.interval);
+        this.timers.clearInterval(this.botTimer);
         this.interval = null;
+        this.botTimer = null;
         this.game = null;
         this.report();
     }

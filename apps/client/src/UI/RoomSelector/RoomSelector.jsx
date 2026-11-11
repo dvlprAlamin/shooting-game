@@ -15,6 +15,7 @@ const TABS = [
   { value: 'join', label: 'Join room' },
 ];
 const TAB_IDS = TABS.map((t) => t.value);
+const quickNote = `${QUICK_PLAY.duration} min, ${QUICK_PLAY.mode === 'tdm' ? 'teams' : 'free for all'}`;
 // Game modes (MODES in @shooter/shared). `short` is the label where space is tight.
 const GAME_MODES = {
   ffa: { label: 'Free for all', short: 'FFA', blurb: 'Everyone against everyone' },
@@ -66,7 +67,7 @@ const ModeChoice = ({ value, onChange }) => (
 );
 
 // Your profile's totals, in the same row of boxes as the match options. `profile` null: no matches yet.
-const Record = ({ profile }) => {
+const Record = ({ profile, note }) => {
   const { matches = 0, wins = 0, kills = 0, deaths = 0 } = profile ?? {};
   const stats = [
     ['Matches', matches],
@@ -76,7 +77,10 @@ const Record = ({ profile }) => {
   ];
   return (
     <div className={styles.record}>
-      <h2>Your record</h2>
+      <div className={styles.recordHead}>
+        <h2>Your record</h2>
+        <p>{note}</p>
+      </div>
       <dl>
         {stats.map(([label, value]) => (
           <div key={label}>
@@ -141,6 +145,11 @@ const RoomSelector = ({ joinRoom }) => {
       // Private mode: the name just isn't remembered.
     }
 
+    // Practice: a private room of your own, against bots.
+    if (e.nativeEvent.submitter?.value === 'practice') {
+      joinRoom({ roomId: nanoid(10), playerName, practice: true });
+      return;
+    }
     if (tab === 'quick') {
       setFinding(true);
       try {
@@ -223,19 +232,20 @@ const RoomSelector = ({ joinRoom }) => {
             <fieldset className={styles.pane} disabled={tab !== 'quick'}>
               <legend className="sr-only">Quick play</legend>
               {profile !== undefined ? (
-                <Record profile={profile} />
+                <Record profile={profile} note={quickNote} />
               ) : (
-                <p className={styles.blurb}>Jump into a public match with free slots, or open one others can join.</p>
+                <p className={styles.blurb}>
+                  Jump into a public match with free slots, or open one others can join. Bots play until people
+                  come. {quickNote}.
+                </p>
               )}
               <div className={styles.actions}>
                 <Button type="submit" disabled={finding}>
                   {finding ? 'Finding a match' : 'Play now'}
                 </Button>
-                <p className={styles.hint}>
-                  Public room, any map
-                  <br />
-                  {QUICK_PLAY.duration} min, {QUICK_PLAY.mode === 'tdm' ? 'teams' : 'free for all'}
-                </p>
+                <Button type="submit" variant="quiet" name="action" value="practice" disabled={finding} title="A private match against bots">
+                  Practice
+                </Button>
               </div>
             </fieldset>
 

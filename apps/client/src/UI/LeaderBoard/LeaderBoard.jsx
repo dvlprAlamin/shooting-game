@@ -1,12 +1,13 @@
 import { teamName } from '@/game/teams';
 import styles from './LeaderBoard.module.scss';
 
-const Row = ({ player: { id, playerName, kills, deaths, bestStreak = 0 }, rank, myId, ready }) => (
+const Row = ({ player: { id, playerName, kills, deaths, bestStreak = 0, bot }, rank, myId, ready }) => (
   <tr className={id === myId ? styles.me : undefined}>
     <td className={styles.rank}>{rank}</td>
     <th scope="row" className={styles.name}>
       {playerName}
       {id === myId && <span className={styles.you}> (you)</span>}
+      {bot && <span className={styles.bot}>Bot</span>}
       {ready?.includes(id) && <span className={styles.ready}>Ready</span>}
     </th>
     <td className={styles.num}>{kills}</td>

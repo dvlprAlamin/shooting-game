@@ -25,8 +25,10 @@ export const TEAMS = ['a', 'b'];
 export const ROOM_DURATIONS = [5, 10, 15, 20, 25, 30]; // minutes
 export const PLAYER_LIMITS = [5, 10, 15];
 
-// Quick play: public rooms anyone can be sent to. New ones get these settings and a random map.
-export const QUICK_PLAY = { mode: 'ffa', duration: 10, playersLimit: 10 };
+// Quick play: public rooms anyone can be sent to. New ones get these settings and a random map that bots can
+// play on; bots keep `bots` players in the match until people take their places. Practice rooms are the same,
+// but private.
+export const QUICK_PLAY = { mode: 'ffa', duration: 10, playersLimit: 10, bots: 6 };
 
 // Room ids: letters, digits, '_' and '-' (what the client's generated ids use), up to 32 characters.
 export const ROOM_ID_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;

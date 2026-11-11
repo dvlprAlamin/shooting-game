@@ -378,20 +378,39 @@
 }
 
 // Quick play: your record, as a row of boxes like the match options, so the pane is no taller than theirs.
-.record {
-  min-width: 0;
+// Over it, "Your record" and what quick play gets you.
+.recordHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--sand);
 
   h2 {
-    margin-bottom: 0.35rem;
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: var(--sand);
+    font: inherit;
+  }
 
-    @include short {
-      margin-bottom: 0.2rem;
-      font-size: 0.875rem;
+  p {
+    font-size: 0.85rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  @include short {
+    margin-bottom: 0.2rem;
+    font-size: 0.875rem;
+
+    p {
+      font-size: 0.8rem;
     }
   }
+}
+
+.record {
+  min-width: 0;
 
   dl {
     display: grid;
@@ -399,7 +418,7 @@
     gap: 4px;
   }
 
-  div {
+  dl > div {
     display: grid;
     place-content: center;
     justify-items: center;
@@ -441,18 +460,6 @@
 
   @include short {
     font-size: 0.95rem;
-  }
-}
-
-// Beside Play now: what quick play gets you.
-.hint {
-  font-weight: 600;
-  font-size: 0.9rem;
-  line-height: 1.25;
-  color: var(--sand);
-
-  @include short {
-    font-size: 0.8rem;
   }
 }
 

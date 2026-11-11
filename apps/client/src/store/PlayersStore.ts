@@ -16,6 +16,8 @@ interface Player {
   protection: number;
   /** In a team match, 'a' or 'b'; null otherwise. */
   team?: Team | null;
+  /** Played by the server (quick play and practice rooms). */
+  bot?: boolean;
 }
 type Players = Record<string, Player>; // by player id
 export interface IPlayerStore {

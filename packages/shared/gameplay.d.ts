@@ -13,6 +13,6 @@ export declare const MODES: Mode[];
 export declare const TEAMS: Team[];
 export declare const ROOM_DURATIONS: number[];
 export declare const PLAYER_LIMITS: number[];
-export declare const QUICK_PLAY: { mode: Mode; duration: number; playersLimit: number };
+export declare const QUICK_PLAY: { mode: Mode; duration: number; playersLimit: number; bots: number };
 export declare const ROOM_ID_PATTERN: RegExp;
 export declare const PROFILE_ID_PATTERN: RegExp;

@@ -299,3 +299,30 @@ test('a valid profile id goes with the player; results are handed on', () => {
     host.game.tick();
     assert.deepEqual(results.map((r) => r.name), ['Alice']);
 });
+
+test('a practice join makes a private room with bots, and the bots get moving', () => {
+    const reports = [];
+    const { host, join, intervals, advance } = setup({ random: () => 0, onReport: (s) => reports.push(s) });
+    const alice = join('Alice', { practice: true });
+    assert.equal(alice.frames[0].e, 'joinedRoom');
+    assert.equal(host.public, false);
+    assert.equal(host.game.map.id, 'depot'); // bots only play the block maps
+    const players = Object.values(host.game.players);
+    assert.equal(players.length, QUICK_PLAY.bots);
+    assert.equal(intervals.size, 2, 'the room timer and the bot timer');
+    const before = JSON.stringify(players.filter((p) => p.bot).map((p) => p.position));
+    advance(3000);
+    assert.notEqual(JSON.stringify(players.filter((p) => p.bot).map((p) => p.position)), before);
+    assert.deepEqual(reports, []);
+
+    alice.say('leave');
+    assert.equal(host.game, null);
+    assert.equal(intervals.size, 0);
+});
+
+test('a quick-play room counts only people when it reports', () => {
+    const reports = [];
+    const { join } = setup({ onReport: (s) => reports.push(s) });
+    join('Alice', { quick: true });
+    assert.equal(reports.at(-1).players, 1);
+});

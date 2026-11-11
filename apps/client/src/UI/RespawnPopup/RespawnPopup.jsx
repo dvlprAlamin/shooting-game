@@ -74,7 +74,7 @@ const RespawnPopup = ({
 
   const title = isGameOver ? 'Match over' : killedBy ? `${killedBy} got you` : 'You were eliminated';
   const subtitle = !isGameOver ? null : teams ? teamWinnerLine(teamScores, myTeam) : winnerLine(ranked, myId);
-  const ready = `${votes.length} of ${ranked.length} ready`;
+  const ready = `${votes.length} of ${ranked.filter((p) => !p.bot).length} ready`; // bots don't vote
 
   return (
     <section className={`${styles.screen} ${isGameOver ? styles.over : styles.dead}`} aria-labelledby="outcome">

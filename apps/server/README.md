@@ -34,6 +34,15 @@ to the player who created them.
   players to the fullest room with a free slot and at least 90 seconds left, and holds each slot it hands out
   for 10 seconds. Its list lives in memory, kept alive and rebuilt by those reports. Rooms made with a code are
   never listed.
+- Bots: quick-play and practice rooms (`practice: true` in `joinRoom`: the same settings, but private) keep
+  `QUICK_PLAY.bots` players in the match, adding bots while there are fewer people and dropping one whenever
+  someone joins a full room. Bots are players like any other (same shot checks, same scores, marked `bot` in
+  the player list), driven 20 times a second by `src/game/bots/BotDirector.js`: they walk a grid worked out
+  from the map's boxes (`src/game/bots/nav.js`, floors, platforms and ramps included), see 130° ahead up to
+  60 m with no box in the way, wait a moment before firing in bursts, hit more often up close, reload, heal,
+  and respawn after a few seconds. They leave a player alone until that player's first move after spawning
+  (their game is still loading). They don't vote for rematches, and a room with only bots left closes. They
+  need a grid, so they play Depot and Outpost only: Canyon has no boxes to build one from.
 - Profiles: the client makes a profile id once and sends it as `profileId` when joining. At the end of a match
   (or when a player leaves before it) the room adds their kills, deaths, best streak, time, and whether they
   played the match through and won, to their row in D1 (`src/profiles.js`, binding `DB`). The table is made on

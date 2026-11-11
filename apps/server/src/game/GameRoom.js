@@ -14,6 +14,7 @@ import { DEFAULT_WEAPON, MEDKIT, WEAPONS, damageAt, findWeapon, getWeapon } from
 import { findTarget, hitDistance } from './hits.js';
 import { safeSpawn } from './spawns.js';
 import { firstWallHit, wallBetween } from './walls.js';
+import { BOT_NAMES, BotDirector, botsCanPlay } from './bots/BotDirector.js';
 
 // Shots may arrive this much closer together than the gun's fire interval (network jitter).
 const FIRE_JITTER = 20;
@@ -57,6 +58,7 @@ const publicPlayer = (p, now) => ({
     protection: Math.max(0, p.protectedUntil - now), // ms of spawn protection left
     weapon: p.weapon,
     team: p.team, // null outside team matches
+    bot: p.bot,
 });
 
 const fullMagazines = () => Object.fromEntries(WEAPONS.map((w) => [w.id, w.magSize]));
@@ -96,6 +98,11 @@ const pushHistory = (player, now) => {
  * Profiles: a player who joined with a profile id has what they did handed to `onResults` (to be saved), once per
  * match: when it ends, or when they leave before that. Only finished matches count as played (and maybe won).
  *
+ * Bots (`bots` option, on maps with a nav grid): the room keeps that many players in the match, topping up
+ * with bots while there are fewer people and dropping one whenever someone joins a full room. They play by the
+ * same rules (bots/BotDirector.js), driven by updateBots(). They don't vote for rematches, and a room with only
+ * bots left counts as empty.
+ *
  * Weapons (@shooter/shared/weapons): every player carries all of them and the room keeps count of each
  * one's magazine, so a client can't fire faster, longer or harder than its gun allows. Reloads and medkits
  * are timed here too, and finish on the player's next message after their time is up.
@@ -110,10 +117,11 @@ export class GameRoom {
      * @param {string} [options.map] map id (see @shooter/shared/maps); unknown ids get the default map
      * @param {string} [options.mode] one of MODES; anything else gets the default (free-for-all)
      * @param {(results: object[]) => void} [options.onResults] gets players' results for their profiles
+     * @param {number} [options.bots] players to keep in the match, filling up with bots (0: no bots)
      * @param {() => number} [options.now] clock in ms
      * @param {() => number} [options.random] random number in [0, 1)
      */
-    constructor({ send, duration, playersLimit, map, mode, onResults = null, now = Date.now, random = Math.random }) {
+    constructor({ send, duration, playersLimit, map, mode, bots = 0, onResults = null, now = Date.now, random = Math.random }) {
         this.send = send;
         this.onResults = onResults;
         this.now = now;
@@ -129,6 +137,9 @@ export class GameRoom {
         this.endedAt = null;
         this.votes = new Set(); // players who want a rematch
         this.rematchIn = null; // seconds until the rematch starts, once more than half want one
+        this.botTarget = bots > 0 && botsCanPlay(this.map) ? Math.min(bots | 0, this.playersLimit) : 0;
+        this.director = this.botTarget ? new BotDirector(this) : null;
+        this.botCount = 0; // for naming new bots
     }
 
     /** A team match (otherwise everyone plays for themselves). */
@@ -136,8 +147,15 @@ export class GameRoom {
         return this.mode === 'tdm';
     }
 
+    /** People in the room (bots aside). */
+    get humans() {
+        let n = 0;
+        for (const id in this.players) if (!this.players[id].bot) n++;
+        return n;
+    }
+
     get isEmpty() {
-        return Object.keys(this.players).length === 0;
+        return this.humans === 0;
     }
 
     /** The match ended so long ago without a rematch that the room should close. */
@@ -149,10 +167,11 @@ export class GameRoom {
      * Adds a player. `key` is the client's secret reconnect key and `profileId` their profile's id (neither is
      * ever sent to anyone else). Returns an error message for the client, or null on success.
      */
-    join(id, playerName, key = null, profileId = null) {
+    join(id, playerName, key = null, profileId = null, bot = false) {
         if (this.players[id]) return 'Already in a room!';
         if (this.ended) return 'That match is already over.';
-        if (this.playersLimit <= Object.keys(this.players).length) return 'That room is full.';
+        // A bot makes way for a person.
+        if (this.playersLimit <= Object.keys(this.players).length && (bot || !this.dropBot())) return 'That room is full.';
 
         this.send(id, 'joinedRoom', this.joinedRoom(id));
         const now = this.now();
@@ -174,6 +193,8 @@ export class GameRoom {
             key,
             droppedAt: null,
             profileId,
+            bot,
+            movedAt: 0, // their last move since (re)spawning: 0 while their game is still loading
             since: now, // when they started playing this match, for the time on their profile
             reported: false, // their results for this match have gone to onResults
             team: this.teams ? this.smallerTeam() : null,
@@ -195,7 +216,40 @@ export class GameRoom {
         if (this.duration > 0) this.send(id, 'timerUpdate', this.duration);
         this.broadcast('newPlayer', publicPlayer(player, now), id);
         this.broadcastLeaderboard();
+        if (bot) this.director.add(id);
+        else this.fillBots();
         return null;
+    }
+
+    // Tops the match up to botTarget players with bots, or lets bots go once people fill it.
+    fillBots() {
+        if (!this.director || this.ended) return;
+        const total = () => Object.keys(this.players).length;
+        while (total() > this.botTarget && this.dropBot());
+        while (total() < this.botTarget && this.humans > 0) {
+            const taken = new Set(Object.values(this.players).map((p) => p.playerName));
+            const name = BOT_NAMES.find((n) => !taken.has(n)) ?? `Bot ${this.botCount + 1}`;
+            this.join(`bot-${++this.botCount}`, name, null, null, true);
+        }
+    }
+
+    // Removes a bot (from the bigger team, in a team match). False if there's none.
+    dropBot() {
+        const bots = Object.values(this.players).filter((p) => p.bot);
+        if (!bots.length) return false;
+        let pick = bots[bots.length - 1];
+        if (this.teams) {
+            const count = this.teamCounts();
+            const big = count.a >= count.b ? 'a' : 'b';
+            pick = bots.findLast((p) => p.team === big) ?? pick;
+        }
+        this.leave(pick.id);
+        return true;
+    }
+
+    /** Moves the bots; call every UPDATE_MS (bots/BotDirector.js) while the room has any. */
+    updateBots() {
+        if (this.director && !this.ended) this.director.update(this.now());
     }
 
     /** The player who joined with this reconnect key, if they're still in the room. */
@@ -239,6 +293,8 @@ export class GameRoom {
         delete this.players[id];
         this.broadcast('playerDisconnected', id);
         this.broadcastLeaderboard();
+        if (player.bot) this.director.remove(id);
+        else this.fillBots();
         // The rematch may have been waiting on them.
         if (this.ended) this.countVotes();
     }
@@ -256,6 +312,7 @@ export class GameRoom {
         if (!player.isDead) {
             player.position = { x, y, z };
             player.rotation = { x: pitch, y: yaw, z: 0 };
+            player.movedAt = this.now();
             pushHistory(player, this.now());
         }
         this.settle(player, this.now());
@@ -422,6 +479,7 @@ export class GameRoom {
         player.isDead = false;
         player.protectedUntil = now + SPAWN_PROTECTION;
         player.history = [];
+        player.movedAt = 0;
         rearm(player);
 
         this.broadcast('playerRespawned', publicPlayer(player, now));
@@ -430,7 +488,7 @@ export class GameRoom {
 
     /** After the match: the player wants a rematch. */
     rematch(id) {
-        if (!this.ended || !this.players[id] || this.votes.has(id)) return;
+        if (!this.ended || !this.players[id] || this.players[id].bot || this.votes.has(id)) return;
         this.votes.add(id);
         this.countVotes();
     }
@@ -468,10 +526,10 @@ export class GameRoom {
         }
     }
 
-    // Everyone wants a rematch: start it now. More than half: start it in REMATCH_WAIT seconds.
+    // Everyone wants a rematch: start it now. More than half: start it in REMATCH_WAIT seconds. Bots don't vote.
     countVotes() {
         for (const id of this.votes) if (!this.players[id]) this.votes.delete(id);
-        const total = Object.keys(this.players).length;
+        const total = this.humans;
         if (!total) return;
         if (this.votes.size === total) return this.startRematch();
         if (this.votes.size * 2 > total) this.rematchIn ??= REMATCH_WAIT;
@@ -510,12 +568,14 @@ export class GameRoom {
                 lastShotAt: 0,
                 lastHitAt: 0,
                 history: [],
+                movedAt: 0,
                 since: now,
                 reported: false,
             });
             rearm(p);
             placed.push(p);
             pushHistory(p, now);
+            if (p.bot) this.director.spawned(id);
         }
         this.broadcast('matchStarted', {
             players: this.publicPlayers(),

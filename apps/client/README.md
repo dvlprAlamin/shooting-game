@@ -118,7 +118,8 @@ Values both sides must agree on (hitbox size, room options) come from `@shooter/
 ## Quick play and profiles
 
 The menu's first tab, Quick play, asks the server for a public room with free slots (`POST /quickplay`, see
-`src/net/api.js`) and joins it. The same tab shows your record (matches, wins, kills, K/D) from
+`src/net/api.js`) and joins it; bots play there until people fill it. Practice, beside Play now, opens a
+private room of your own against bots. Bots show a Bot tag on the scoreboard. The same tab shows your record (matches, wins, kills, K/D) from
 `GET /profile/<id>`. The id is made once per device and kept in `localStorage` (`src/net/profile.js`); every
 join sends it, and the server adds each match to it. Without profiles on the server the tab shows a line about
 quick play instead.
