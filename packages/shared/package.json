@@ -11,6 +11,10 @@
       "types": "./maps.d.ts",
       "default": "./maps/index.js"
     },
+    "./weapons": {
+      "types": "./weapons.d.ts",
+      "default": "./weapons.js"
+    },
     "./maps/build": {
       "default": "./maps/build.js"
     }

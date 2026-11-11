@@ -6,19 +6,21 @@ import {
     REGEN_DELAY_MS,
     REGEN_PER_TICK,
     REMATCH_WAIT,
+    TIMING_SLACK,
 } from '../src/game/GameRoom.js';
 import {
-    DAMAGE,
-    FIRE_INTERVAL,
-    HEAD_DAMAGE,
     MAX_HEALTH,
     PLAYER_LIMITS,
     ROOM_DURATIONS,
     SPAWN_PROTECTION,
 } from '@shooter/shared';
 import { DEFAULT_MAP, getMap } from '@shooter/shared/maps';
+import { MEDKIT, damageAt, getWeapon } from '@shooter/shared/weapons';
 
 const SPAWN_POINTS = getMap(DEFAULT_MAP).spawns;
+// Everyone starts with the rifle; most tests use it at 10 m, inside its full-damage range.
+const RIFLE = getWeapon('rifle');
+const { damage: DAMAGE, headDamage: HEAD_DAMAGE, fireInterval: FIRE_INTERVAL } = RIFLE;
 
 // A room with a fake clock and a log of everything it sends.
 function setup(options = {}) {
@@ -314,6 +316,7 @@ test('the killing shot announces the kill and updates the scores', () => {
         playerName: 'Bob',
         shooterName: 'Alice',
         headshot: false,
+        weapon: 'rifle',
         streak: 1,
         endedStreak: 0,
     });
@@ -477,4 +480,159 @@ test('leaving tells the others and empties the room', () => {
     s.room.leave('B');
     s.room.leave('B');
     assert.equal(s.room.isEmpty, true);
+});
+
+// Switches A to `weapon` and waits until it's drawn.
+const arm = (s, weapon) => {
+    s.room.switchWeapon('A', { w: weapon });
+    s.clock.t += getWeapon(weapon).drawTime;
+};
+
+test('each gun does its own damage at its own rate', () => {
+    for (const id of ['smg', 'marksman', 'pistol']) {
+        const weapon = getWeapon(id);
+        const s = twoPlayers();
+        arm(s, id);
+        s.take();
+        s.room.shoot('A', { o: EYE, d: TOWARDS_B, target: 'B' });
+        assert.equal(s.room.players.B.health, MAX_HEALTH - weapon.damage, id);
+        s.clock.t += weapon.fireInterval - 30; // too soon for this gun
+        s.room.shoot('A', { o: EYE, d: TOWARDS_B, target: 'B' });
+        assert.equal(s.room.players.B.health, MAX_HEALTH - weapon.damage, `${id}: too soon`);
+        s.clock.t += 30;
+        s.room.shoot('A', { o: EYE, d: TOWARDS_B_HEAD, target: 'B', head: true });
+        assert.equal(s.room.players.B.health, Math.max(0, MAX_HEALTH - weapon.damage - weapon.headDamage), id);
+        assert.ok(s.sent.filter((e) => e.event === 'playerShot').every((e) => e.data.w === id));
+    }
+
+    // One marksman headshot kills, and the kill names the gun.
+    const s = twoPlayers();
+    arm(s, 'marksman');
+    s.room.shoot('A', { o: EYE, d: TOWARDS_B_HEAD, target: 'B', head: true });
+    assert.equal(s.room.players.B.isDead, true);
+    assert.equal(s.sent.find((e) => e.event === 'playerDead').data.weapon, 'marksman');
+});
+
+test('damage falls off with range for the guns that say so', () => {
+    const smg = getWeapon('smg');
+    assert.equal(damageAt(smg, 10), smg.damage);
+    assert.equal(damageAt(smg, 200), Math.round(smg.damage * smg.falloff[2]));
+    assert.ok(damageAt(smg, 30) < smg.damage && damageAt(smg, 30) > damageAt(smg, 200));
+    assert.equal(damageAt(getWeapon('marksman'), 200, true), getWeapon('marksman').headDamage);
+
+    // B 40 m away: the SMG does its least damage, the marksman rifle its full.
+    for (const [id, expected] of [['smg', damageAt(smg, 40)], ['marksman', getWeapon('marksman').damage]]) {
+        const s = twoPlayers();
+        s.clock.t += 1100; // past the lag compensation, so B was only ever seen at 40 m
+        s.room.move('B', { t: 2, p: [0, 0, -40], yaw: 0, pitch: 0, f: 1 });
+        arm(s, id);
+        s.room.shoot('A', { o: EYE, d: { x: 0, y: -0.7 / 40, z: -1 }, target: 'B' });
+        assert.equal(s.room.players.B.health, MAX_HEALTH - expected, id);
+    }
+});
+
+test('a new gun fires only once it is drawn, and switching tells the others', () => {
+    const s = twoPlayers();
+    s.room.switchWeapon('A', { w: 'pistol' });
+    assert.deepEqual(s.take().map((e) => [e.to, e.event, e.data]), [['B', 'playerWeapon', { id: 'A', weapon: 'pistol' }]]);
+    s.room.switchWeapon('A', { w: 'pistol' }); // already in hand
+    s.room.switchWeapon('A', { w: 'bazooka' });
+    s.room.switchWeapon('A', null);
+    assert.deepEqual(s.take(), []);
+
+    const pistol = getWeapon('pistol');
+    s.clock.t += pistol.drawTime - TIMING_SLACK - 1;
+    s.room.shoot('A', { o: EYE, d: TOWARDS_B, target: 'B' });
+    assert.equal(s.room.players.B.health, MAX_HEALTH, 'still drawing');
+    s.clock.t += 1;
+    s.room.shoot('A', { o: EYE, d: TOWARDS_B, target: 'B' });
+    assert.equal(s.room.players.B.health, MAX_HEALTH - pistol.damage);
+
+    // Everyone learns what you hold: in the player list, and it stays through a respawn.
+    assert.equal(s.room.publicPlayers().A.weapon, 'pistol');
+    s.room.players.A.isDead = true;
+    s.room.respawn('A');
+    assert.equal(s.room.players.A.weapon, 'pistol');
+});
+
+test('a magazine runs dry, and a reload fills it after the reload time', () => {
+    const s = twoPlayers();
+    arm(s, 'pistol');
+    const pistol = getWeapon('pistol');
+    const fire = () => {
+        s.clock.t += pistol.fireInterval;
+        s.room.shoot('A', { o: EYE, d: { x: 1, y: 0, z: 0 }, target: null });
+    };
+    const shots = () => s.take().filter((e) => e.event === 'playerShot').length;
+    for (let i = 0; i < pistol.magSize + 3; i++) fire();
+    assert.equal(shots(), pistol.magSize, 'nothing after the last round');
+
+    s.room.reload('A');
+    s.clock.t += pistol.reloadEmptyTime - TIMING_SLACK - pistol.fireInterval - 1;
+    fire();
+    assert.equal(shots(), 0, 'still reloading');
+    s.clock.t += 1;
+    fire();
+    assert.equal(shots(), 1);
+    assert.equal(s.room.players.A.rounds.pistol, pistol.magSize - 1);
+
+    // A part-empty magazine reloads faster. Switching away stops the reload; each gun keeps its own count.
+    s.room.reload('A');
+    s.room.switchWeapon('A', { w: 'rifle' });
+    s.clock.t += 10_000;
+    s.room.tick();
+    assert.equal(s.room.players.A.rounds.pistol, pistol.magSize - 1);
+    assert.equal(s.room.players.A.rounds.rifle, RIFLE.magSize);
+    s.room.reload('A'); // full already: nothing to do
+    assert.equal(s.room.players.A.reloadAt, 0);
+
+    // Dying refills everything.
+    s.room.players.A.isDead = true;
+    s.room.respawn('A');
+    assert.equal(s.room.players.A.rounds.pistol, pistol.magSize);
+});
+
+test('a medkit heals once its use time has passed, once per life, with no shooting meanwhile', () => {
+    const s = twoPlayers();
+    s.room.players.A.health = 30;
+    s.room.heal('A');
+    s.room.heal('A'); // already in use
+    s.clock.t += FIRE_INTERVAL;
+    s.room.shoot('A', { o: EYE, d: TOWARDS_B, target: 'B' });
+    assert.equal(s.room.players.B.health, MAX_HEALTH, 'no shooting while healing');
+
+    s.clock.t = s.room.players.A.healAt - 1;
+    placeA(s);
+    assert.equal(s.room.players.A.health, 30);
+    s.clock.t += 1;
+    s.take();
+    placeA(s); // finishes on the next message
+    assert.equal(s.room.players.A.health, 30 + MEDKIT.heal);
+    assert.deepEqual(s.take().filter((e) => e.to === 'A').map((e) => [e.event, e.data]), [['health', { health: 30 + MEDKIT.heal }]]);
+    assert.equal(s.room.players.A.healAt, 0, 'done');
+
+    s.room.players.A.health = 30;
+    s.room.heal('A');
+    assert.equal(s.room.players.A.healAt, 0, 'none left');
+
+    // A fresh life brings a fresh medkit; full health has no use for it; switching away wastes it.
+    s.room.players.A.isDead = true;
+    s.room.respawn('A');
+    s.room.heal('A');
+    assert.equal(s.room.players.A.medkits, MEDKIT.perLife);
+    s.room.players.A.health = 50;
+    s.room.heal('A');
+    s.room.switchWeapon('A', { w: 'smg' });
+    s.clock.t += MEDKIT.useTime;
+    placeA(s);
+    assert.deepEqual([s.room.players.A.health, s.room.players.A.medkits], [50, MEDKIT.perLife - 1]);
+});
+
+test('coming back after a dropped connection fills the magazines', () => {
+    const s = twoPlayers();
+    for (let i = 0; i < 5; i++) shootB(s);
+    s.room.reload('A');
+    s.room.drop('A');
+    s.room.resume('A');
+    assert.deepEqual([s.room.players.A.rounds.rifle, s.room.players.A.reloadAt], [RIFLE.magSize, 0]);
 });

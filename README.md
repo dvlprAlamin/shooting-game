@@ -7,7 +7,7 @@ server. This repo is one pnpm workspace:
 |---|---|---|
 | [`apps/client`](apps/client) | `@shooter/client` | The game: Vite + React Three Fiber, wrapped as Android/iOS apps with Capacitor |
 | [`apps/server`](apps/server) | `@shooter/server` | The game server: a Cloudflare Worker with one Durable Object per room |
-| [`packages/shared`](packages/shared) | `@shooter/shared` | Gameplay numbers both sides must agree on (hitbox, damage, fire rate, room options), and the maps |
+| [`packages/shared`](packages/shared) | `@shooter/shared` | Gameplay numbers both sides must agree on (hitbox, room options), the weapon table and the maps |
 
 ## Setup
 
@@ -37,7 +37,9 @@ Commands for one app run from its folder (`cd apps/client && pnpm app:apk`) or f
 ## Shared gameplay numbers
 
 Edit `packages/shared/gameplay.js` (and `gameplay.d.ts` for the client's TypeScript files). The client and the
-server both import it as `@shooter/shared`, so a change reaches both at once with no copy step.
+server both import it as `@shooter/shared`, so a change reaches both at once with no copy step. Each gun's
+numbers (damage and its drop-off with range, fire rate, magazine, reload and draw times, spread, recoil) and
+the medkit's are in `packages/shared/weapons.js` (`@shooter/shared/weapons`).
 
 ## Maps
 

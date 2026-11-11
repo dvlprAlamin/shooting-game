@@ -13,12 +13,12 @@ import { INTERP_DELAY } from '@/game/constants';
 const MAX_SNAPSHOTS = 40;
 const MAX_EXTRAPOLATION = 120; // ms
 
-const players = new Map(); // id -> { snaps: [], offset: number | null, onShot, protectedUntil }
+const players = new Map(); // id -> { snaps: [], offset: number | null, onShot, protectedUntil, weapon }
 
 const entry = (id) => {
   let e = players.get(id);
   if (!e) {
-    e = { snaps: [], offset: null, onShot: null, protectedUntil: 0 };
+    e = { snaps: [], offset: null, onShot: null, protectedUntil: 0, weapon: null };
     players.set(id, e);
   }
   return e;
@@ -130,4 +130,13 @@ export function setShotListener(id, fn) {
 
 export function dispatchShot(id, data) {
   players.get(id)?.onShot?.(data);
+}
+
+/** The gun a remote player holds (a weapon id), read by RemotePlayer every frame. */
+export function setRemoteWeapon(id, weapon) {
+  if (weapon) entry(id).weapon = weapon;
+}
+
+export function getRemoteWeapon(id) {
+  return players.get(id)?.weapon ?? null;
 }

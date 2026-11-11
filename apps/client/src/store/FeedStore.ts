@@ -10,6 +10,8 @@ export interface IKill {
   /** Which side you were on, if either. */
   you: 'killer' | 'victim' | null;
   headshot: boolean;
+  /** The gun, as a weapon id. */
+  weapon?: string;
 }
 
 export interface INotice {

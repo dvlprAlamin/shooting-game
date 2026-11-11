@@ -1,8 +1,5 @@
 import {
-    DAMAGE,
     EYE_HEIGHT,
-    FIRE_INTERVAL,
-    HEAD_DAMAGE,
     MAX_HEALTH,
     MAX_SHOT_DISTANCE,
     PLAYER_LIMITS,
@@ -11,11 +8,15 @@ import {
     SPAWN_PROTECTION,
 } from '@shooter/shared';
 import { getMap } from '@shooter/shared/maps';
+import { DEFAULT_WEAPON, MEDKIT, WEAPONS, damageAt, findWeapon, getWeapon } from '@shooter/shared/weapons';
 import { findTarget, hitDistance } from './hits.js';
 import { safeSpawn } from './spawns.js';
 import { firstWallHit, wallBetween } from './walls.js';
 
-const MIN_FIRE_INTERVAL = FIRE_INTERVAL - 20; // allow some jitter
+// Shots may arrive this much closer together than the gun's fire interval (network jitter).
+const FIRE_JITTER = 20;
+// Switching, reloading and using a medkit may finish this much early, for the same reason.
+export const TIMING_SLACK = 150;
 const HISTORY_MS = 1000;
 const MAX_NAME_LENGTH = 24;
 // How long a player whose connection dropped is kept in the room, waiting for them to come back.
@@ -52,7 +53,19 @@ const publicPlayer = (p, now) => ({
     bestStreak: p.bestStreak,
     isDead: p.isDead,
     protection: Math.max(0, p.protectedUntil - now), // ms of spawn protection left
+    weapon: p.weapon,
 });
+
+const fullMagazines = () => Object.fromEntries(WEAPONS.map((w) => [w.id, w.magSize]));
+
+// A fresh life: full magazines, a medkit, nothing in progress. The gun in hand stays the same.
+const rearm = (player) => {
+    player.rounds = fullMagazines();
+    player.medkits = MEDKIT.perLife;
+    player.readyAt = 0;
+    player.reloadAt = 0;
+    player.healAt = 0;
+};
 
 const pushHistory = (player, now) => {
     player.history.push({ t: now, x: player.position.x, y: player.position.y, z: player.position.z });
@@ -62,8 +75,8 @@ const pushHistory = (player, now) => {
 /**
  * One match: its players, scores, timer and rules.
  *
- * It knows nothing about sockets. A transport passes client messages in (join, move, shoot,
- * respawn, leave), calls tick() once a second, and delivers whatever the room hands to `send`.
+ * It knows nothing about sockets. A transport passes client messages in (join, move, shoot, switchWeapon,
+ * reload, heal, respawn, leave), calls tick() once a second, and delivers whatever the room hands to `send`.
  * That keeps the rules apart from the transport (RoomHost.js) and testable without one.
  *
  * Reconnecting: a transport that can tell a dropped connection from a deliberate leave calls
@@ -72,6 +85,10 @@ const pushHistory = (player, now) => {
  *
  * After the match the room stays open for a rematch (rematch() votes) until GAME_OVER_TTL_MS has
  * passed; then `expired` tells the transport to close it.
+ *
+ * Weapons (@shooter/shared/weapons): every player carries all of them and the room keeps count of each
+ * one's magazine, so a client can't fire faster, longer or harder than its gun allows. Reloads and medkits
+ * are timed here too, and finish on the player's next message after their time is up.
  */
 export class GameRoom {
     /**
@@ -136,7 +153,14 @@ export class GameRoom {
             history: [],
             key,
             droppedAt: null,
+            weapon: DEFAULT_WEAPON,
+            rounds: null, // magazine of each gun, by id
+            medkits: 0,
+            readyAt: 0, // the gun just switched to can't fire before this
+            reloadAt: 0, // a reload in progress finishes then (0: none)
+            healAt: 0, // a medkit in use heals then (0: none)
         };
+        rearm(player);
         this.placeAtSpawn(player, this.enemyPositions(id));
         this.players[id] = player;
         pushHistory(player, now);
@@ -162,11 +186,16 @@ export class GameRoom {
         if (player) player.droppedAt = this.now();
     }
 
-    /** The player is back on a new connection: send them the room as it is now. */
+    /**
+     * The player is back on a new connection: send them the room as it is now. Their magazines are filled,
+     * since a reload they sent while cut off never arrived.
+     */
     resume(id) {
         const player = this.players[id];
         if (!player) return;
         player.droppedAt = null;
+        player.rounds = fullMagazines();
+        player.reloadAt = 0;
         this.send(id, 'joinedRoom', this.joinedRoom(id));
         this.send(id, 'currentPlayers', this.publicPlayers());
         if (this.duration > 0) this.send(id, 'timerUpdate', this.duration);
@@ -201,6 +230,7 @@ export class GameRoom {
             player.rotation = { x: pitch, y: yaw, z: 0 };
             pushHistory(player, this.now());
         }
+        this.settle(player, this.now());
 
         // Volatile: a late movement packet is useless, so it's better to drop it than to queue it up.
         this.broadcast(
@@ -211,7 +241,7 @@ export class GameRoom {
         );
     }
 
-    // Shot: { o: origin, d: direction, target?: playerId | null, dist?: number }
+    // Shot with the gun in hand: { o: origin, d: direction, target?: playerId | null, head?: boolean, dist?: number }
     shoot(id, data) {
         const shooter = this.players[id];
         if (!shooter || shooter.isDead || this.ended || !data) return;
@@ -221,12 +251,18 @@ export class GameRoom {
         if (distance(data.o, eye) > MAX_ORIGIN_OFFSET || wallBetween(this.map, eye, data.o)) return;
 
         const now = this.now();
-        if (now - shooter.lastShotAt < MIN_FIRE_INTERVAL) return;
+        this.settle(shooter, now);
+        const weapon = getWeapon(shooter.weapon);
+        // Not while switching, reloading or using a medkit, not faster than the gun fires, not from an empty magazine.
+        if (now < shooter.readyAt || shooter.reloadAt || shooter.healAt) return;
+        if (now - shooter.lastShotAt < weapon.fireInterval - FIRE_JITTER) return;
+        if (shooter.rounds[weapon.id] <= 0) return;
         shooter.lastShotAt = now;
 
         const len = Math.hypot(data.d.x, data.d.y, data.d.z);
         if (len < 1e-6) return;
         const direction = { x: data.d.x / len, y: data.d.y / len, z: data.d.z / len };
+        shooter.rounds[weapon.id] -= 1;
 
         // Firing gives up spawn protection.
         if (shooter.protectedUntil > now) {
@@ -235,13 +271,14 @@ export class GameRoom {
         }
 
         // Let everyone else hear/see the shot.
-        this.broadcast('playerShot', { id, o: data.o, d: direction }, id);
+        this.broadcast('playerShot', { id, o: data.o, d: direction, w: weapon.id }, id);
 
         // The client names who it hit (null for a miss) and whether it was the head; the server checks both
         // claims, and that no wall was in the way. Older clients send no target at all, so the server looks for
         // one itself (body shots only).
         let target = null;
         let headshot = false;
+        let range = 0; // how far away the target was, for damage falloff
         if (typeof data.target === 'string') {
             const candidate = this.players[data.target];
             const along = candidate && !candidate.isDead && candidate.id !== id
@@ -250,14 +287,16 @@ export class GameRoom {
             if (along !== null && firstWallHit(this.map, data.o, direction, along) >= along - PLAYER_RADIUS - WALL_SLACK) {
                 target = candidate;
                 headshot = data.head === true && hitDistance(data.o, direction, candidate, now, true) !== null;
+                range = along;
             }
         } else if (data.target === undefined) {
             const reach = Math.min(isFiniteNumber(data.dist) ? data.dist : MAX_SHOT_DISTANCE, MAX_SHOT_DISTANCE);
             target = findTarget(this.players, id, data.o, direction, firstWallHit(this.map, data.o, direction, reach));
+            if (target) range = distance(data.o, target.position);
         }
         if (!target || target.protectedUntil > now) return;
 
-        target.health = Math.max(0, target.health - (headshot ? HEAD_DAMAGE : DAMAGE));
+        target.health = Math.max(0, target.health - damageAt(weapon, range, headshot));
         target.lastHitAt = now;
         this.send(target.id, 'hit', { health: target.health, from: data.o, shooter: id, headshot });
         this.send(id, 'hitConfirmed', { id: target.id, health: target.health, headshot });
@@ -276,11 +315,60 @@ export class GameRoom {
                 playerName: target.playerName,
                 shooterName: shooter.playerName,
                 headshot,
+                weapon: weapon.id,
                 streak: shooter.streak, // the shooter's, counting this kill
                 endedStreak, // the one the victim had going
             });
             this.broadcast('playerKilled', { id, kills: shooter.kills });
             this.broadcastLeaderboard();
+        }
+    }
+
+    /** Switch to another gun: { w: weapon id }. It can fire once its draw time has passed. */
+    switchWeapon(id, data) {
+        const player = this.players[id];
+        const weapon = findWeapon(data?.w);
+        if (!player || !weapon || weapon.id === player.weapon) return;
+        player.weapon = weapon.id;
+        player.readyAt = this.now() + weapon.drawTime - TIMING_SLACK;
+        // Putting the gun away stops a reload; putting the medkit away wastes it.
+        player.reloadAt = 0;
+        player.healAt = 0;
+        this.broadcast('playerWeapon', { id, weapon: weapon.id }, id);
+    }
+
+    /** Start reloading the gun in hand. Its magazine is full once the reload time has passed. */
+    reload(id) {
+        const player = this.players[id];
+        if (!player || player.isDead || this.ended || player.reloadAt || player.healAt) return;
+        const weapon = getWeapon(player.weapon);
+        const left = player.rounds[weapon.id];
+        if (left >= weapon.magSize) return;
+        const time = left === 0 ? weapon.reloadEmptyTime : weapon.reloadTime;
+        player.reloadAt = this.now() + time - TIMING_SLACK;
+    }
+
+    /** Use the medkit: MEDKIT.heal health once MEDKIT.useTime has passed, with no shooting meanwhile. */
+    heal(id) {
+        const player = this.players[id];
+        if (!player || player.isDead || this.ended || player.healAt) return;
+        if (player.medkits <= 0 || player.health >= MAX_HEALTH) return;
+        player.medkits -= 1;
+        player.reloadAt = 0;
+        player.healAt = this.now() + MEDKIT.useTime - TIMING_SLACK;
+    }
+
+    // Finishes the player's reload or medkit once its time has come.
+    settle(player, now) {
+        if (player.reloadAt && now >= player.reloadAt) {
+            player.reloadAt = 0;
+            player.rounds[player.weapon] = getWeapon(player.weapon).magSize;
+        }
+        if (player.healAt && now >= player.healAt) {
+            player.healAt = 0;
+            if (player.isDead || this.ended) return;
+            player.health = Math.min(MAX_HEALTH, player.health + MEDKIT.heal);
+            this.send(player.id, 'health', { health: player.health });
         }
     }
 
@@ -293,6 +381,7 @@ export class GameRoom {
         player.isDead = false;
         player.protectedUntil = now + SPAWN_PROTECTION;
         player.history = [];
+        rearm(player);
 
         this.broadcast('playerRespawned', publicPlayer(player, now));
         this.broadcastLeaderboard();
@@ -311,6 +400,7 @@ export class GameRoom {
         for (const id in this.players) {
             const { droppedAt } = this.players[id];
             if (droppedAt !== null && now - droppedAt >= RECONNECT_GRACE_MS) this.leave(id);
+            else this.settle(this.players[id], now);
         }
         if (this.ended) {
             if (this.rematchIn === null) return;
@@ -375,6 +465,7 @@ export class GameRoom {
                 lastHitAt: 0,
                 history: [],
             });
+            rearm(p);
             placed.push(p.position);
             pushHistory(p, now);
         }

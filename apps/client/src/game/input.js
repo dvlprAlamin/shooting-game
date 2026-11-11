@@ -1,6 +1,7 @@
 import { usePointerLockControlsStore } from '@/store/PointerLockControlStore';
 import { useAimingStore } from '@/store/AimingStore';
 import { AIM_BUTTON, RELOAD_BUTTON_CODE, SHOOT_BUTTON } from '@/config';
+import { WEAPONS } from '@shooter/shared/weapons';
 
 // Keyboard/mouse/touch state read every frame inside useFrame. Kept outside React so key
 // presses don't trigger re-renders.
@@ -15,6 +16,11 @@ export const input = {
   aim: false,
   reload: false, // edge-triggered, consumed by the player
   firePressed: false, // edge-triggered, consumed by the player
+  // Weapons, all edge-triggered and consumed by the player:
+  select: null, // weapon id picked by its number key (or a tap on its slot)
+  cycle: 0, // +1 next weapon, -1 previous (scroll wheel)
+  swapBack: false, // back to the weapon you had before
+  heal: false, // use the medkit
   // Touch controls (see components/TouchControls.jsx)
   moveX: 0, // analog stick, -1 (left) .. 1 (right)
   moveY: 0, // analog stick, -1 (back) .. 1 (forward)
@@ -53,9 +59,25 @@ export const releaseAll = () => {
 
 let installs = 0;
 
+// Number keys pick the guns in order; the next number (and H) is the medkit.
+const WEAPON_KEYS = Object.fromEntries(WEAPONS.map((w, i) => [`Digit${i + 1}`, w.id]));
+const HEAL_KEYS = new Set([`Digit${WEAPONS.length + 1}`, 'KeyH']);
+
 const onKeyDown = (e) => {
   if (e.code === RELOAD_BUTTON_CODE) {
     if (!e.repeat) input.reload = true;
+    return;
+  }
+  if (!e.repeat && WEAPON_KEYS[e.code]) {
+    input.select = WEAPON_KEYS[e.code];
+    return;
+  }
+  if (!e.repeat && HEAL_KEYS.has(e.code)) {
+    input.heal = true;
+    return;
+  }
+  if (!e.repeat && e.code === 'KeyQ') {
+    input.swapBack = true;
     return;
   }
   const field = KEYS[e.code];
@@ -84,6 +106,12 @@ const onMouseUp = (e) => {
   else if (e.button === AIM_BUTTON) setAim(false);
 };
 
+// One weapon per wheel notch, however far a trackpad scrolls in one event.
+const onWheel = (e) => {
+  if (!usePointerLockControlsStore.getState().isLock || !e.deltaY) return;
+  input.cycle = Math.sign(e.deltaY);
+};
+
 const onContextMenu = (e) => e.preventDefault();
 
 const onPointerLockChange = () => {
@@ -97,6 +125,7 @@ export function installInput() {
     document.addEventListener('keyup', onKeyUp);
     document.addEventListener('mousedown', onMouseDown);
     document.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('wheel', onWheel, { passive: true });
     document.addEventListener('contextmenu', onContextMenu);
     document.addEventListener('pointerlockchange', onPointerLockChange);
     window.addEventListener('blur', releaseAll);
@@ -107,6 +136,7 @@ export function installInput() {
       document.removeEventListener('keyup', onKeyUp);
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('wheel', onWheel);
       document.removeEventListener('contextmenu', onContextMenu);
       document.removeEventListener('pointerlockchange', onPointerLockChange);
       window.removeEventListener('blur', releaseAll);

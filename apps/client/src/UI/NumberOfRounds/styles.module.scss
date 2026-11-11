@@ -12,6 +12,15 @@
   @include over-scene;
 }
 
+// Which gun the count is for, over it.
+.weapon {
+  grid-column: 1 / -1;
+  margin-bottom: 0.15rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--sand);
+}
+
 .count {
   @include stencil;
   min-width: 2ch;
@@ -49,5 +58,9 @@
   .mag {
     margin-bottom: 0.2rem;
     font-size: 1.1rem;
+  }
+
+  .weapon {
+    font-size: 0.85rem;
   }
 }

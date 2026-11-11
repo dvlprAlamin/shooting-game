@@ -13,6 +13,7 @@ import {
   removeRemote,
   resetRemote,
   setProtection,
+  setRemoteWeapon,
 } from '@/net/remotePlayers';
 import { WORLD_FOV } from '@/game/constants';
 import { IS_TOUCH, LOW_QUALITY } from '@/config';
@@ -26,6 +27,7 @@ import UI from './UI/UI';
 import Hud from './UI/Hud/Hud';
 import { Loading, Reconnecting } from './UI/Status/Status';
 import { useFeedStore } from './store/FeedStore';
+import { useWeaponStore } from './store/WeaponStore';
 import TouchControls from './components/TouchControls';
 
 export { socket };
@@ -75,12 +77,19 @@ const App = () => {
       hud.setProtection(0);
     };
 
-    // Handle current players
+    // Handle current players. The server says which gun each one holds, yours included: after a reconnect
+    // it has the last word on a switch that may never have reached it.
     const onCurrentPlayers = (currentPlayers) => {
       clearRemotes();
       for (const id in currentPlayers) {
-        if (id !== socket.id) resetRemote(id, currentPlayers[id].position, currentPlayers[id].rotation?.y);
-        protect(currentPlayers[id]);
+        const player = currentPlayers[id];
+        if (id !== socket.id) {
+          resetRemote(id, player.position, player.rotation?.y);
+          setRemoteWeapon(id, player.weapon);
+        } else if (player.weapon) {
+          useWeaponStore.getState().setWeapon(player.weapon);
+        }
+        protect(player);
       }
       setPlayers(currentPlayers);
     };
@@ -88,9 +97,12 @@ const App = () => {
     // Handle new player
     const onNewPlayer = (newPlayer) => {
       resetRemote(newPlayer.id, newPlayer.position);
+      setRemoteWeapon(newPlayer.id, newPlayer.weapon);
       protect(newPlayer);
       setPlayer({ ...newPlayer, isDead: false });
     };
+
+    const onPlayerWeapon = ({ id, weapon }) => setRemoteWeapon(id, weapon);
 
     // Movement goes straight into the interpolation buffers, not into React state.
     const onPlayerMoved = (data) => pushSnapshot(data.id, data);
@@ -101,7 +113,13 @@ const App = () => {
       updatePlayer(death.id, 'isDead', true);
 
       const you = death.shooter === socket.id ? 'killer' : death.id === socket.id ? 'victim' : null;
-      pushKill({ killer: death.shooterName, victim: death.playerName, you, headshot: !!death.headshot });
+      pushKill({
+        killer: death.shooterName,
+        victim: death.playerName,
+        you,
+        headshot: !!death.headshot,
+        weapon: death.weapon,
+      });
 
       const milestone = isStreakMilestone(death.streak);
       const ended = death.endedStreak >= STREAK_MIN ? death.endedStreak : 0;
@@ -182,6 +200,7 @@ const App = () => {
       newPlayer: onNewPlayer,
       playerMoved: onPlayerMoved,
       playerShot: onPlayerShot,
+      playerWeapon: onPlayerWeapon,
       playerDead: onPlayerDead,
       playerKilled: onPlayerKilled,
       playerRespawned: onPlayerRespawned,

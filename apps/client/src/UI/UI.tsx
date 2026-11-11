@@ -4,7 +4,10 @@ import { IHudStore, useHudStore } from '@/store/HudStore.ts';
 import styles from '@/UI/UI.module.scss';
 import blood from '@/assets/textures/blood_256x256.png';
 import Reloading from '@/UI/Reloading.jsx';
-// import QuickAccessSlots from "@/UI/QuickAccessSlots/QuickAccessSlots.tsx";
+import WeaponSlots from '@/UI/WeaponSlots/WeaponSlots.jsx';
+import { useWeaponStore } from '@/store/WeaponStore.ts';
+import { KEEPS_CROSSHAIR } from '@/weapons/items';
+import { IS_TOUCH } from '@/config';
 
 const HitMarker = () => {
   const marker = useHudStore((s: IHudStore) => s.marker);
@@ -44,19 +47,32 @@ const DamageOverlay = () => {
   );
 };
 
+// The marksman rifle's scope: a round view with a fine reticle, black around it.
+const Scope = () => (
+  <div className={styles.scope} aria-hidden="true">
+    <div className={styles.reticle} />
+  </div>
+);
+
 const UI = () => {
   const isAiming = useAimingStore((state: IAimingStore) => state.isAiming);
   const isReloading = useHudStore((s: IHudStore) => s.isReloading);
+  const scoped = useHudStore((s: IHudStore) => s.scoped);
+  const weapon = useWeaponStore((s) => s.weapon);
+  // Aiming lines up the gun's sights with the middle of the screen, so the crosshair goes; the pistol aims
+  // with the crosshair (see VIEWS in ViewModel.jsx).
+  const crosshair = !scoped && (!isAiming || KEEPS_CROSSHAIR.has(weapon));
 
   return (
     <div className="ui-root">
-      {!isAiming && <div className={styles.aim} />}
+      {scoped && <Scope />}
+      {crosshair && <div className={styles.aim} />}
       <HitMarker />
       <Callout />
       <DamageOverlay />
       {isReloading && <Reloading />}
       <NumberOfRounds />
-      {/* <QuickAccessSlots /> */}
+      {!IS_TOUCH && <WeaponSlots />}
     </div>
   );
 };

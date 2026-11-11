@@ -186,3 +186,32 @@
     transform: scaleX(0);
   }
 }
+
+// Through the scope: everything outside a circle is black, with a fine cross and a centre dot inside. Under
+// the rest of the HUD (ammo, slots), which comes later in the page.
+.scope {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at center,
+    transparent 0,
+    transparent calc(min(46vh, 46vw) - 6px),
+    rgb(0 0 0 / 0.9) calc(min(46vh, 46vw) - 2px),
+    #000 min(46vh, 46vw)
+  );
+}
+
+// A fine cross through the middle, thicker posts towards the edge (left, right, below).
+.reticle {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle, #000 0 1.5px, transparent 2px) center / 8px 8px no-repeat,
+    linear-gradient(#000, #000) center / 1px min(92vh, 92vw) no-repeat,
+    linear-gradient(#000, #000) center / min(92vh, 92vw) 1px no-repeat,
+    linear-gradient(#000, #000) left calc(50% - min(23vh, 23vw)) center / min(24vh, 24vw) 4px no-repeat,
+    linear-gradient(#000, #000) right calc(50% - min(23vh, 23vw)) center / min(24vh, 24vw) 4px no-repeat,
+    linear-gradient(#000, #000) center bottom calc(50% - min(23vh, 23vw)) / 4px min(24vh, 24vw) no-repeat;
+}

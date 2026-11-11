@@ -1,10 +1,9 @@
-// Client-side gameplay tuning. Numbers the server also needs (hitbox, damage, fire rate, ...)
-// live in @shooter/shared (packages/shared/gameplay.js).
+// Client-side gameplay tuning. Numbers the server also needs (hitbox, ...) live in @shooter/shared
+// (packages/shared/gameplay.js); each gun's (damage, fire rate, magazine, reload, spread, ...) in
+// @shooter/shared/weapons.
 export {
   EYE_HEIGHT,
-  FIRE_INTERVAL,
   HEAD_HEIGHT,
-  MAG_SIZE,
   MAX_SHOT_DISTANCE,
   PLAYER_CENTER_TO_FEET,
   PLAYER_HALF_HEIGHT,
@@ -19,14 +18,8 @@ export const GROUND_ACCEL = 14;
 export const AIR_ACCEL = 2.5;
 export const JUMP_VELOCITY = 5.2;
 
-// Weapon
-export const RELOAD_TIME = 2.4; // s, matches the "Reload" clip
-export const RELOAD_EMPTY_TIME = 3.2; // s, matches the "ReloadEmpty" clip
-export const DRAW_TIME = 0.6;
-
 // Camera
 export const WORLD_FOV = 60;
-export const ADS_FOV = 45;
 export const VIEWMODEL_FOV = 55;
 export const VIEWMODEL_ADS_FOV = 42;
 export const TOUCH_LOOK_SPEED = 0.005; // radians per CSS pixel of drag

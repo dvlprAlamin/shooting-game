@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { input, releaseAll, setAim } from '@/game/input';
 import { useAimingStore } from '@/store/AimingStore';
+import { useWeaponStore } from '@/store/WeaponStore';
+import WeaponIcon from '@/UI/WeaponIcon';
 import styles from './TouchControls.module.scss';
 
 const STICK_RADIUS = 52; // px the knob can travel from the stick centre
@@ -16,7 +18,7 @@ const Icon = ({ children }) => (
 
 /**
  * On-screen controls for phones: a floating stick (left), drag-to-look (right), and fire/aim/jump/reload
- * buttons. Writes into the shared `input` state the player reads every frame. The fire button also
+ * buttons, plus the gun in hand (tap for the next) and the medkit. Writes into the shared `input` state the player reads every frame. The fire button also
  * looks while held, so you can shoot and track a target with one thumb.
  */
 const TouchControls = () => {
@@ -24,6 +26,8 @@ const TouchControls = () => {
   const stickRef = useRef();
   const knobRef = useRef();
   const isAiming = useAimingStore((s) => s.isAiming);
+  const weapon = useWeaponStore((s) => s.weapon);
+  const medkits = useWeaponStore((s) => s.medkits);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -97,6 +101,12 @@ const TouchControls = () => {
           break;
         case 'reload':
           input.reload = true;
+          break;
+        case 'weapon':
+          input.cycle = 1;
+          break;
+        case 'medkit':
+          input.heal = true;
           break;
         case 'aim':
           setAim(!input.aim);
@@ -178,6 +188,17 @@ const TouchControls = () => {
           <circle cx="12" cy="12" r="9" />
           <circle cx="12" cy="12" r="1.5" fill="currentColor" />
         </Icon>
+      </div>
+      <div data-btn="weapon" className={`${styles.button} ${styles.weapon}`} aria-label="Next weapon">
+        <WeaponIcon id={weapon} />
+      </div>
+      <div
+        data-btn="medkit"
+        className={`${styles.button} ${styles.medkit} ${medkits ? '' : styles.used}`}
+        aria-label="Use medkit"
+      >
+        <WeaponIcon id="medkit" />
+        <span className={styles.badge}>{medkits}</span>
       </div>
       <div data-btn="jump" className={`${styles.button} ${styles.jump}`}>
         <Icon>

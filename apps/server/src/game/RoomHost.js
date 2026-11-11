@@ -12,10 +12,10 @@ export const CLOSE = {
 
 const JOIN_TIMEOUT_MS = 10_000;
 const MAX_MESSAGE_LENGTH = 4096;
-// A normal client sends 20 moves plus up to 10 shots a second.
+// A normal client sends 20 moves plus up to 15 shots (the SMG) a second.
 const MAX_MESSAGES_PER_SECOND = 60;
 const MAX_KEY_LENGTH = 64;
-const GAME_EVENTS = new Set(['move', 'shoot', 'respawn', 'rematch']);
+const GAME_EVENTS = new Set(['move', 'shoot', 'switchWeapon', 'reload', 'heal', 'respawn', 'rematch']);
 
 const randomId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 8);
 

@@ -5,9 +5,12 @@ import { useGLTF } from '@react-three/drei';
 import { CapsuleCollider, RigidBody } from '@react-three/rapier';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import FlashShoot from '@/assets/textures/flash_shoot_256x256.png';
-import { isProtected, sampleRemote, setShotListener } from '@/net/remotePlayers';
+import { DEFAULT_WEAPON } from '@shooter/shared/weapons';
+import { getRemoteWeapon, isProtected, sampleRemote, setShotListener } from '@/net/remotePlayers';
 import { createSoldierRig, getMuzzleWorld, GUN_MUZZLE } from '@/game/soldierRig';
 import { playSoundAt } from '@/game/audio';
+import { SOUNDS } from '@/weapons/items';
+import { thirdPersonModel, toThirdPerson } from '@/weapons/models';
 import {
   FLAG_GROUNDED,
   PLAYER_CENTER_TO_FEET,
@@ -20,6 +23,15 @@ const RIFLE_URL = '/models/weapon_tp.glb';
 
 const _muzzle = new THREE.Vector3();
 const SHIELD_COLOR = '#47c6cb'; // --teal in index.scss
+
+// Where each gun's muzzle is and where the left hand holds it, gun-local (see game/soldierRig.js). The
+// rifle and the marksman rifle are the third-person AKS-74U; the others come from weapons/models.js.
+const HOLDS = {
+  rifle: { muzzle: GUN_MUZZLE },
+  marksman: { muzzle: GUN_MUZZLE },
+  smg: { muzzle: toThirdPerson({ x: 0, y: 0, z: -0.37 }), grip: new THREE.Vector3(0, 0.005, 0.27) },
+  pistol: { muzzle: toThirdPerson({ x: 0, y: -0.012, z: -0.028 }), grip: new THREE.Vector3(0.015, -0.03, 0.02) },
+};
 
 function makeNameTag(name) {
   const canvas = document.createElement('canvas');
@@ -50,7 +62,20 @@ export const RemotePlayer = ({ id, isDead, playerName = '', initialPosition = { 
 
   const visual = useMemo(() => {
     const model = cloneSkinned(soldier.scene);
-    const gun = rifle.scene.clone(true);
+    // Every gun, in one holder the hands follow; the one in hand is shown.
+    const gun = new THREE.Group();
+    const scoped = new THREE.Group();
+    scoped.add(rifle.scene.clone(true), thirdPersonModel('scope'));
+    const guns = {
+      rifle: rifle.scene.clone(true),
+      marksman: scoped,
+      smg: thirdPersonModel('smg'),
+      pistol: thirdPersonModel('pistol'),
+    };
+    for (const item of Object.values(guns)) {
+      item.visible = false;
+      gun.add(item);
+    }
     for (const obj of [model, gun]) {
       obj.traverse((o) => {
         if (o.isMesh) o.castShadow = true;
@@ -71,7 +96,7 @@ export const RemotePlayer = ({ id, isDead, playerName = '', initialPosition = { 
     flash.visible = false;
     gun.add(flash);
 
-    return { model, gun, rig, flash };
+    return { model, gun, guns, rig, flash, shown: null };
   }, [soldier, rifle, flashTexture]);
 
   const nameTag = useMemo(() => makeNameTag(playerName), [playerName]);
@@ -89,14 +114,16 @@ export const RemotePlayer = ({ id, isDead, playerName = '', initialPosition = { 
   );
 
   useEffect(() => {
-    setShotListener(id, () => {
+    setShotListener(id, (shot) => {
       motion.flashUntil = performance.now() + 50;
       visual.flash.visible = true;
       visual.flash.material.rotation = Math.random() * Math.PI * 2;
       visual.flash.scale.setScalar(0.3 + Math.random() * 0.15);
-      playSoundAt('shot', getMuzzleWorld(visual.gun, _muzzle), {
-        volume: 0.9,
-        detune: (Math.random() - 0.5) * 120,
+      const hold = HOLDS[visual.shown] ?? HOLDS.rifle;
+      const sound = SOUNDS[shot?.w] ?? SOUNDS[visual.shown] ?? SOUNDS.rifle;
+      playSoundAt('shot', getMuzzleWorld(visual.gun, _muzzle, hold.muzzle), {
+        volume: Math.min(1, sound.volume * 1.65),
+        detune: sound.detune + (Math.random() - 0.5) * 120,
       });
     });
     return () => setShotListener(id, null);
@@ -106,6 +133,16 @@ export const RemotePlayer = ({ id, isDead, playerName = '', initialPosition = { 
     const dt = Math.min(rawDt, 0.05);
     const s = motion.sample;
     if (!isDead) sampleRemote(id, s);
+
+    // The gun the server says they hold.
+    const weapon = getRemoteWeapon(id) ?? DEFAULT_WEAPON;
+    if (visual.shown !== weapon && visual.guns[weapon]) {
+      for (const [gunId, item] of Object.entries(visual.guns)) item.visible = gunId === weapon;
+      const hold = HOLDS[weapon];
+      visual.rig.setLeftGrip(hold.grip);
+      visual.flash.position.copy(hold.muzzle).add(new THREE.Vector3(0, 0, 0.06));
+      visual.shown = weapon;
+    }
 
     // Velocity from the interpolated positions drives the walk cycle.
     if (motion.started && dt > 0) {

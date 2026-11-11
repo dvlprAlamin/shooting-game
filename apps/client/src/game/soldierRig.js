@@ -62,9 +62,12 @@ export function createSoldierRig(root, gun) {
 
   // Hand targets in chest space -> convert into UpperArm parent space (Chest).
   const gripR = GUN_GRIP_R.clone().add(GUN_POSITION).add(new THREE.Vector3(0, -0.04, -HAND_OFFSET));
-  const gripL = GUN_GRIP_L.clone().add(GUN_POSITION).add(new THREE.Vector3(0.02, -0.04, -HAND_OFFSET));
   const right = solveArm(b('R_UpperArm'), b('R_Forearm'), b('R_Hand'), gripR, new THREE.Vector3(-1, -1.2, -0.2));
-  const left = solveArm(b('L_UpperArm'), b('L_Forearm'), b('L_Hand'), gripL, new THREE.Vector3(0.6, -1, 0));
+  const leftFor = (grip) => {
+    const target = grip.clone().add(GUN_POSITION).add(new THREE.Vector3(0.02, -0.04, -HAND_OFFSET));
+    return solveArm(b('L_UpperArm'), b('L_Forearm'), b('L_Hand'), target, new THREE.Vector3(0.6, -1, 0));
+  };
+  const left = leftFor(GUN_GRIP_L);
 
   const pose = {
     R_UpperArm: right.upperQ,
@@ -147,11 +150,18 @@ export function createSoldierRig(root, gun) {
     }
   }
 
-  return { bones, update };
+  /** Moves the left hand to `grip` (gun-local, like GUN_GRIP_L): each gun is held at its own handguard. */
+  function setLeftGrip(grip = GUN_GRIP_L) {
+    const { upperQ, lowerQ } = leftFor(grip);
+    pose.L_UpperArm.copy(upperQ);
+    pose.L_Forearm.copy(lowerQ);
+  }
+
+  return { bones, update, setLeftGrip };
 }
 
-// Muzzle position of a remote soldier in world space (for flashes/sound).
-export function getMuzzleWorld(gun, out = new THREE.Vector3()) {
-  return gun.localToWorld(out.copy(GUN_MUZZLE));
+// Muzzle position of a remote soldier in world space (for flashes/sound). `muzzle` is gun-local.
+export function getMuzzleWorld(gun, out = new THREE.Vector3(), muzzle = GUN_MUZZLE) {
+  return gun.localToWorld(out.copy(muzzle));
 }
 

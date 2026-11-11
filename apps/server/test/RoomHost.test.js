@@ -82,6 +82,16 @@ test('game messages go to the GameRoom under the player id the server assigned',
     assert.deepEqual(host.game.players.p1.position, { x: 1, y: 2, z: 3 });
     assert.deepEqual(bob.frames.at(-1), { e: 'playerMoved', d: { id: 'p1', t: 1, p: [1, 2, 3], yaw: 0, pitch: 0, f: 1 } });
 
+    // Weapons: switching, reloading and the medkit.
+    alice.say('switchWeapon', { w: 'smg' });
+    assert.deepEqual(bob.frames.at(-1), { e: 'playerWeapon', d: { id: 'p1', weapon: 'smg' } });
+    host.game.players.p1.rounds.smg = 3;
+    alice.say('reload');
+    assert.ok(host.game.players.p1.reloadAt > 0);
+    host.game.players.p1.health = 50;
+    alice.say('heal');
+    assert.ok(host.game.players.p1.healAt > 0);
+
     // Unknown events, bad JSON and game messages before joining are ignored.
     const before = bob.frames.length;
     alice.say('tick');

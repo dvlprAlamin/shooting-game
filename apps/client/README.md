@@ -7,10 +7,12 @@
 | Move | WASD / arrows | Left thumb: the stick appears where you touch |
 | Sprint | Shift | Push the stick all the way forward |
 | Look | Mouse (click to capture) | Drag anywhere on the right half |
-| Fire | Left click | Red button (hold for auto fire; drag on it to aim while shooting) |
+| Fire | Left click (hold for the rifle and SMG) | Red button (hold for auto fire; drag on it to aim while shooting) |
 | Aim down sights | Right click (hold) | Scope button (tap to toggle) |
 | Jump | Space | Arrow button |
 | Reload | R | Circular-arrow button |
+| Switch weapon | 1 rifle, 2 SMG, 3 marksman, 4 pistol; scroll wheel; Q for the last one | Gun button above the red one (next gun) |
+| Medkit | 5 or H | Cross button (shows how many you have) |
 
 Touch controls turn on automatically on touch-first devices and in the mobile app. Add `?touch=1` or
 `?touch=0` to the URL to force them on or off (handy for testing on a desktop browser with device emulation).
@@ -109,5 +111,15 @@ a release build so it isn't shipped. On iOS, use an `https://` server.
 
 ## Gameplay numbers shared with the server
 
-Values both sides must agree on (hitbox size, damage, fire rate, magazine size, room options) come from
-`@shooter/shared` (`packages/shared/` in the repo root). Edit them there; the server picks up the same change.
+Values both sides must agree on (hitbox size, room options) come from `@shooter/shared`, each gun's numbers
+(damage, fire rate, magazine, reload, spread, recoil, speed) from `@shooter/shared/weapons`
+(`packages/shared/` in the repo root). Edit them there; the server picks up the same change.
+
+## Weapons
+
+Everyone carries all four guns and a medkit. The rifle is the AK in `public/models/viewmodel_ak.glb`. The SMG,
+the pistol, the marksman rifle's scope and the medkit are built from simple shapes in `src/weapons/models.js`
+and fixed to the AK rig's gun bone, so the SMG reloads with the AK's hands and every gun gets its draw, walk,
+run and shot animations. `VIEWS` in `src/ViewModel.jsx` says how each one is held. The pistol is one-handed and
+aims with the crosshair, because its sights can't line up with the AK's right hand; it dips out of view to
+reload. Other players' soldiers hold the third-person versions (`thirdPersonModel`).

@@ -101,6 +101,51 @@
   height: 54px;
 }
 
+// Above the fire button: the gun in hand (tap for the next one), and the medkit above the aim button.
+.weapon {
+  right: calc(var(--safe-right) + 112px);
+  bottom: calc(var(--safe-bottom) + 166px);
+  width: 58px;
+  height: 58px;
+
+  svg {
+    width: 76%;
+    height: 40%;
+  }
+}
+
+.medkit {
+  right: calc(var(--safe-right) + 34px);
+  bottom: calc(var(--safe-bottom) + 186px);
+  width: 52px;
+  height: 52px;
+
+  svg {
+    width: 80%;
+    height: 44%;
+  }
+
+  &.used {
+    opacity: 0.4;
+  }
+}
+
+// The medkits left, on the medkit button's corner.
+.badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  min-width: 18px;
+  padding: 1px 4px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--canopy);
+  background: var(--bone);
+  border-radius: 9px;
+}
+
 // Only reachable in a mobile browser; the native app is locked to landscape.
 .rotate {
   display: none;

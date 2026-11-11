@@ -1,12 +1,15 @@
-import { RELOAD_TIME } from '@/game/constants';
+import { useHudStore } from '@/store/HudStore';
 import styles from './UI.module.scss';
 
-/** Under the crosshair while reloading: a bar that fills over the reload time. */
-const Reloading = () => (
-  <div className={styles.reloading} style={{ '--reload-time': `${RELOAD_TIME}s` }}>
-    Reloading
-    <span className={styles.progress} />
-  </div>
-);
+/** Under the crosshair while reloading: a bar that fills over this gun's reload time. */
+const Reloading = () => {
+  const time = useHudStore((s) => s.reloadTime);
+  return (
+    <div className={styles.reloading} style={{ '--reload-time': `${time}ms` }}>
+      Reloading
+      <span className={styles.progress} />
+    </div>
+  );
+};
 
 export default Reloading;

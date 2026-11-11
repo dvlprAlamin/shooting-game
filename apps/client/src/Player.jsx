@@ -7,17 +7,17 @@ import { isProtected } from '@/net/remotePlayers';
 import { input, installInput } from '@/game/input';
 import { initAudio, playHitTick, playSound, resumeAudio } from '@/game/audio';
 import { usePlayerStore } from '@/store/PlayersStore';
-import { useRoundsStore } from '@/store/RoundsStore';
+import { useWeaponStore } from '@/store/WeaponStore';
 import { useHudStore } from '@/store/HudStore';
 import { ViewModel } from '@/ViewModel';
 import { Impacts } from '@/Impacts';
+import { SOUNDS } from '@/weapons/items';
+import { MAX_HEALTH } from '@shooter/shared';
+import { MEDKIT, WEAPONS, getWeapon } from '@shooter/shared/weapons';
 import {
-  ADS_FOV,
   ADS_SPEED,
   AIR_ACCEL,
-  DRAW_TIME,
   EYE_HEIGHT,
-  FIRE_INTERVAL,
   FLAG_AIM,
   FLAG_GROUNDED,
   FLAG_RELOAD,
@@ -25,14 +25,11 @@ import {
   GROUND_ACCEL,
   HEAD_HEIGHT,
   JUMP_VELOCITY,
-  MAG_SIZE,
   MAX_SHOT_DISTANCE,
   NET_SEND_INTERVAL,
   PLAYER_CENTER_TO_FEET,
   PLAYER_HALF_HEIGHT,
   PLAYER_RADIUS,
-  RELOAD_EMPTY_TIME,
-  RELOAD_TIME,
   SPRINT_SPEED,
   TOUCH_LOOK_SPEED,
   WALK_SPEED,
@@ -51,6 +48,12 @@ const _tmp = new THREE.Vector3();
 
 const round3 = (n) => Math.round(n * 1000) / 1000;
 const dampFactor = (rate, dt) => 1 - Math.exp(-rate * dt);
+// A semi-automatic gun pressed a little too soon still fires, once it can, within this long (ms).
+const SHOT_BUFFER = 250;
+// Moving while using the medkit.
+const HEAL_SPEED = 0.6;
+// Look speed while aiming, against hip fire (a scope slows it in step with its zoom instead).
+const AIM_LOOK = 0.65;
 
 // `initialYaw`: the way to face on spawning. `fall`: below this height you've fallen out of the map and are put
 // back at `fallReset`.
@@ -83,9 +86,19 @@ export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, initialYaw, fal
       yawVel: 0,
       pitchVel: 0,
       lastShot: 0,
+      queuedShot: 0, // when a semi-automatic gun's trigger was pressed (0: not waiting to fire)
+      // What the view model shows and when: the item in hand ('medkit' while healing), drawing it, reloading.
+      equipped: null,
+      lastWeapon: null, // the gun before this one, for swapping back
+      drawStart: 0,
       drawUntil: 0,
       reloading: false,
+      reloadEmpty: false,
+      reloadStart: 0,
       reloadUntil: 0,
+      healStart: 0,
+      healUntil: 0, // using the medkit until then (0: not)
+      scoped: false, // looking through a scope (the view model hides)
       recoilPending: 0,
       recoilYawPending: 0,
       nextSend: 0,
@@ -102,13 +115,14 @@ export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, initialYaw, fal
     document.addEventListener('mousedown', resumeAudio);
     document.addEventListener('touchend', resumeAudio);
 
-    // Fresh spawn: full magazine, level camera facing the way the spawn point says, draw animation.
-    useRoundsStore.getState().reloadRounds();
+    // Fresh spawn: full magazines and a medkit, level camera facing the way the spawn point says. The first
+    // frame draws the gun in hand.
+    useWeaponStore.getState().rearm();
     useHudStore.getState().setReloading(false);
+    useHudStore.getState().setScoped(false);
     _euler.setFromQuaternion(camera.quaternion, 'YXZ');
     const yaw = Number.isFinite(initialYaw) ? initialYaw : _euler.y;
     camera.quaternion.setFromEuler(_euler.set(0, yaw, 0, 'YXZ'));
-    state.drawUntil = performance.now() + DRAW_TIME * 1000;
 
     const onHit = ({ health }) => {
       updatePlayer(socket.id, 'health', health);
@@ -124,33 +138,77 @@ export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, initialYaw, fal
       socket.off('hit', onHit);
       camera.fov = WORLD_FOV;
       camera.updateProjectionMatrix();
+      useHudStore.getState().setScoped(false);
     };
   }, []);
 
-  const startReload = (now) => {
-    const ammo = useRoundsStore.getState().countRounds;
-    if (state.reloading || state.isDead || ammo >= MAG_SIZE) return;
-    const empty = ammo === 0;
-    state.reloading = true;
-    state.reloadUntil = now + (empty ? RELOAD_EMPTY_TIME : RELOAD_TIME) * 1000;
-    viewModelRef.current?.reload(empty);
-    playSound('reload', { volume: 0.7 });
-    useHudStore.getState().setReloading(true);
+  const stopReload = () => {
+    if (!state.reloading) return;
+    state.reloading = false;
+    useHudStore.getState().setReloading(false);
   };
 
-  const fire = (now, body) => {
-    // Keep an exact cadence while the trigger is held.
-    state.lastShot = now - state.lastShot < FIRE_INTERVAL * 2 ? state.lastShot + FIRE_INTERVAL : now;
-    useRoundsStore.getState().decreaseRounds();
+  // Puts `id` in hand: drawing it takes its draw time, and a reload of the last gun stops.
+  const equip = (id, now) => {
+    const weapon = getWeapon(id);
+    stopReload();
+    state.equipped = weapon.id;
+    state.queuedShot = 0;
+    state.drawStart = now;
+    state.drawUntil = now + weapon.drawTime;
+  };
+
+  // A key, the wheel or a tap asked for another gun.
+  const selectWeapon = (id) => {
+    const store = useWeaponStore.getState();
+    if (id === store.weapon) return;
+    state.lastWeapon = store.weapon;
+    store.setWeapon(id);
+    socket.emit('switchWeapon', { w: id });
+  };
+
+  const startHeal = (now) => {
+    const store = useWeaponStore.getState();
+    const health = usePlayerStore.getState().players[socket.id]?.health ?? MAX_HEALTH;
+    if (state.isDead || state.healUntil || store.medkits <= 0 || health >= MAX_HEALTH) return;
+    stopReload();
+    store.useMedkit();
+    state.equipped = 'medkit';
+    state.healStart = now;
+    state.healUntil = now + MEDKIT.useTime;
+    playSound('reload', { volume: 0.5, detune: 700 });
+    socket.emit('heal');
+  };
+
+  const startReload = (now) => {
+    const store = useWeaponStore.getState();
+    const weapon = getWeapon(store.weapon);
+    const ammo = store.rounds[weapon.id];
+    if (state.reloading || state.isDead || state.healUntil || now < state.drawUntil || ammo >= weapon.magSize) return;
+    const empty = ammo === 0;
+    const time = empty ? weapon.reloadEmptyTime : weapon.reloadTime;
+    state.reloading = true;
+    state.reloadEmpty = empty;
+    state.reloadStart = now;
+    state.reloadUntil = now + time;
+    playSound('reload', { volume: 0.7, detune: weapon.id === 'pistol' ? 500 : 0 });
+    useHudStore.getState().setReloading(true, time);
+    socket.emit('reload');
+  };
+
+  const fire = (now, body, weapon) => {
+    // Keep an exact cadence while the trigger of an automatic gun is held.
+    const interval = weapon.fireInterval;
+    state.lastShot = weapon.auto && now - state.lastShot < interval * 2 ? state.lastShot + interval : now;
+    useWeaponStore.getState().useRound();
     // Firing gives up your spawn protection (the server ends it too).
     const hud = useHudStore.getState();
     if (hud.protectedUntil) hud.setProtection(0);
 
-    // Spread: none when aiming, small when standing, larger when moving or airborne.
-    let spread = 0.006;
-    if (!state.grounded) spread = 0.05;
-    else if (state.speed > 1) spread = 0.022;
-    spread *= 1 - state.ads;
+    // Spread: small when standing, larger when moving or airborne, the gun's aimed spread when aiming.
+    const { spread: s } = weapon;
+    let spread = !state.grounded ? s.air : state.speed > 1 ? s.move : s.stand;
+    spread = THREE.MathUtils.lerp(spread, s.aim, state.ads);
 
     camera.getWorldPosition(_origin);
     camera.getWorldDirection(_dir);
@@ -202,12 +260,14 @@ export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, initialYaw, fal
     });
 
     viewModelRef.current?.shot();
-    playSound('shot', { volume: 0.55, detune: (Math.random() - 0.5) * 120 });
+    const sound = SOUNDS[weapon.id];
+    playSound('shot', { volume: sound.volume, detune: sound.detune + (Math.random() - 0.5) * 120 });
 
     // Camera recoil: mostly vertical, a little random horizontal. Applied over a few frames.
+    const { recoil } = weapon;
     const kick = 1 - state.ads * 0.5;
-    state.recoilPending += (0.0045 + Math.random() * 0.003) * kick;
-    state.recoilYawPending += (Math.random() - 0.5) * 0.004 * kick;
+    state.recoilPending += (recoil.kick + Math.random() * recoil.kickRandom) * kick;
+    state.recoilYawPending += (Math.random() - 0.5) * recoil.yaw * kick;
   };
 
   useFrame((_, rawDt) => {
@@ -216,13 +276,16 @@ export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, initialYaw, fal
     const dt = Math.min(rawDt, 0.05);
     const now = performance.now();
     const dead = state.isDead;
+    const weapons = useWeaponStore.getState();
+    const weapon = getWeapon(weapons.weapon);
+    const lookSpeed = THREE.MathUtils.lerp(1, weapon.scope ? weapon.aimFov / WORLD_FOV : AIM_LOOK, state.ads);
 
     // --- look ------------------------------------------------------------
     _euler.setFromQuaternion(camera.quaternion, 'YXZ');
     if (input.lookX || input.lookY) {
       // Touch drag (mouse look goes through PointerLockControls). Slower while aiming, like pointerSpeed.
       if (!dead) {
-        const k = TOUCH_LOOK_SPEED * (1 - state.ads * 0.35);
+        const k = TOUCH_LOOK_SPEED * lookSpeed;
         _euler.y -= input.lookX * k;
         _euler.x = THREE.MathUtils.clamp(_euler.x - input.lookY * k, -Math.PI / 2 + 0.01, Math.PI / 2 - 0.01);
         camera.quaternion.setFromEuler(_euler);
@@ -270,6 +333,7 @@ export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, initialYaw, fal
     state.sprinting = !dead && (input.sprint || input.stickSprint) && fx > 0 && !input.aim && !input.fire && state.grounded;
     let speed = state.sprinting ? SPRINT_SPEED : WALK_SPEED;
     if (state.ads > 0.5) speed = ADS_SPEED;
+    speed *= weapon.speed * (state.healUntil ? HEAL_SPEED : 1);
     if (dead) speed = 0;
     _wish.multiplyScalar(speed);
 
@@ -305,38 +369,75 @@ export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, initialYaw, fal
       camera.quaternion.setFromEuler(_euler);
     }
 
-    // --- aiming --------------------------------------------------------------
-    const wantAds = !dead && input.aim && !state.reloading && !state.sprinting;
-    state.ads += ((wantAds ? 1 : 0) - state.ads) * dampFactor(14, dt);
-    const fov = THREE.MathUtils.lerp(WORLD_FOV, ADS_FOV, state.ads);
-    if (Math.abs(camera.fov - fov) > 0.01) {
-      camera.fov = fov;
-      camera.updateProjectionMatrix();
+    // --- weapons ---------------------------------------------------------------
+    // Switching: a number key or a tap picks a gun, the wheel steps through them, Q goes back. Not while
+    // dead or using the medkit.
+    if (!dead && !state.healUntil) {
+      let next = input.select;
+      if (!next && input.swapBack) next = state.lastWeapon;
+      if (!next && input.cycle) {
+        const i = WEAPONS.findIndex((w) => w.id === weapons.weapon);
+        next = WEAPONS[(i + input.cycle + WEAPONS.length) % WEAPONS.length].id;
+      }
+      if (next) selectWeapon(next);
     }
-    if (controls) controls.pointerSpeed = 1 - state.ads * 0.35;
+    input.select = null;
+    input.swapBack = false;
+    input.cycle = 0;
+    if (input.heal) {
+      input.heal = false;
+      startHeal(now);
+    }
+    if (state.healUntil && now >= state.healUntil) {
+      state.healUntil = 0;
+      useWeaponStore.getState().setHealing(false);
+    }
+    // Whatever put a gun in hand (a key, the end of healing, the server after a reconnect), draw it.
+    const held = useWeaponStore.getState().weapon;
+    if (!state.healUntil && state.equipped !== held) equip(held, now);
+    const gun = getWeapon(held);
 
-    // --- weapon ----------------------------------------------------------------
     if (state.reloading && now >= state.reloadUntil) {
       state.reloading = false;
-      useRoundsStore.getState().reloadRounds();
+      useWeaponStore.getState().refill();
       useHudStore.getState().setReloading(false);
     }
     if (input.reload) {
       input.reload = false;
       startReload(now);
     }
-    const ammo = useRoundsStore.getState().countRounds;
-    const ready = !dead && !state.reloading && now >= state.drawUntil;
+    const ammo = useWeaponStore.getState().rounds[gun.id];
+    const ready = !dead && !state.reloading && !state.healUntil && now >= state.drawUntil;
     if (input.firePressed) {
       input.firePressed = false;
       if (ready && ammo === 0) {
         playSound('dryFire', { volume: 0.8 });
         startReload(now);
+      } else if (!gun.auto) {
+        state.queuedShot = now;
       }
     }
-    if (ready && input.fire && ammo > 0 && now - state.lastShot >= FIRE_INTERVAL) {
-      fire(now, body);
+    if (ready && ammo > 0 && now - state.lastShot >= gun.fireInterval) {
+      const pulled = gun.auto ? input.fire : state.queuedShot && now - state.queuedShot < SHOT_BUFFER;
+      if (pulled) {
+        state.queuedShot = 0;
+        fire(now, body, gun);
+      }
     }
+
+    // --- aiming --------------------------------------------------------------
+    const wantAds = !dead && input.aim && !state.reloading && !state.sprinting && !state.healUntil;
+    state.ads += ((wantAds ? 1 : 0) - state.ads) * dampFactor(14, dt);
+    const fov = THREE.MathUtils.lerp(WORLD_FOV, gun.aimFov, state.ads);
+    if (Math.abs(camera.fov - fov) > 0.01) {
+      camera.fov = fov;
+      camera.updateProjectionMatrix();
+    }
+    if (controls) controls.pointerSpeed = lookSpeed;
+    // Nearly aimed with a scope: the scope view replaces the gun.
+    const scoped = !!gun.scope && state.ads > 0.9 && !dead;
+    state.scoped = scoped;
+    if (useHudStore.getState().scoped !== scoped) useHudStore.getState().setScoped(scoped);
 
     // --- network -------------------------------------------------------------------
     if (now >= state.nextSend) {
