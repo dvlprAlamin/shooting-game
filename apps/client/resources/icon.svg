@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- RimFire app icon master: a canyon rim at sunset seen through a scope.
+       The Android launcher icons, the Play Store icon and public/favicon.svg are rendered from this. -->
+  <defs>
+    <clipPath id="scope">
+      <circle cx="512" cy="512" r="324"/>
+    </clipPath>
+    <radialGradient id="glow" cx="512" cy="512" r="276" gradientUnits="userSpaceOnUse">
+      <stop offset="0.78" stop-color="#ff6a1f" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ff6a1f" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect id="bg" width="1024" height="1024" fill="#0f1d17"/>
+  <g clip-path="url(#scope)">
+    <circle cx="512" cy="512" r="276" fill="url(#glow)"/>
+    <circle cx="512" cy="512" r="221" fill="#ff6a1f"/>
+    <path fill="#21432b" d="M180 698H343L378 643L474 624L502 490Q506 474 528 474H844V844H180Z"/>
+    <g fill="#eee7d4">
+      <rect x="505" y="180" width="14" height="148"/>
+      <rect x="505" y="696" width="14" height="148"/>
+      <rect x="180" y="505" width="148" height="14"/>
+      <rect x="696" y="505" width="148" height="14"/>
+      <rect x="510" y="328" width="4" height="142"/>
+      <rect x="510" y="554" width="4" height="142"/>
+      <rect x="328" y="510" width="142" height="4"/>
+      <rect x="554" y="510" width="142" height="4"/>
+    </g>
+  </g>
+  <circle cx="512" cy="512" r="327" fill="none" stroke="#eee7d4" stroke-width="10"/>
+</svg>
