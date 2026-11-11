@@ -6,6 +6,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { getWeapon } from '@rimfire/shared/weapons';
 import FlashShoot from '@/assets/textures/flash_shoot_256x256.png';
 import { VIEWMODEL_ADS_FOV, VIEWMODEL_FOV, WALK_SPEED } from '@/game/constants';
+import { LOW_QUALITY } from '@/config';
 import { buildMedkit, buildPistol, buildScope, buildSmg } from '@/weapons/models';
 
 const MODEL_URL = '/models/viewmodel_ak.glb';
@@ -76,6 +77,38 @@ const _q = new THREE.Quaternion();
 const _e = new THREE.Euler();
 const _v = new THREE.Vector3();
 const FORWARD = new THREE.Vector3(0, 0, -1);
+
+// Low quality: Phong in place of the PBR materials, and no room environment (a stronger ambient light makes up
+// for it). Shading the arms and gun, a big part of the screen, with them cost about 6% of the frame rate on a
+// low-end phone; Phong keeps a highlight on the metal.
+const VIEW_AMBIENT = LOW_QUALITY ? 1.8 : 1;
+const phongCopies = new WeakMap();
+function toPhong(m) {
+  if (!m.isMeshStandardMaterial) return m;
+  let phong = phongCopies.get(m);
+  if (!phong) {
+    phong = new THREE.MeshPhongMaterial({
+      name: m.name,
+      color: m.color,
+      map: m.map,
+      normalMap: m.normalMap,
+      normalScale: m.normalScale,
+      aoMap: m.aoMap,
+      aoMapIntensity: m.aoMapIntensity,
+      emissive: m.emissive,
+      emissiveMap: m.emissiveMap,
+      transparent: m.transparent,
+      opacity: m.opacity,
+      depthWrite: m.depthWrite,
+      side: m.side,
+      // Smooth metal gets a small, bright highlight; rough cloth a dull, wide one.
+      shininess: 4 + 40 * (1 - m.roughness),
+      specular: new THREE.Color().setScalar(0.08 + 0.5 * m.metalness),
+    });
+    phongCopies.set(m, phong);
+  }
+  return phong;
+}
 
 let envTexture = null;
 function getEnvironment(gl) {
@@ -219,6 +252,11 @@ function getRig(gltf, flashTexture) {
   gunBone.add(flashHolder);
 
   actions.Idle.stop();
+  if (LOW_QUALITY) {
+    root.traverse((o) => {
+      if (o.isMesh) o.material = toPhong(o.material);
+    });
+  }
   rig = {
     root,
     nodes,
@@ -300,8 +338,10 @@ const ViewModelScene = forwardRef(function ViewModelScene({ player, visible }, r
   };
 
   useEffect(() => {
-    scene.environment = getEnvironment(gl);
-    scene.environmentIntensity = 0.6;
+    if (!LOW_QUALITY) {
+      scene.environment = getEnvironment(gl);
+      scene.environmentIntensity = 0.6;
+    }
     anim.current = null;
     anim.shown = null;
     anim.reloading = false;
@@ -436,7 +476,7 @@ const ViewModelScene = forwardRef(function ViewModelScene({ player, visible }, r
   return (
     <>
       <PerspectiveCamera makeDefault ref={cameraRef} fov={VIEWMODEL_FOV} near={0.01} far={20} />
-      <ambientLight intensity={1} />
+      <ambientLight intensity={VIEW_AMBIENT} />
       <directionalLight position={[1, 2, 1]} intensity={1.5} />
       <pointLight
         ref={flashLightRef}

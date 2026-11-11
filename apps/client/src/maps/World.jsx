@@ -1,9 +1,10 @@
+import { memo } from 'react';
 import { Sky } from '@react-three/drei';
 import { BlockMap } from './BlockMap';
 import { GlbMap } from './GlbMap';
 
 /** The map and its lighting. Goes inside <Physics>: the map's colliders need it. */
-export const World = ({ map }) => {
+export const World = memo(function World({ map }) {
   const { light } = map;
   // The shadow camera covers the whole map, seen from any angle; block maps are smaller than the canyon.
   const extent = map.bounds ? Math.ceil(map.bounds * 1.45) : 50;
@@ -30,4 +31,4 @@ export const World = ({ map }) => {
       {map.glb ? <GlbMap glb={map.glb} /> : <BlockMap map={map} />}
     </>
   );
-};
+});

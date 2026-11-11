@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { useEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import { useFrame, useLoader } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import { CapsuleCollider, RigidBody } from '@react-three/rapier';
@@ -57,14 +57,14 @@ function makeNameTag(name, color = '#ffffff') {
 
 // In a team match `team` is theirs and `myTeam` yours: name tags take the team's colour, and teammates' show
 // through walls so you can find them.
-export const RemotePlayer = ({
+export const RemotePlayer = memo(function RemotePlayer({
   id,
   isDead,
   playerName = '',
   initialPosition = { x: 0, y: 0, z: 0 },
   team = null,
   myTeam = null,
-}) => {
+}) {
   const soldier = useGLTF(SOLDIER_URL);
   const rifle = useGLTF(RIFLE_URL);
   const flashTexture = useLoader(THREE.TextureLoader, FlashShoot);
@@ -227,7 +227,7 @@ export const RemotePlayer = ({
       </group>
     </>
   );
-};
+});
 
 useGLTF.preload(SOLDIER_URL);
 useGLTF.preload(RIFLE_URL);

@@ -1,0 +1,13 @@
+@use '@/styles/kit' as *;
+
+.fps {
+  position: fixed;
+  top: calc(var(--safe-top) + 4px);
+  left: calc(var(--safe-left) + 6px);
+  z-index: var(--z-hud);
+  font: 600 0.75rem/1 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  color: var(--bone);
+  pointer-events: none;
+  @include over-scene;
+}

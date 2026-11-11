@@ -1,6 +1,6 @@
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { memo, Suspense, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Html, PointerLockControls, Stats } from '@react-three/drei';
+import { Html, PointerLockControls } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
 import { DEFAULT_MAP, getMap } from '@rimfire/shared/maps';
 import { World } from '@/maps/World';
@@ -25,6 +25,7 @@ import { useHudStore } from './store/HudStore';
 import { RemotePlayer } from './RemotePlayer';
 import RoomSelector from './UI/RoomSelector/RoomSelector';
 import UI from './UI/UI';
+import FpsMeter from './UI/FpsMeter/FpsMeter';
 import Hud from './UI/Hud/Hud';
 import { Loading, Reconnecting } from './UI/Status/Status';
 import { useFeedStore } from './store/FeedStore';
@@ -299,6 +300,7 @@ const App = () => {
         teamScores={mode === 'tdm' ? teamScores : null}
       />
       <UI />
+      <FpsMeter />
       {IS_TOUCH && !isDead && !isGameOver && <TouchControls />}
       <Canvas
         camera={{ fov: WORLD_FOV, near: 0.05, far: 1000 }}
@@ -321,7 +323,9 @@ const App = () => {
 
 export default App;
 
-const Scene = ({ map, players, myTeam, isDead, isGameOver }) => {
+// Memoized, like World and the players in it: App re-renders on every timer tick and HUD change, and taking
+// the 3D tree along cost a long frame (50-70 ms) each time on a low-end phone.
+const Scene = memo(function Scene({ map, players, myTeam, isDead, isGameOver }) {
   const pointerLockControlsLockHandler = () => {
     usePointerLockControlsStore.setState({ isLock: true });
   };
@@ -332,7 +336,6 @@ const Scene = ({ map, players, myTeam, isDead, isGameOver }) => {
 
   return (
     <>
-      <Stats />
       {/* Mouse look needs the Pointer Lock API, which phones don't have; touch look is in TouchControls. */}
       {!IS_TOUCH && !isDead && !isGameOver ? (
         <PointerLockControls
@@ -375,4 +378,4 @@ const Scene = ({ map, players, myTeam, isDead, isGameOver }) => {
       </Physics>
     </>
   );
-};
+});

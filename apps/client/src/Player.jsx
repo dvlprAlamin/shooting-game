@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { useEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { CapsuleCollider, RigidBody, useRapier } from '@react-three/rapier';
 import { socket } from '@/net/socket';
@@ -57,7 +57,13 @@ const AIM_LOOK = 0.65;
 
 // `initialYaw`: the way to face on spawning. `fall`: below this height you've fallen out of the map and are put
 // back at `fallReset`.
-export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, initialYaw, fall, fallReset, isDead }) => {
+export const Player = memo(function Player({
+  initialPosition = { x: 0, y: 0, z: 0 },
+  initialYaw,
+  fall,
+  fallReset,
+  isDead,
+}) {
   const bodyRef = useRef(); // Rapier rigid body
   const anchorRef = useRef(); // child of the RigidBody group, used to read the interpolated position
   const viewModelRef = useRef();
@@ -476,4 +482,4 @@ export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, initialYaw, fal
       <ViewModel ref={viewModelRef} player={state} visible={!isDead} />
     </>
   );
-};
+});
