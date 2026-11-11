@@ -240,8 +240,10 @@ export const Player = ({ initialPosition = { x: 0, y: 0, z: 0 }, initialYaw, fal
       if (target) {
         // The collider's translation is the capsule centre; the top of the capsule is the head.
         head = _point.y - hit.collider.translation().y >= HEAD_HEIGHT;
-        // Spawn-protected players take no damage, so they get no hit feedback either.
-        if (!isProtected(target)) {
+        // Spawn-protected players and teammates take no damage, so they get no hit feedback either.
+        const { players } = usePlayerStore.getState();
+        const team = players[socket.id]?.team;
+        if (!isProtected(target) && !(team && players[target]?.team === team)) {
           hud.showHitMarker(head ? 'head' : 'hit');
           playHitTick(head);
           impactsRef.current?.blood(_point);

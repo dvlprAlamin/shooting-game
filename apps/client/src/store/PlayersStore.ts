@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
+import type { Team } from '@shooter/shared';
 interface Player {
   id: string;
   playerName: string;
@@ -13,6 +14,8 @@ interface Player {
   isDead?: boolean;
   /** ms of spawn protection left when the server sent this */
   protection: number;
+  /** In a team match, 'a' or 'b'; null otherwise. */
+  team?: Team | null;
 }
 type Players = Record<string, Player>; // by player id
 export interface IPlayerStore {

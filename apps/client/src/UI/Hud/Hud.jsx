@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MAX_HEALTH, SPAWN_PROTECTION } from '@shooter/shared';
 import { useHudStore } from '@/store/HudStore';
+import { otherTeam, teamName } from '@/game/teams';
 import CopyButton from '../elements/CopyButton';
 import styles from './Hud.module.scss';
 
@@ -74,45 +75,82 @@ const Protection = () => {
   );
 };
 
-/** Match info at the top, health at the bottom, and the map and room code to send to friends. */
-const Hud = ({ health, kills = 0, deaths = 0, timeRemaining, roomId, mapName }) => (
-  <div className={styles.hud}>
-    <div className={styles.match}>
-      <span className={styles.stat}>
-        <KillsIcon />
-        {kills}
-        <span className="sr-only">kills</span>
-      </span>
-      {timeRemaining != null && (
-        <span
-          className={`${styles.timer} ${timeRemaining <= LOW_TIME ? styles.low : ''}`}
-          role="timer"
-          aria-label="Time left"
-        >
-          {formatTime(timeRemaining)}
-        </span>
-      )}
-      <span className={styles.stat}>
-        <DeathsIcon />
-        {deaths}
-        <span className="sr-only">deaths</span>
-      </span>
-    </div>
-
-    {roomId && (
-      <div className={styles.room}>
-        {mapName && <span className={styles.mapName}>{mapName}</span>}
-        <span className={styles.roomLabel}>Room</span>
-        <span className={styles.roomCode}>{roomId}</span>
-        <CopyButton text={roomId} />
-      </div>
-    )}
-
-    <div className={styles.vitals}>
-      <Protection />
-      <Health value={health} />
-    </div>
-  </div>
+const Kills = ({ value, className = styles.stat }) => (
+  <span className={className}>
+    <KillsIcon />
+    {value}
+    <span className="sr-only">kills</span>
+  </span>
 );
+
+const Deaths = ({ value, className = styles.stat }) => (
+  <span className={className}>
+    <DeathsIcon />
+    {value}
+    <span className="sr-only">deaths</span>
+  </span>
+);
+
+// A team's kills, in its colour, with its name over the number.
+const TeamScore = ({ team, score, mine }) => (
+  <span className={`${styles.team} ${styles[`team-${team}`]}`}>
+    <span className={styles.teamName}>
+      {teamName(team)}
+      {mine && <span className="sr-only"> (your team)</span>}
+    </span>
+    <span className={styles.teamScore}>{score}</span>
+  </span>
+);
+
+/**
+ * Match info at the top, health at the bottom, and the map and room code to send to friends. In a team match
+ * (`teamScores` set) the top strip has your team's score left of the timer and theirs on the right, with your
+ * own kills and deaths under it.
+ */
+const Hud = ({ health, kills = 0, deaths = 0, timeRemaining, roomId, mapName, teamScores = null, myTeam = null }) => {
+  const teams = !!(teamScores && myTeam);
+  const timer = timeRemaining != null && (
+    <span className={`${styles.timer} ${timeRemaining <= LOW_TIME ? styles.low : ''}`} role="timer" aria-label="Time left">
+      {formatTime(timeRemaining)}
+    </span>
+  );
+  return (
+    <div className={styles.hud}>
+      {teams ? (
+        <div className={styles.top}>
+          <div className={styles.match}>
+            <TeamScore team={myTeam} score={teamScores[myTeam]} mine />
+            {timer}
+            <TeamScore team={otherTeam(myTeam)} score={teamScores[otherTeam(myTeam)]} />
+          </div>
+          <div className={styles.personal}>
+            <Kills value={kills} className={styles.mini} />
+            <Deaths value={deaths} className={styles.mini} />
+          </div>
+        </div>
+      ) : (
+        <div className={`${styles.top} ${styles.match}`}>
+          <Kills value={kills} />
+          {timer}
+          <Deaths value={deaths} />
+        </div>
+      )}
+
+      {roomId && (
+        <div className={styles.room}>
+          {mapName && <span className={styles.mapName}>{mapName}</span>}
+          <span className={styles.roomLabel}>Room</span>
+          <span className={styles.roomCode}>{roomId}</span>
+          <CopyButton text={roomId} />
+        </div>
+      )}
+
+      <div className={styles.vitals}>
+        <Protection />
+        <Health value={health} />
+      </div>
+    </div>
+  );
+};
 
 export default Hud;

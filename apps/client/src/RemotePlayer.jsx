@@ -9,6 +9,7 @@ import { DEFAULT_WEAPON } from '@shooter/shared/weapons';
 import { getRemoteWeapon, isProtected, sampleRemote, setShotListener } from '@/net/remotePlayers';
 import { createSoldierRig, getMuzzleWorld, GUN_MUZZLE } from '@/game/soldierRig';
 import { playSoundAt } from '@/game/audio';
+import { TEAM_INFO } from '@/game/teams';
 import { SOUNDS } from '@/weapons/items';
 import { thirdPersonModel, toThirdPerson } from '@/weapons/models';
 import {
@@ -23,6 +24,9 @@ const RIFLE_URL = '/models/weapon_tp.glb';
 
 const _muzzle = new THREE.Vector3();
 const SHIELD_COLOR = '#47c6cb'; // --teal in index.scss
+const TAG_SCALE = [1.1, 0.275, 1];
+// Teammates' tags keep one size on screen (a normal tag's at about 5.5 m), so they can be found at any range.
+const ALLY_TAG_SCALE = [0.2, 0.05, 1];
 
 // Where each gun's muzzle is and where the left hand holds it, gun-local (see game/soldierRig.js). The
 // rifle and the marksman rifle are the third-person AKS-74U; the others come from weapons/models.js.
@@ -33,7 +37,7 @@ const HOLDS = {
   pistol: { muzzle: toThirdPerson({ x: 0, y: -0.012, z: -0.028 }), grip: new THREE.Vector3(0.015, -0.03, 0.02) },
 };
 
-function makeNameTag(name) {
+function makeNameTag(name, color = '#ffffff') {
   const canvas = document.createElement('canvas');
   canvas.width = 256;
   canvas.height = 64;
@@ -44,14 +48,23 @@ function makeNameTag(name) {
   ctx.lineWidth = 6;
   ctx.strokeStyle = 'rgba(0,0,0,0.75)';
   ctx.strokeText(name, 128, 32, 240);
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = color;
   ctx.fillText(name, 128, 32, 240);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
 
-export const RemotePlayer = ({ id, isDead, playerName = '', initialPosition = { x: 0, y: 0, z: 0 } }) => {
+// In a team match `team` is theirs and `myTeam` yours: name tags take the team's colour, and teammates' show
+// through walls so you can find them.
+export const RemotePlayer = ({
+  id,
+  isDead,
+  playerName = '',
+  initialPosition = { x: 0, y: 0, z: 0 },
+  team = null,
+  myTeam = null,
+}) => {
   const soldier = useGLTF(SOLDIER_URL);
   const rifle = useGLTF(RIFLE_URL);
   const flashTexture = useLoader(THREE.TextureLoader, FlashShoot);
@@ -99,7 +112,8 @@ export const RemotePlayer = ({ id, isDead, playerName = '', initialPosition = { 
     return { model, gun, guns, rig, flash, shown: null };
   }, [soldier, rifle, flashTexture]);
 
-  const nameTag = useMemo(() => makeNameTag(playerName), [playerName]);
+  const ally = !!team && team === myTeam;
+  const nameTag = useMemo(() => makeNameTag(playerName, TEAM_INFO[team]?.color), [playerName, team]);
   useEffect(() => () => nameTag.dispose(), [nameTag]);
 
   const motion = useMemo(
@@ -198,8 +212,13 @@ export const RemotePlayer = ({ id, isDead, playerName = '', initialPosition = { 
         <group ref={tiltRef}>
           <primitive object={visual.model} />
         </group>
-        <sprite position={[0, 2.05, 0]} scale={[1.1, 0.275, 1]} visible={!isDead}>
-          <spriteMaterial map={nameTag} transparent depthWrite={false} />
+        <sprite
+          position={[0, 2.05, 0]}
+          scale={ally ? ALLY_TAG_SCALE : TAG_SCALE}
+          visible={!isDead}
+          renderOrder={ally ? 10 : 0}
+        >
+          <spriteMaterial map={nameTag} transparent depthWrite={false} depthTest={!ally} sizeAttenuation={!ally} />
         </sprite>
         <mesh ref={shieldRef} position={[0, PLAYER_CENTER_TO_FEET, 0]} visible={false}>
           <capsuleGeometry args={[PLAYER_RADIUS + 0.12, PLAYER_HALF_HEIGHT * 2, 4, 12]} />

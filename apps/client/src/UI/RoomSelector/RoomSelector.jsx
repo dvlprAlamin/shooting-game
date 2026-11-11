@@ -1,15 +1,20 @@
 import { useState } from 'react';
 import { nanoid } from 'nanoid';
-import { PLAYER_LIMITS, ROOM_DURATIONS } from '@shooter/shared';
+import { MODES, PLAYER_LIMITS, ROOM_DURATIONS } from '@shooter/shared';
 import { DEFAULT_MAP, MAPS, getMap } from '@shooter/shared/maps';
 import Button from '../elements/Button';
 import CopyButton from '../elements/CopyButton';
 import styles from './RoomSelector.module.scss';
 
-const MODES = [
+const TABS = [
   { value: 'create', label: 'Create room' },
   { value: 'join', label: 'Join room' },
 ];
+// Game modes (MODES in @shooter/shared). `short` is the label where space is tight.
+const GAME_MODES = {
+  ffa: { label: 'Free for all', short: 'FFA', blurb: 'Everyone against everyone' },
+  tdm: { label: 'Teams', short: 'Teams', blurb: 'Two teams, no friendly fire. Most team kills wins' },
+};
 const NAME_MAX_LENGTH = 24; // the server keeps the first 24 characters
 // Same rule as ROOM_ID_PATTERN in @shooter/shared, written for the `pattern` attribute (which needs `\-`).
 const ROOM_CODE_PATTERN = '[A-Za-z0-9_\\-]{1,32}';
@@ -37,6 +42,24 @@ const MapChoice = ({ value, onChange, away }) => (
   </fieldset>
 );
 
+/** Free for all or teams, as chips with the mode's name. */
+const ModeChoice = ({ value, onChange }) => (
+  <fieldset className={styles.choices}>
+    <legend>Mode</legend>
+    <div className={styles.chips}>
+      {MODES.map((mode) => (
+        <label key={mode} className={`${styles.chip} ${styles.modeChip}`} title={GAME_MODES[mode].blurb}>
+          <input type="radio" name="gameMode" value={mode} checked={value === mode} onChange={() => onChange(mode)} />
+          <span className={styles.long}>{GAME_MODES[mode].label}</span>
+          <span className={styles.short} aria-hidden="true">
+            {GAME_MODES[mode].short}
+          </span>
+        </label>
+      ))}
+    </div>
+  </fieldset>
+);
+
 /** One row of choices shown as chips (radio buttons): every option visible, one tap to pick. */
 const Choices = ({ legend, name, options }) => (
   <fieldset className={styles.choices}>
@@ -56,6 +79,7 @@ const RoomSelector = ({ joinRoom }) => {
   const [mode, setMode] = useState('create');
   const [newRoomId] = useState(() => nanoid(6));
   const [mapId, setMapId] = useState(() => getMap(read('map') || DEFAULT_MAP).id);
+  const [gameMode, setGameMode] = useState(() => (MODES.includes(read('mode')) ? read('mode') : MODES[0]));
   const isCreate = mode === 'create';
 
   const handleSubmit = (e) => {
@@ -67,7 +91,10 @@ const RoomSelector = ({ joinRoom }) => {
     try {
       localStorage.setItem('playerName', playerName);
       localStorage.setItem('roomId', roomId);
-      if (isCreate) localStorage.setItem('map', mapId);
+      if (isCreate) {
+        localStorage.setItem('map', mapId);
+        localStorage.setItem('mode', gameMode);
+      }
     } catch {
       // Private mode: the name just isn't remembered.
     }
@@ -78,6 +105,7 @@ const RoomSelector = ({ joinRoom }) => {
             playerName,
             isCreate,
             map: mapId,
+            mode: gameMode,
             duration: data.get('duration'),
             playersLimit: data.get('playersLimit'),
           }
@@ -97,7 +125,7 @@ const RoomSelector = ({ joinRoom }) => {
       <form className={styles.deploy} onSubmit={handleSubmit} aria-label={isCreate ? 'Create a room' : 'Join a room'}>
         <fieldset className={styles.tabs}>
           <legend className="sr-only">Room</legend>
-          {MODES.map(({ value, label }) => (
+          {TABS.map(({ value, label }) => (
             <label key={value} className={styles.tab}>
               <input type="radio" name="mode" value={value} checked={mode === value} onChange={() => setMode(value)} />
               {label}
@@ -135,6 +163,7 @@ const RoomSelector = ({ joinRoom }) => {
               <div className={styles.settings}>
                 <Choices legend="Match length (minutes)" name="duration" options={ROOM_DURATIONS} />
                 <Choices legend="Max players" name="playersLimit" options={PLAYER_LIMITS} />
+                <ModeChoice value={gameMode} onChange={setGameMode} />
               </div>
               <div className={styles.actions}>
                 <Button type="submit">Start match</Button>

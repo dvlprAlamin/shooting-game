@@ -115,6 +115,13 @@ Values both sides must agree on (hitbox size, room options) come from `@shooter/
 (damage, fire rate, magazine, reload, spread, recoil, speed) from `@shooter/shared/weapons`
 (`packages/shared/` in the repo root). Edit them there; the server picks up the same change.
 
+## Team matches
+
+Picking Teams in the menu makes a team match (`mode: 'tdm'`). The two teams' names and colours are in
+`src/game/teams.js` and `--team-a` / `--team-b` in `src/index.scss`: Blue and Gold, apart from blaze (always
+you) and teal (spawn protection). The HUD shows your team's score left of the timer, the scoreboard groups
+players by team, and name tags take the team colour; teammates' tags show through walls at a fixed size.
+
 ## Weapons
 
 Everyone carries all four guns and a medkit. The rifle is the AK in `public/models/viewmodel_ak.glb`. The SMG,

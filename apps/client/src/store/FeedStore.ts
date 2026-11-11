@@ -12,6 +12,9 @@ export interface IKill {
   headshot: boolean;
   /** The gun, as a weapon id. */
   weapon?: string;
+  /** In a team match, each side's team ('a' or 'b'); null otherwise. */
+  killerTeam?: string | null;
+  victimTeam?: string | null;
 }
 
 export interface INotice {

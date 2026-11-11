@@ -18,6 +18,10 @@ export const HEAD_HEIGHT = 0.6;
 export const MAX_SHOT_DISTANCE = 250;
 
 // Options offered when creating a room. The first entry is the default.
+// Modes: 'ffa' is everyone against everyone; 'tdm' is two teams (TEAMS), with no friendly fire, where the
+// team with more kills wins.
+export const MODES = ['ffa', 'tdm'];
+export const TEAMS = ['a', 'b'];
 export const ROOM_DURATIONS = [5, 10, 15, 20, 25, 30]; // minutes
 export const PLAYER_LIMITS = [5, 10, 15];
 

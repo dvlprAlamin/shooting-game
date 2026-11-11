@@ -13,6 +13,11 @@ to the player who created them.
   and the medkit (with 150 ms of slack for the network), so a shot is refused if it comes too fast for the gun
   in hand, from an empty magazine, mid-reload, mid-switch or mid-heal. Damage is the gun's, less with range
   for the guns that fall off. `playerWeapon` and each player's `weapon` field tell the others what you hold.
+- Rooms are free-for-all or team matches (`mode` in `joinRoom`: `ffa` or `tdm`; every `joinedRoom` says which).
+  In a team match each player is on team `a` or `b` (the `team` field of every player), newcomers on the smaller
+  team. Teammates can't hurt each other, spawns keep away from the other team only, and each kill scores for the
+  killer's team (`teamScores`, sent on joining and after every kill). Teams two or more apart are evened out as
+  players respawn and when a rematch starts.
 - The room plays on the map its creator picked (`map` in `joinRoom`; every `joinedRoom` says which). Players
   spawn on that map's points. A shot only counts if it starts within 3 m of the shooter's eyes, on their side
   of any wall, and no box of the map is in its way before the target (`src/game/walls.js`). Canyon has no boxes,

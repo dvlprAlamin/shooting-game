@@ -92,3 +92,47 @@
     content: '✓ ';
   }
 }
+
+// Team matches: each team's block opens with its name and score, in its colour.
+.team-a {
+  --tc: var(--team-a);
+}
+
+.team-b {
+  --tc: var(--team-b);
+}
+
+.table .teamRow th {
+  padding-top: 0.9rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--tc);
+  border-bottom: 2px solid var(--tc);
+
+  > span:first-child {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+
+  @include short {
+    padding-top: 0.5rem;
+    font-size: 0.95rem;
+  }
+}
+
+.total {
+  @include stencil;
+  float: right;
+  font-size: 1.6rem;
+
+  @include short {
+    font-size: 1.3rem;
+  }
+}
+
+.yours {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--muted);
+}

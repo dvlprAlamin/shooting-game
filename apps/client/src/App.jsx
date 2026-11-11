@@ -16,6 +16,7 @@ import {
   setRemoteWeapon,
 } from '@/net/remotePlayers';
 import { WORLD_FOV } from '@/game/constants';
+import { teamName } from '@/game/teams';
 import { IS_TOUCH, LOW_QUALITY } from '@/config';
 import { usePointerLockControlsStore } from './store/PointerLockControlStore';
 import RespawnPopup from './UI/RespawnPopup/RespawnPopup';
@@ -50,6 +51,10 @@ const App = () => {
   const [isGameOver, setIsGameOver] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [rematch, setRematch] = useState(NO_REMATCH);
+  const [mode, setMode] = useState('ffa');
+  const [teamScores, setTeamScores] = useState(null); // { a, b } in a team match
+  // Your team, kept here because you drop out of `players` for a moment while you respawn.
+  const [myTeam, setMyTeam] = useState(null);
 
   useEffect(() => {
     const { setPlayers, setPlayer, updatePlayer, removePlayer, setLeaderboard } = usePlayerStore.getState();
@@ -72,10 +77,16 @@ const App = () => {
       setIsDead(false);
       setIsGameOver(false);
       setRematch(NO_REMATCH);
+      setMode('ffa');
+      setTeamScores(null);
+      setMyTeam(null);
       setPlayers({});
       clearRemotes();
       hud.setProtection(0);
     };
+
+    // In a team match, say which team you're on: when you join (or come back) and when a rematch starts.
+    let announceTeam = false;
 
     // Handle current players. The server says which gun each one holds, yours included: after a reconnect
     // it has the last word on a switch that may never have reached it.
@@ -92,6 +103,10 @@ const App = () => {
         protect(player);
       }
       setPlayers(currentPlayers);
+      const team = currentPlayers[socket.id]?.team ?? null;
+      setMyTeam(team);
+      if (announceTeam && team) hud.showCallout(`${teamName(team)} team`, 'Most team kills wins');
+      announceTeam = false;
     };
 
     // Handle new player
@@ -119,6 +134,8 @@ const App = () => {
         you,
         headshot: !!death.headshot,
         weapon: death.weapon,
+        killerTeam: death.shooterTeam ?? null,
+        victimTeam: death.team ?? null,
       });
 
       const milestone = isStreakMilestone(death.streak);
@@ -146,6 +163,12 @@ const App = () => {
     const onPlayerKilled = (player) => updatePlayer(player.id, 'kills', player.kills);
 
     const onPlayerRespawned = (player) => {
+      // The server evens out lopsided teams as players respawn.
+      const before = usePlayerStore.getState().players[player.id]?.team;
+      if (player.id === socket.id && player.team && before && before !== player.team) {
+        pushNotice(`You're on ${teamName(player.team)} now, to even out the teams`);
+      }
+      if (player.id === socket.id) setMyTeam(player.team ?? null);
       removePlayer(player.id);
       if (player.id !== socket.id) resetRemote(player.id, player.position);
       protect(player);
@@ -169,7 +192,7 @@ const App = () => {
     const onGameOver = () => setIsGameOver(true);
 
     // The same room starts over: fresh scores and positions, like joining again.
-    const onMatchStarted = ({ players: all, duration }) => {
+    const onMatchStarted = ({ players: all, duration, teamScores: scores = null }) => {
       respawnTimeouts.forEach(clearTimeout);
       respawnTimeouts.clear();
       setIsGameOver(false);
@@ -177,11 +200,15 @@ const App = () => {
       setKilledBy(null);
       setRematch(NO_REMATCH);
       setTimeRemaining(duration);
+      setTeamScores(scores);
+      announceTeam = true;
       onCurrentPlayers(all);
       setLeaderboard(all);
     };
-    const onJoinedRoom = ({ map } = {}) => {
+    const onJoinedRoom = ({ map, mode: roomMode } = {}) => {
       setMapId(map ?? DEFAULT_MAP);
+      setMode(roomMode ?? 'ffa');
+      announceTeam = true;
       setIsJoinedRoom(true);
       setIsReconnecting(false);
     };
@@ -210,6 +237,7 @@ const App = () => {
       timerUpdate: onTimerUpdate,
       gameOver: onGameOver,
       rematchVotes: setRematch,
+      teamScores: setTeamScores,
       matchStarted: onMatchStarted,
       joinedRoom: onJoinedRoom,
       playerDisconnected: onPlayerDisconnected,
@@ -249,6 +277,8 @@ const App = () => {
           reSpawnHandler={reSpawnHandler}
           killedBy={killedBy}
           myId={socket.id}
+          myTeam={myTeam}
+          teamScores={mode === 'tdm' ? teamScores : null}
           rematch={rematch}
           onRematch={handleRematch}
           onLeave={handleLeave}
@@ -265,6 +295,8 @@ const App = () => {
         kills={players[socket.id]?.kills}
         roomId={roomId}
         mapName={map.name}
+        myTeam={myTeam}
+        teamScores={mode === 'tdm' ? teamScores : null}
       />
       <UI />
       {IS_TOUCH && !isDead && !isGameOver && <TouchControls />}
@@ -280,7 +312,7 @@ const App = () => {
             </Html>
           }
         >
-          <Scene map={map} players={players} isDead={isDead} isGameOver={isGameOver} />
+          <Scene map={map} players={players} myTeam={myTeam} isDead={isDead} isGameOver={isGameOver} />
         </Suspense>
       </Canvas>
     </>
@@ -289,7 +321,7 @@ const App = () => {
 
 export default App;
 
-const Scene = ({ map, players, isDead, isGameOver }) => {
+const Scene = ({ map, players, myTeam, isDead, isGameOver }) => {
   const pointerLockControlsLockHandler = () => {
     usePointerLockControlsStore.setState({ isLock: true });
   };
@@ -332,6 +364,8 @@ const Scene = ({ map, players, isDead, isGameOver }) => {
                 initialPosition={players[id].position}
                 isDead={players[id].isDead}
                 playerName={players[id].playerName}
+                team={players[id].team}
+                myTeam={myTeam}
               />
             )
           )

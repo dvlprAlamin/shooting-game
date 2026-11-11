@@ -2,10 +2,12 @@ import {
     EYE_HEIGHT,
     MAX_HEALTH,
     MAX_SHOT_DISTANCE,
+    MODES,
     PLAYER_LIMITS,
     PLAYER_RADIUS,
     ROOM_DURATIONS,
     SPAWN_PROTECTION,
+    TEAMS,
 } from '@shooter/shared';
 import { getMap } from '@shooter/shared/maps';
 import { DEFAULT_WEAPON, MEDKIT, WEAPONS, damageAt, findWeapon, getWeapon } from '@shooter/shared/weapons';
@@ -54,6 +56,7 @@ const publicPlayer = (p, now) => ({
     isDead: p.isDead,
     protection: Math.max(0, p.protectedUntil - now), // ms of spawn protection left
     weapon: p.weapon,
+    team: p.team, // null outside team matches
 });
 
 const fullMagazines = () => Object.fromEntries(WEAPONS.map((w) => [w.id, w.magSize]));
@@ -86,6 +89,10 @@ const pushHistory = (player, now) => {
  * After the match the room stays open for a rematch (rematch() votes) until GAME_OVER_TTL_MS has
  * passed; then `expired` tells the transport to close it.
  *
+ * Team matches (mode 'tdm'): each player is on one of TEAMS, newcomers on the smaller one. Teammates can't hurt
+ * each other, spawns keep away from the other team only, and every kill scores for the killer's team
+ * (`teamScores`). Teams that have drifted two or more apart are evened out as players respawn, and at a rematch.
+ *
  * Weapons (@shooter/shared/weapons): every player carries all of them and the room keeps count of each
  * one's magazine, so a client can't fire faster, longer or harder than its gun allows. Reloads and medkits
  * are timed here too, and finish on the player's next message after their time is up.
@@ -98,14 +105,17 @@ export class GameRoom {
      * @param {number|string} [options.duration] match length in minutes, one of ROOM_DURATIONS
      * @param {number|string} [options.playersLimit] one of PLAYER_LIMITS
      * @param {string} [options.map] map id (see @shooter/shared/maps); unknown ids get the default map
+     * @param {string} [options.mode] one of MODES; anything else gets the default (free-for-all)
      * @param {() => number} [options.now] clock in ms
      * @param {() => number} [options.random] random number in [0, 1)
      */
-    constructor({ send, duration, playersLimit, map, now = Date.now, random = Math.random }) {
+    constructor({ send, duration, playersLimit, map, mode, now = Date.now, random = Math.random }) {
         this.send = send;
         this.now = now;
         this.random = random;
         this.map = getMap(map);
+        this.mode = MODES.includes(mode) ? mode : MODES[0];
+        this.teamScores = this.teams ? Object.fromEntries(TEAMS.map((t) => [t, 0])) : null; // kills by team
         this.players = {};
         this.playersLimit = option(PLAYER_LIMITS, playersLimit);
         this.matchLength = option(ROOM_DURATIONS, duration) * 60; // seconds
@@ -114,6 +124,11 @@ export class GameRoom {
         this.endedAt = null;
         this.votes = new Set(); // players who want a rematch
         this.rematchIn = null; // seconds until the rematch starts, once more than half want one
+    }
+
+    /** A team match (otherwise everyone plays for themselves). */
+    get teams() {
+        return this.mode === 'tdm';
     }
 
     get isEmpty() {
@@ -153,6 +168,7 @@ export class GameRoom {
             history: [],
             key,
             droppedAt: null,
+            team: this.teams ? this.smallerTeam() : null,
             weapon: DEFAULT_WEAPON,
             rounds: null, // magazine of each gun, by id
             medkits: 0,
@@ -161,12 +177,13 @@ export class GameRoom {
             healAt: 0, // a medkit in use heals then (0: none)
         };
         rearm(player);
-        this.placeAtSpawn(player, this.enemyPositions(id));
+        this.placeAtSpawn(player, this.enemyPositions(id, player.team));
         this.players[id] = player;
         pushHistory(player, now);
 
         // The newcomer gets the room as it is, everyone else gets the newcomer.
         this.send(id, 'currentPlayers', this.publicPlayers());
+        if (this.teams) this.send(id, 'teamScores', this.teamScores);
         if (this.duration > 0) this.send(id, 'timerUpdate', this.duration);
         this.broadcast('newPlayer', publicPlayer(player, now), id);
         this.broadcastLeaderboard();
@@ -198,6 +215,7 @@ export class GameRoom {
         player.reloadAt = 0;
         this.send(id, 'joinedRoom', this.joinedRoom(id));
         this.send(id, 'currentPlayers', this.publicPlayers());
+        if (this.teams) this.send(id, 'teamScores', this.teamScores);
         if (this.duration > 0) this.send(id, 'timerUpdate', this.duration);
         this.send(id, 'leaderboardAllPlayers', this.publicPlayers());
         if (this.ended) {
@@ -294,7 +312,8 @@ export class GameRoom {
             target = findTarget(this.players, id, data.o, direction, firstWallHit(this.map, data.o, direction, reach));
             if (target) range = distance(data.o, target.position);
         }
-        if (!target || target.protectedUntil > now) return;
+        // A teammate in the way stops the bullet but takes no damage.
+        if (!target || target.protectedUntil > now || this.sameTeam(target, shooter)) return;
 
         target.health = Math.max(0, target.health - damageAt(weapon, range, headshot));
         target.lastHitAt = now;
@@ -318,8 +337,14 @@ export class GameRoom {
                 weapon: weapon.id,
                 streak: shooter.streak, // the shooter's, counting this kill
                 endedStreak, // the one the victim had going
+                team: target.team,
+                shooterTeam: shooter.team,
             });
             this.broadcast('playerKilled', { id, kills: shooter.kills });
+            if (this.teams) {
+                this.teamScores[shooter.team] += 1;
+                this.broadcast('teamScores', this.teamScores);
+            }
             this.broadcastLeaderboard();
         }
     }
@@ -376,7 +401,13 @@ export class GameRoom {
         const player = this.players[id];
         if (!player || !player.isDead || this.ended) return;
         const now = this.now();
-        this.placeAtSpawn(player, this.enemyPositions(id));
+        // Coming back is the moment to even out teams that players leaving have made lopsided.
+        if (this.teams) {
+            const count = this.teamCounts();
+            const other = TEAMS.find((t) => t !== player.team);
+            if (count[player.team] - count[other] >= 2) player.team = other;
+        }
+        this.placeAtSpawn(player, this.enemyPositions(id, player.team));
         player.health = MAX_HEALTH;
         player.isDead = false;
         player.protectedUntil = now + SPAWN_PROTECTION;
@@ -441,7 +472,7 @@ export class GameRoom {
         return { votes: [...this.votes], startsIn: this.rematchIn };
     }
 
-    // Same room, same settings, clean scores. Everyone still here plays, voted or not.
+    // Same room, same settings, clean scores. Everyone still here plays, voted or not, on teams evened out.
     startRematch() {
         const now = this.now();
         this.ended = false;
@@ -449,10 +480,14 @@ export class GameRoom {
         this.votes.clear();
         this.rematchIn = null;
         this.duration = this.matchLength;
-        const placed = [];
+        if (this.teams) {
+            for (const t of TEAMS) this.teamScores[t] = 0;
+            this.balanceTeams();
+        }
+        const placed = []; // players already placed, to spawn away from the other team's
         for (const id in this.players) {
             const p = this.players[id];
-            this.placeAtSpawn(p, placed);
+            this.placeAtSpawn(p, placed.filter((q) => !this.sameTeam(p, q)).map((q) => q.position));
             Object.assign(p, {
                 health: MAX_HEALTH,
                 deaths: 0,
@@ -466,10 +501,14 @@ export class GameRoom {
                 history: [],
             });
             rearm(p);
-            placed.push(p.position);
+            placed.push(p);
             pushHistory(p, now);
         }
-        this.broadcast('matchStarted', { players: this.publicPlayers(), duration: this.duration });
+        this.broadcast('matchStarted', {
+            players: this.publicPlayers(),
+            duration: this.duration,
+            teamScores: this.teamScores,
+        });
     }
 
     // Puts the player on one of the map's spawn points, away from `enemies`, facing the way the point says
@@ -481,17 +520,49 @@ export class GameRoom {
     }
 
     joinedRoom(id) {
-        return { message: 'Joined Room Successful!', id, map: this.map.id };
+        return { message: 'Joined Room Successful!', id, map: this.map.id, mode: this.mode };
     }
 
-    // Where the living players other than `id` are, for spawning away from them.
-    enemyPositions(id) {
+    // Where the living enemies of player `id` (on `team`) are, for spawning away from them.
+    enemyPositions(id, team) {
         const out = [];
         for (const other in this.players) {
             const p = this.players[other];
-            if (other !== id && !p.isDead) out.push(p.position);
+            if (other !== id && !p.isDead && !(team && p.team === team)) out.push(p.position);
         }
         return out;
+    }
+
+    /** Both players are on the same team (never true outside team matches). */
+    sameTeam(a, b) {
+        return a.team !== null && a.team === b.team;
+    }
+
+    teamCounts() {
+        const count = Object.fromEntries(TEAMS.map((t) => [t, 0]));
+        for (const id in this.players) count[this.players[id].team] += 1;
+        return count;
+    }
+
+    // Where a newcomer goes: the team with fewer players, then the one behind on kills, then either.
+    smallerTeam() {
+        const count = this.teamCounts();
+        const [a, b] = TEAMS;
+        if (count[a] !== count[b]) return count[a] < count[b] ? a : b;
+        if (this.teamScores[a] !== this.teamScores[b]) return this.teamScores[a] < this.teamScores[b] ? a : b;
+        return this.random() < 0.5 ? a : b;
+    }
+
+    // Moves the latest joiners of the bigger team over until the teams are at most one apart.
+    balanceTeams() {
+        const [a, b] = TEAMS;
+        for (;;) {
+            const count = this.teamCounts();
+            if (Math.abs(count[a] - count[b]) < 2) return;
+            const from = count[a] > count[b] ? a : b;
+            const last = Object.values(this.players).findLast((p) => p.team === from);
+            last.team = from === a ? b : a;
+        }
     }
 
     publicPlayers() {

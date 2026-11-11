@@ -2,12 +2,14 @@ import { IS_TOUCH } from '@/config';
 import { KILL_TTL, NOTICE_TTL, useFeedStore } from '@/store/FeedStore';
 import styles from './Feed.module.scss';
 import WeaponIcon from '../WeaponIcon';
+import { teamColor } from '@/game/teams';
 
 // Fewer lines on phones, where the left side also holds the move stick.
 const VISIBLE_KILLS = IS_TOUCH ? 3 : 5;
 
-const Name = ({ you, children }) => (you ? <span className={styles.you}>You</span> : <span>{children}</span>);
-
+// "You" in blaze; anyone else in their team's colour in a team match.
+const Name = ({ you, team, children }) =>
+  you ? <span className={styles.you}>You</span> : <span style={{ color: teamColor(team) }}>{children}</span>;
 
 // A head and shoulders in a crosshair.
 const HeadshotIcon = () => (
@@ -31,11 +33,15 @@ const Feed = () => {
       <ol className={styles.kills} aria-label="Kill feed" style={{ '--ttl': `${KILL_TTL}ms` }}>
         {kills.slice(-VISIBLE_KILLS).map((k) => (
           <li key={k.id} className={k.you ? styles.mine : undefined}>
-            <Name you={k.you === 'killer'}>{k.killer}</Name>
+            <Name you={k.you === 'killer'} team={k.killerTeam}>
+              {k.killer}
+            </Name>
             <WeaponIcon id={k.weapon} className={styles.icon} />
             {k.headshot && <HeadshotIcon />}
             <span className="sr-only">eliminated</span>
-            <Name you={k.you === 'victim'}>{k.victim}</Name>
+            <Name you={k.you === 'victim'} team={k.victimTeam}>
+              {k.victim}
+            </Name>
             {k.headshot && <span className="sr-only">with a headshot</span>}
           </li>
         ))}

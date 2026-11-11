@@ -27,7 +27,7 @@
   }
 
   @include short {
-    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
     align-items: center;
     column-gap: clamp(1rem, 4vw, 2.5rem);
     max-width: 62rem;
@@ -237,13 +237,23 @@
   }
 }
 
+// Match length on its own row, then max players and mode side by side. Short screens: all three in one row.
 .settings {
   display: grid;
-  gap: 1.1rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1.1rem 0.75rem;
+
+  > :first-child {
+    grid-column: 1 / -1;
+  }
 
   @include short {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
     gap: 0.75rem;
+
+    > :first-child {
+      grid-column: auto;
+    }
   }
 }
 
@@ -317,6 +327,32 @@
     min-height: 40px;
     padding: 0 0.45rem;
     font-size: 1.1rem;
+  }
+}
+
+// Mode names are words too. The short label (FFA) stands in where the row is tight.
+.modeChip {
+  padding: 0 0.7rem;
+  font-size: 1.3rem;
+  white-space: nowrap;
+
+  .short {
+    display: none;
+  }
+
+  @include short {
+    padding: 0 0.45rem;
+    font-size: 1.1rem;
+  }
+
+  @media #{$short}, (max-width: 34rem) {
+    .long {
+      @include visually-hidden; // still the chip's name for screen readers
+    }
+
+    .short {
+      display: inline;
+    }
   }
 }
 

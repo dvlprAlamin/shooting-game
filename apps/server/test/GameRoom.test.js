@@ -230,7 +230,7 @@ const fireAtB = (s, extra = {}) => {
 test('a room plays on the map it was made with, and spawns face the way the map says', () => {
     const s = setup({ map: 'outpost' });
     s.room.join('A', 'Alice');
-    assert.deepEqual(s.sent[0].data, { message: 'Joined Room Successful!', id: 'A', map: 'outpost' });
+    assert.deepEqual(s.sent[0].data, { message: 'Joined Room Successful!', id: 'A', map: 'outpost', mode: 'ffa' });
     const a = s.room.players.A;
     const point = getMap('outpost').spawns.find((p) => p.x === a.position.x && p.z === a.position.z);
     assert.ok(point, 'spawned on one of the map\'s points');
@@ -319,6 +319,8 @@ test('the killing shot announces the kill and updates the scores', () => {
         weapon: 'rifle',
         streak: 1,
         endedStreak: 0,
+        team: null,
+        shooterTeam: null,
     });
 
     // Dead players can't be hit and can't shoot.
@@ -635,4 +637,118 @@ test('coming back after a dropped connection fills the magazines', () => {
     s.room.drop('A');
     s.room.resume('A');
     assert.deepEqual([s.room.players.A.rounds.rifle, s.room.players.A.reloadAt], [RIFLE.magSize, 0]);
+});
+
+// --- Team matches ---
+
+const teamsOf = (room) => Object.fromEntries(Object.values(room.players).map((p) => [p.id, p.team]));
+
+test('a room plays the mode it was made with; anything unknown is free-for-all', () => {
+    assert.equal(setup({ mode: 'tdm' }).room.mode, 'tdm');
+    assert.equal(setup({ mode: 'ctf' }).room.mode, 'ffa');
+    const { room, sent } = setup();
+    room.join('A', 'Alice');
+    assert.equal(sent[0].data.mode, 'ffa');
+    assert.equal(room.players.A.team, null);
+    assert.equal(room.teamScores, null);
+    assert.ok(!sent.some((e) => e.event === 'teamScores'));
+});
+
+test('newcomers join the smaller team, then the one behind, and are told the score', () => {
+    const s = setup({ mode: 'tdm', playersLimit: 10 });
+    s.room.join('A', 'Alice');
+    assert.deepEqual(s.events('A'), ['joinedRoom', 'currentPlayers', 'teamScores', 'timerUpdate', 'leaderboardAllPlayers']);
+    assert.deepEqual(s.sent.find((e) => e.event === 'teamScores').data, { a: 0, b: 0 });
+    for (const id of ['B', 'C', 'D']) s.room.join(id, id);
+    assert.deepEqual(teamsOf(s.room), { A: 'a', B: 'b', C: 'a', D: 'b' });
+    assert.equal(s.sent.find((e) => e.event === 'currentPlayers' && e.to === 'D').data.C.team, 'a');
+
+    // Level on players, but b is behind on kills.
+    s.room.teamScores.a = 3;
+    s.room.join('E', 'E');
+    assert.equal(s.room.players.E.team, 'b');
+    s.room.join('F', 'F');
+    assert.equal(s.room.players.F.team, 'a');
+});
+
+// A (team a) at the origin, B (team b) 10 m in front, C (team a) beside B. All past their protection.
+function teamDuel() {
+    const s = setup({ mode: 'tdm' });
+    for (const id of ['A', 'B', 'C']) s.room.join(id, id);
+    s.clock.t += SPAWN_PROTECTION;
+    placeA(s);
+    placeB(s);
+    s.room.move('C', { t: 1, p: [5, 0, -10], yaw: 0, pitch: 0, f: 1 });
+    s.take();
+    return s;
+}
+
+test('teammates cannot hurt each other; a teammate in the way stops the shot', () => {
+    const s = teamDuel();
+    s.room.move('C', { t: 2, p: [0, 0, -5], yaw: 0, pitch: 0, f: 1 }); // between A and B
+    s.clock.t += FIRE_INTERVAL;
+    s.room.shoot('A', { o: EYE, d: TOWARDS_B, target: 'C' });
+    s.clock.t += FIRE_INTERVAL;
+    s.room.shoot('A', { o: EYE, d: TOWARDS_B }); // old client: the server finds C first
+    assert.equal(s.room.players.C.health, MAX_HEALTH);
+    assert.equal(s.room.players.B.health, MAX_HEALTH);
+    assert.ok(!s.sent.some((e) => e.event === 'hit' || e.event === 'hitConfirmed'));
+});
+
+test('every kill scores for the killer\'s team, and everyone is told', () => {
+    const s = teamDuel();
+    killB(s);
+    const dead = s.sent.find((e) => e.event === 'playerDead');
+    assert.equal(dead.data.team, 'b');
+    assert.equal(dead.data.shooterTeam, 'a');
+    const scores = s.sent.filter((e) => e.event === 'teamScores');
+    assert.deepEqual(scores.map((e) => e.to), ['A', 'B', 'C']);
+    assert.deepEqual(scores[0].data, { a: 1, b: 0 });
+});
+
+test('respawns in a team match keep away from the other team, not from teammates', () => {
+    const s = teamDuel();
+    // B's teammate D stands on the spawn point farthest from team a (A and C, both at the origin), where B
+    // should still come back.
+    const [first] = farthestFrom(s.room.players.A.position);
+    s.room.move('C', { t: 2, p: [0, 0, 0], yaw: 0, pitch: 0, f: 1 });
+    s.room.join('D', 'D');
+    assert.equal(s.room.players.D.team, 'b');
+    s.room.move('D', { t: 1, p: [first.x, first.y, first.z], yaw: 0, pitch: 0, f: 1 });
+    killB(s);
+    s.room.respawn('B');
+    assert.deepEqual(s.room.players.B.position, first);
+});
+
+test('lopsided teams are evened out as players respawn and at a rematch', () => {
+    const s = setup({ mode: 'tdm' });
+    for (const id of ['A', 'B', 'C', 'D', 'E']) s.room.join(id, id);
+    s.room.leave('B');
+    s.room.leave('D');
+    assert.deepEqual(teamsOf(s.room), { A: 'a', C: 'a', E: 'a' });
+
+    s.room.players.C.isDead = true;
+    s.room.respawn('C');
+    assert.equal(s.room.players.C.team, 'b');
+    const back = s.sent.findLast((e) => e.event === 'playerRespawned');
+    assert.equal(back.data.team, 'b');
+    s.room.players.E.isDead = true;
+    s.room.respawn('E'); // two against one is close enough
+    assert.equal(s.room.players.E.team, 'a');
+
+    // Three on one team after a leave: the rematch moves the latest joiner over and zeroes the score.
+    s.room.join('F', 'F'); // b
+    s.room.leave('C');
+    s.room.teamScores.a = 7;
+    assert.deepEqual(teamsOf(s.room), { A: 'a', E: 'a', F: 'b' });
+    s.room.leave('F');
+    s.room.duration = 1;
+    s.room.tick();
+    s.take();
+    s.room.rematch('A');
+    s.room.rematch('E');
+    assert.deepEqual(teamsOf(s.room), { A: 'a', E: 'b' });
+    const started = s.sent.find((e) => e.event === 'matchStarted');
+    assert.deepEqual(started.data.teamScores, { a: 0, b: 0 });
+    assert.equal(started.data.players.E.team, 'b');
 });
