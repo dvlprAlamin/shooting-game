@@ -1,5 +1,6 @@
 import { SERVER_URL } from '@/config';
 import { ROOM_ID_PATTERN } from '@rimfire/shared';
+import { TOO_MANY_TRIES } from './api';
 import { getProfileId } from './profile';
 
 // Connection to the game server: one WebSocket per room, `<server>/rooms/<roomId>`, carrying JSON
@@ -17,8 +18,9 @@ import { getProfileId } from './profile';
 
 const RETRY_DELAYS = [500, 1000, 2000, 3000, 3000]; // ~9.5 s in total, inside the server's grace period
 // Close codes from the server (packages/game/src/RoomHost.js) that mean "don't retry".
-const FINAL_CLOSE_CODES = new Set([4000, 4001, 4002, 4003, 4004]);
+const FINAL_CLOSE_CODES = new Set([4000, 4001, 4002, 4003, 4004, 4005]);
 const REPLACED = 4003;
+const RATE_LIMITED = 4005; // refused by the Worker's spam protection (apps/server/src/app.js)
 // A refused join (4000) and a closed room (4004) already came with a notification saying why.
 const EXPLAINED_CLOSE_CODES = new Set([4000, 4004]);
 
@@ -149,6 +151,7 @@ class GameSocket {
     this.#reconnecting = false;
     this.id = null;
     if (code === REPLACED) this.#fire('notification', { message: 'You joined from another tab or device.' });
+    else if (code === RATE_LIMITED) this.#fire('notification', { message: TOO_MANY_TRIES });
     else if (EXPLAINED_CLOSE_CODES.has(code)) {
       // The server's notification said why.
     } else if (wasJoined) {

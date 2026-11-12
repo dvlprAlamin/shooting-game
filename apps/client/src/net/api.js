@@ -5,6 +5,12 @@ import { SERVER_URL } from '@/config';
 const BASE = SERVER_URL.replace(/\/+$/, '');
 const TIMEOUT_MS = 8000;
 
+/** What to tell the player when the server turned a request away for coming too often (its spam protection). */
+export const TOO_MANY_TRIES = 'Too many tries from your network. Wait a minute and try again.';
+
+/** The message for a failed request: TOO_MANY_TRIES if that's why, otherwise `fallback`. */
+export const failureMessage = (error, fallback) => (error?.status === 429 ? TOO_MANY_TRIES : fallback);
+
 const request = async (path, init) => {
   const res = await fetch(`${BASE}${path}`, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
   if (!res.ok) throw Object.assign(new Error(`${path}: ${res.status}`), { status: res.status });

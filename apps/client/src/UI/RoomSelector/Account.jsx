@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { GOOGLE_SIGN_IN } from '@/config';
 import { deleteRecord, prepareSignIn, signInWithGoogle, signOut } from '@/net/account';
+import { failureMessage } from '@/net/api';
 import { useAccountStore } from '@/store/AccountStore';
 import { useFeedStore } from '@/store/FeedStore';
 import Button from '../elements/Button';
@@ -45,7 +46,7 @@ const Account = ({ onProfile }) => {
       if (profile !== undefined) onProfile(profile);
     } catch (e) {
       console.error(e);
-      useFeedStore.getState().pushNotice(failure);
+      useFeedStore.getState().pushNotice(failureMessage(e, failure));
     } finally {
       setBusy(false);
       setConfirming(false);

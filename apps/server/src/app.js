@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { CLOSE } from '@rimfire/game';
 import { PROFILE_ID_PATTERN, ROOM_ID_PATTERN } from '@rimfire/shared';
 import { verifyGoogleIdToken } from './googleAuth.js';
 import { lobbyOf } from './lobbyOf.js';
@@ -7,10 +8,34 @@ import { deleteProfile, getProfile, signIn } from './profiles.js';
 
 const app = new Hono();
 
-// The game is served from other origins (the web build's host, capacitor://localhost in the apps).
-app.use('/quickplay', cors());
-app.use('/profile/*', cors());
-app.use('/auth/*', cors());
+// A room WebSocket refused for spam: opened only to close it with a code the client explains, since a plain 429
+// on an upgrade looks like any other network failure in the browser.
+const refuseSocket = () => {
+    const { 0: client, 1: server } = new WebSocketPair();
+    server.accept();
+    server.close(CLOSE.RATE_LIMITED, 'Too many connections');
+    return new Response(null, { status: 101, webSocket: client });
+};
+
+// Spam protection: requests per client address and minute, counted by the rate limiting binding named `binding`
+// (wrangler.jsonc). Generous, since a mobile carrier can put many players behind one address. Without the binding
+// (tests, local setups) everything goes through.
+const limit = (binding) => async (c, next) => {
+    const limiter = c.env?.[binding];
+    if (!limiter) return next();
+    const { success } = await limiter.limit({ key: c.req.header('CF-Connecting-IP') ?? 'local' });
+    if (success) return next();
+    if (c.req.header('Upgrade')?.toLowerCase() === 'websocket') return refuseSocket();
+    c.header('Retry-After', '60');
+    return c.json({ error: 'Too many requests. Wait a minute and try again.' }, 429);
+};
+
+// The game is served from other origins (the web build's host, capacitor://localhost in the apps). CORS goes
+// first, so a refusal still carries its headers (the app can read the 429) and preflights aren't counted.
+app.use('/quickplay', cors(), limit('LIMIT_QUICKPLAY'));
+app.use('/profile/*', cors(), limit('LIMIT_PROFILE'));
+app.use('/auth/*', cors(), limit('LIMIT_AUTH'));
+app.use('/rooms/*', limit('LIMIT_ROOMS'));
 
 // Kept from the Node server for anything that pings it (Workers don't need waking up).
 app.get('/activate', (c) => c.text('ok'));

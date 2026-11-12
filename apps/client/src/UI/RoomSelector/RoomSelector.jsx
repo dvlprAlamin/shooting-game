@@ -5,7 +5,7 @@ import { DEFAULT_MAP, MAPS, getMap } from '@rimfire/shared/maps';
 import Button from '../elements/Button';
 import CopyButton from '../elements/CopyButton';
 import Credits from '../Credits/Credits';
-import { fetchProfile, quickPlay } from '@/net/api';
+import { failureMessage, fetchProfile, quickPlay } from '@/net/api';
 import { getProfileId } from '@/net/profile';
 import { socket } from '@/net/socket';
 import { NEARBY } from '@/net/lan/native';
@@ -317,8 +317,8 @@ const RoomSelector = ({ joinRoom }) => {
       setFinding(true);
       try {
         joinRoom({ roomId: await quickPlay(), playerName, quick: true });
-      } catch {
-        useFeedStore.getState().pushNotice("Can't reach the game server. Check your connection and try again.");
+      } catch (error) {
+        notice(failureMessage(error, "Can't reach the game server. Check your connection and try again."));
         setFinding(false);
       }
       return;

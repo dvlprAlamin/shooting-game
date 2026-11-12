@@ -11,6 +11,7 @@ export const CLOSE = {
     JOIN_TIMEOUT: 4002, // connected but never asked to join
     REPLACED: 4003, // the same player connected again on another connection
     ROOM_CLOSED: 4004, // the match ended and nobody started a rematch
+    RATE_LIMITED: 4005, // too many connections from one address (the Worker's spam protection, apps/server)
 };
 
 const JOIN_TIMEOUT_MS = 10_000;

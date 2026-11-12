@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { CLOSE } from '@rimfire/game';
 import app from '../src/app.js';
 import { getProfile, saveResults } from '../src/profiles.js';
 import { d1, skipD1 } from './d1.js';
@@ -135,4 +136,75 @@ test('/auth/google refuses bad requests, and says when sign-in is off', async ()
     assert.equal((await app.request('/auth/google', valid, { ...env, DB: fakeDb() })).status, 503); // no client id
     assert.equal((await app.request('/auth/google', valid, { ...env, DB: fakeDb(), GOOGLE_CLIENT_ID: '' })).status, 503);
     assert.equal((await app.request('/auth/google', valid, { ...env, GOOGLE_CLIENT_ID: CLIENT })).status, 503); // no DB
+});
+
+// A rate limiting binding stand-in: lets `allow` requests per key through, then refuses. `seen` lists the keys.
+const limiter = (allow) => {
+    const counts = new Map();
+    const seen = [];
+    return {
+        seen,
+        limit: async ({ key }) => {
+            seen.push(key);
+            counts.set(key, (counts.get(key) ?? 0) + 1);
+            return { success: counts.get(key) <= allow };
+        },
+    };
+};
+
+test('spam protection: past its limit an address gets a 429 the app can read, and other addresses carry on', async () => {
+    const LIMIT_QUICKPLAY = limiter(2);
+    const ask = (ip) =>
+        app.request('/quickplay', { method: 'POST', headers: { Origin: 'https://localhost', 'CF-Connecting-IP': ip } }, {
+            ...env,
+            LIMIT_QUICKPLAY,
+        });
+    assert.equal((await ask('203.0.113.1')).status, 200);
+    assert.equal((await ask('203.0.113.1')).status, 200);
+    const refused = await ask('203.0.113.1');
+    assert.equal(refused.status, 429);
+    assert.equal(refused.headers.get('Retry-After'), '60');
+    assert.equal(refused.headers.get('Access-Control-Allow-Origin'), '*'); // or the browser hides the status
+    assert.equal((await ask('203.0.113.2')).status, 200);
+    assert.deepEqual(LIMIT_QUICKPLAY.seen, ['203.0.113.1', '203.0.113.1', '203.0.113.1', '203.0.113.2']);
+});
+
+test('spam protection: CORS preflights are not counted', async () => {
+    const LIMIT_AUTH = limiter(0);
+    const preflight = await app.request('/auth/google', {
+        method: 'OPTIONS',
+        headers: { Origin: 'https://localhost', 'Access-Control-Request-Method': 'POST' },
+    }, { ...env, LIMIT_AUTH });
+    assert.equal(preflight.status, 204);
+    assert.deepEqual(LIMIT_AUTH.seen, []);
+    const res = await app.request('/auth/google', signInRequest({ idToken: 'x', profileId: PROFILE }), { ...env, LIMIT_AUTH });
+    assert.equal(res.status, 429);
+});
+
+test('spam protection: a room WebSocket past the limit is closed with RATE_LIMITED and never reaches a room', async () => {
+    // Node has neither the Workers' WebSocketPair nor a Response that takes status 101.
+    const closed = [];
+    const { WebSocketPair: realPair, Response: RealResponse } = globalThis;
+    globalThis.WebSocketPair = function () {
+        return { 0: { side: 'client' }, 1: { accept() {}, close: (code, reason) => closed.push([code, reason]) } };
+    };
+    globalThis.Response = class extends RealResponse {
+        constructor(body, init) {
+            super(body, init?.status === 101 ? { ...init, status: 200 } : init);
+            if (init?.status === 101) this.webSocket = init.webSocket;
+        }
+    };
+    try {
+        const limited = { ...env, LIMIT_ROOMS: limiter(1) };
+        const join = { headers: { ...upgrade.headers, 'CF-Connecting-IP': '203.0.113.9' } };
+        assert.equal(await (await app.request('/rooms/abc', join, limited)).text(), 'room abc: /rooms/abc');
+        const refused = await app.request('/rooms/abc', join, limited);
+        assert.equal(refused.webSocket.side, 'client');
+        assert.deepEqual(closed, [[CLOSE.RATE_LIMITED, 'Too many connections']]);
+        // Anything else past the limit gets a plain 429.
+        assert.equal((await app.request('/rooms/abc', { headers: { 'CF-Connecting-IP': '203.0.113.9' } }, limited)).status, 429);
+    } finally {
+        globalThis.WebSocketPair = realPair;
+        globalThis.Response = RealResponse;
+    }
 });

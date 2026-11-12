@@ -17,6 +17,15 @@
   // Player profiles. No database_id: `wrangler deploy` provisions the database the first time (it creates its own
   // table, see src/profiles.js). The game runs without it, minus profiles.
   "d1_databases": [{ "binding": "DB", "database_name": "shooting-game" }],
+  // Spam protection (src/app.js): requests per client address per minute, counted per Cloudflare location. Room
+  // connections include reconnects (up to 5 per dropped connection). namespace_id only has to be unique on the
+  // account; bindings sharing one share counts.
+  "ratelimits": [
+    { "name": "LIMIT_ROOMS", "namespace_id": "7301", "simple": { "limit": 60, "period": 60 } },
+    { "name": "LIMIT_QUICKPLAY", "namespace_id": "7302", "simple": { "limit": 30, "period": 60 } },
+    { "name": "LIMIT_PROFILE", "namespace_id": "7303", "simple": { "limit": 60, "period": 60 } },
+    { "name": "LIMIT_AUTH", "namespace_id": "7304", "simple": { "limit": 20, "period": 60 } }
+  ],
   // The address the apps use for now (VITE_SERVER_URL in apps/client/.env.production).
   "workers_dev": true,
   "vars": {

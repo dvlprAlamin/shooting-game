@@ -30,6 +30,12 @@ to the player who created them.
 - `src/app.js` is the Hono app: it routes `/rooms/<roomId>` to that room's Durable Object (`src/room.js`), which
   holds a RoomHost. It also answers `POST /quickplay`, `GET` and `DELETE /profile/<id>` and `POST /auth/google`
   (all allow any origin).
+- Spam protection: `src/app.js` counts requests per client address (`CF-Connecting-IP`) and minute with
+  Cloudflare's rate limiting bindings (`ratelimits` in `wrangler.jsonc`): room connections 60 (reconnects
+  included), quick play 30, profiles 60, sign-in 20. Counts are kept per Cloudflare location. Past the limit
+  the answer is a 429 with `Retry-After: 60`, and a room WebSocket is opened only to be closed with code 4005
+  (`CLOSE.RATE_LIMITED`), which the app explains; preflights aren't counted. The limits are generous because a
+  mobile carrier can put many players behind one address. Without the bindings everything goes through.
 - Quick play: `POST /quickplay` asks the one Lobby Durable Object (`src/lobby.js`, logic in
   `src/Matchmaker.js`) for a room and answers `{ roomId }`. The client joins it with `quick: true`, which
   creates the room, if it doesn't exist yet, as a public one with `QUICK_PLAY` settings (`@rimfire/shared`) on a
