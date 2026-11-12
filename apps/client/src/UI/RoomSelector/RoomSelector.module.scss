@@ -76,7 +76,10 @@
   }
 }
 
-.credits {
+// Credits and the privacy policy.
+.about {
+  display: flex;
+  gap: 0.4rem;
   margin-top: 1.1rem;
 
   @include short {

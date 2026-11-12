@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { deleteProfile, getProfile, saveResults, signIn } from '../src/profiles.js';
+import { deleteAccount, deleteProfile, getProfile, saveResults, signIn } from '../src/profiles.js';
 import { d1, skipD1 as skip } from './d1.js';
 
 const ID = 'b6f0c2d4-1a2b-4c3d-8e9f-0123456789ab';
@@ -121,4 +121,17 @@ test('deleting a profile clears its record and its account link', { skip }, asyn
     // Signing in again starts over, from the device's new profile.
     assert.equal(await signIn(db, { ...GOOGLE, profileId: TABLET }, 2, fresh), TABLET);
     await deleteProfile(db, 'never-existed-0000'); // fine too
+});
+
+test("deleting an account's record clears it and the link, and says whether there was one", { skip }, async () => {
+    const db = d1();
+    assert.equal(await deleteAccount(db, GOOGLE), false);
+    await played(db, PHONE);
+    await signIn(db, { ...GOOGLE, profileId: PHONE }, 1, fresh);
+    await played(db, TABLET); // someone else's, never signed in
+    assert.equal(await deleteAccount(db, GOOGLE), true);
+    assert.equal(await getProfile(db, PHONE), null);
+    assert.deepEqual(db.all('SELECT * FROM accounts'), []);
+    assert.equal((await getProfile(db, TABLET)).kills, 4);
+    assert.equal(await deleteAccount(db, GOOGLE), false);
 });

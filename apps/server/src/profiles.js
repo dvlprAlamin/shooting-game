@@ -138,3 +138,12 @@ export async function deleteProfile(db, id) {
     await ensureTables(db);
     await db.batch([db.prepare(DROP).bind(id), db.prepare(UNLINK).bind(id)]);
 }
+
+/** Deletes the record of the account `provider`/`subject`, as deleteProfile does. False if it has none. */
+export async function deleteAccount(db, { provider, subject }) {
+    await ensureTables(db);
+    const account = await db.prepare(FIND_ACCOUNT).bind(provider, subject).first();
+    if (!account) return false;
+    await deleteProfile(db, account.profile_id);
+    return true;
+}

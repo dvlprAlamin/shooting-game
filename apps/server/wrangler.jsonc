@@ -29,8 +29,9 @@
   // The address the apps use for now (VITE_SERVER_URL in apps/client/.env.production).
   "workers_dev": true,
   "vars": {
-    // Sign in with Google: the Web OAuth client id from Google Cloud (comma-separated for several), the same one
-    // as VITE_GOOGLE_WEB_CLIENT_ID in the client. Not a secret. Empty: sign-in is off.
+    // Sign in with Google: the Web OAuth client id from Google Cloud, the same one as VITE_GOOGLE_WEB_CLIENT_ID in
+    // the client (comma-separated for several, the Web one first: /delete-account signs in with it). Not a secret.
+    // Empty: sign-in is off.
     "GOOGLE_CLIENT_ID": "378969469504-154hsjlr8fbni6481c6km1c9794pjd5d.apps.googleusercontent.com"
   },
   "observability": { "enabled": true }

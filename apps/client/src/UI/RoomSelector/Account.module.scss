@@ -99,6 +99,7 @@
   flex: none;
   display: flex;
   gap: 0.4rem;
+  margin-left: auto;
 
   @include short {
     > button {

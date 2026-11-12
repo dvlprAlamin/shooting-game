@@ -138,6 +138,50 @@ test('/auth/google refuses bad requests, and says when sign-in is off', async ()
     assert.equal((await app.request('/auth/google', valid, { ...env, GOOGLE_CLIENT_ID: CLIENT })).status, 503); // no DB
 });
 
+test('/auth/google/delete deletes the record of the account the token is for', { skip: skipD1 }, async (t) => {
+    t.mock.method(globalThis, 'fetch', async () => Response.json({ keys: [GOOGLE_KEY.jwk] }, { headers: { 'Cache-Control': 'max-age=3600' } }));
+    const db = d1();
+    const withAuth = { ...env, DB: db, GOOGLE_CLIENT_ID: CLIENT };
+    const idToken = await signToken(GOOGLE_KEY, googleClaims(CLIENT, Date.now()));
+    const remove = (body) => app.request('/auth/google/delete', signInRequest(body), withAuth);
+
+    assert.deepEqual(await (await remove({ idToken })).json(), { deleted: false }); // never signed in
+    await saveResults(db, [{ profileId: PROFILE, name: 'Alice', kills: 3, deaths: 1, matches: 1, wins: 1, bestStreak: 2, seconds: 60 }]);
+    await app.request('/auth/google', signInRequest({ idToken, profileId: PROFILE }), withAuth);
+    const res = await remove({ idToken });
+    assert.equal(res.headers.get('Access-Control-Allow-Origin'), '*');
+    assert.deepEqual(await res.json(), { deleted: true });
+    assert.equal(await getProfile(db, PROFILE), null);
+
+    const forged = await signToken(await signingKey('test-key'), googleClaims(CLIENT, Date.now()));
+    assert.equal((await remove({ idToken: forged })).status, 401);
+    assert.equal((await remove({})).status, 400);
+    assert.equal((await remove({ idToken: 'x'.repeat(5000) })).status, 400);
+    const off = await app.request('/auth/google/delete', signInRequest({ idToken }), { ...env, DB: db });
+    assert.equal(off.status, 503);
+});
+
+test('the privacy and account deletion pages are served, never in a frame', async () => {
+    const privacy = await app.request('/privacy', {}, env);
+    assert.equal(privacy.status, 200);
+    assert.match(privacy.headers.get('Content-Type'), /text\/html/);
+    assert.match(privacy.headers.get('Content-Security-Policy'), /frame-ancestors 'none'/);
+    const policy = await privacy.text();
+    assert.match(policy, /RimFire privacy policy/);
+    assert.match(policy, /href="\/delete-account"/);
+    assert.doesNotMatch(policy, /<script/); // loads nothing from elsewhere
+
+    // The deletion page signs in with the first (Web) client; without sign-in it gives the steps and an email.
+    const withAuth = { ...env, DB: fakeDb(), GOOGLE_CLIENT_ID: `${CLIENT}, ios-client` };
+    const deletion = await (await app.request('/delete-account', {}, withAuth)).text();
+    assert.match(deletion, new RegExp(`CLIENT_ID = "${CLIENT}"`));
+    assert.match(deletion, /accounts\.google\.com\/gsi\/client/);
+    const off = await (await app.request('/delete-account', {}, env)).text();
+    assert.doesNotMatch(off, /<script/);
+    assert.match(off, /Delete record/);
+    assert.match(off, /mailto:/);
+});
+
 // A rate limiting binding stand-in: lets `allow` requests per key through, then refuses. `seen` lists the keys.
 const limiter = (allow) => {
     const counts = new Map();

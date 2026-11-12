@@ -4,7 +4,8 @@ import { CLOSE } from '@rimfire/game';
 import { PROFILE_ID_PATTERN, ROOM_ID_PATTERN } from '@rimfire/shared';
 import { verifyGoogleIdToken } from './googleAuth.js';
 import { lobbyOf } from './lobbyOf.js';
-import { deleteProfile, getProfile, signIn } from './profiles.js';
+import { deletionPage, privacyPage } from './pages.js';
+import { deleteAccount, deleteProfile, getProfile, signIn } from './profiles.js';
 
 const app = new Hono();
 
@@ -72,29 +73,57 @@ app.delete('/profile/:id', async (c) => {
     return c.body(null, 204);
 });
 
-// Sign in with Google: the app sends Google's ID token and the profile id it has been using, and gets back the
-// profile id to use from now on (the account's, see signIn) with its totals. GOOGLE_CLIENT_ID is the OAuth
-// client the tokens are issued for (comma-separated if there are several); without it sign-in is off.
-app.post('/auth/google', async (c) => {
-    const audiences = String(c.env.GOOGLE_CLIENT_ID ?? '')
+// GOOGLE_CLIENT_ID: the OAuth clients Google's ID tokens may be issued for, comma-separated, the Web client first
+// (the deletion page signs in with it). Empty: sign-in is off.
+const googleClients = (env) =>
+    String(env.GOOGLE_CLIENT_ID ?? '')
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean);
-    if (!c.env.DB || !audiences.length) return c.json({ error: 'Sign-in is not set up on this server' }, 503);
-    const { idToken, profileId } = (await c.req.json().catch(() => null)) ?? {};
-    const validToken = typeof idToken === 'string' && idToken.length <= 4096;
-    if (!validToken || typeof profileId !== 'string' || !PROFILE_ID_PATTERN.test(profileId)) {
-        return c.json({ error: 'Expected { idToken, profileId }' }, 400);
-    }
-    let claims;
+const signInOff = (c) => !c.env.DB || !googleClients(c.env).length;
+const validToken = (idToken) => typeof idToken === 'string' && idToken.length <= 4096;
+
+// The claims of Google's ID token `idToken`, or the response turning it away.
+const checkGoogleToken = async (c, idToken) => {
     try {
-        claims = await verifyGoogleIdToken(idToken, audiences);
+        return (await verifyGoogleIdToken(idToken, googleClients(c.env))) ?? c.json({ error: 'Invalid sign-in' }, 401);
     } catch {
         return c.json({ error: "Can't reach Google to check the sign-in" }, 502);
     }
-    if (!claims) return c.json({ error: 'Invalid sign-in' }, 401);
+};
+
+// Sign in with Google: the app sends Google's ID token and the profile id it has been using, and gets back the
+// profile id to use from now on (the account's, see signIn) with its totals.
+app.post('/auth/google', async (c) => {
+    if (signInOff(c)) return c.json({ error: 'Sign-in is not set up on this server' }, 503);
+    const { idToken, profileId } = (await c.req.json().catch(() => null)) ?? {};
+    if (!validToken(idToken) || typeof profileId !== 'string' || !PROFILE_ID_PATTERN.test(profileId)) {
+        return c.json({ error: 'Expected { idToken, profileId }' }, 400);
+    }
+    const claims = await checkGoogleToken(c, idToken);
+    if (claims instanceof Response) return claims;
     const id = await signIn(c.env.DB, { provider: 'google', subject: claims.sub, profileId });
     return c.json({ profileId: id, profile: await getProfile(c.env.DB, id) });
 });
+
+// Deletes the record of the Google account an ID token is for, and its link: the deletion page's way, for
+// anyone without the app (the app deletes by profile id). `deleted` false: the account had no record.
+app.post('/auth/google/delete', async (c) => {
+    if (signInOff(c)) return c.json({ error: 'Sign-in is not set up on this server' }, 503);
+    const { idToken } = (await c.req.json().catch(() => null)) ?? {};
+    if (!validToken(idToken)) return c.json({ error: 'Expected { idToken }' }, 400);
+    const claims = await checkGoogleToken(c, idToken);
+    if (claims instanceof Response) return claims;
+    return c.json({ deleted: await deleteAccount(c.env.DB, { provider: 'google', subject: claims.sub }) });
+});
+
+// The pages Google Play asks for (pages.js). Never framed: the deletion page has a delete button.
+const page = (c, html) => {
+    c.header('Content-Security-Policy', "frame-ancestors 'none'");
+    c.header('Cache-Control', 'public, max-age=300');
+    return c.html(html);
+};
+app.get('/privacy', (c) => page(c, privacyPage()));
+app.get('/delete-account', (c) => page(c, deletionPage(signInOff(c) ? '' : googleClients(c.env)[0])));
 
 export default app;

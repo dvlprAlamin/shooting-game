@@ -55,8 +55,9 @@ export async function signOut() {
   useAccountStore.getState().setAccount(null);
 }
 
-/** Deletes your record and its link to the account, then signs out. */
+/** Deletes your record (and its link to the account you're signed in to, signing you out), then starts a new one. */
 export async function deleteRecord() {
   await deleteProfile(getProfileId());
-  await signOut();
+  if (useAccountStore.getState().account) await signOut();
+  else setProfileId();
 }

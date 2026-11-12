@@ -19,9 +19,10 @@ const GoogleMark = () => (
   </svg>
 );
 
-/** Under your record: sign in to keep it on any device, or who you're signed in as. `onProfile` gets the record
- *  to show afterwards: the account's when signing in, a new empty one (null) after signing out or deleting. */
-const Account = ({ onProfile }) => {
+/** Under your record: sign in to keep it on any device, or who you're signed in as, and deleting it (`hasRecord`:
+ *  there's one to delete). `onProfile` gets the record to show afterwards: the account's when signing in, a new
+ *  empty one (null) after signing out or deleting. */
+const Account = ({ hasRecord, onProfile }) => {
   const account = useAccountStore((s) => s.account);
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -36,7 +37,7 @@ const Account = ({ onProfile }) => {
     return () => clearTimeout(timer);
   }, [confirming]);
 
-  if (!account && !GOOGLE_SIGN_IN) return null;
+  if (!account && !GOOGLE_SIGN_IN && !hasRecord) return null;
 
   const run = async (task, failure) => {
     if (busy) return;
@@ -53,27 +54,48 @@ const Account = ({ onProfile }) => {
     }
   };
 
-  if (!account) {
-    return (
-      <div className={styles.account}>
-        <button
-          type="button"
-          className={styles.google}
-          disabled={busy}
-          onClick={() => run(signInWithGoogle, "Couldn't sign in with Google. Check your connection and try again.")}
-        >
-          <GoogleMark />
-          {busy ? 'Signing in' : 'Sign in with Google'}
-        </button>
-        <p>Keep your record on any device</p>
-      </div>
-    );
-  }
-
   const leave = (task) => async () => {
     await task();
     return null;
   };
+  const deleteButton = (
+    <Button
+      variant="quiet"
+      className={confirming ? styles.danger : ''}
+      disabled={busy}
+      title={account ? 'Deletes your record and its link to your Google account' : 'Deletes your record from the server'}
+      onClick={() =>
+        confirming
+          ? run(leave(deleteRecord), "Couldn't delete your record. Check your connection and try again.")
+          : setConfirming(true)
+      }
+    >
+      {confirming ? 'Delete for good?' : 'Delete record'}
+    </Button>
+  );
+
+  if (!account) {
+    return (
+      <div className={styles.account}>
+        {GOOGLE_SIGN_IN && (
+          <>
+            <button
+              type="button"
+              className={styles.google}
+              disabled={busy}
+              onClick={() => run(signInWithGoogle, "Couldn't sign in with Google. Check your connection and try again.")}
+            >
+              <GoogleMark />
+              {busy ? 'Signing in' : 'Sign in with Google'}
+            </button>
+            <p>Keep your record on any device</p>
+          </>
+        )}
+        {hasRecord && <div className={styles.buttons}>{deleteButton}</div>}
+      </div>
+    );
+  }
+
   return (
     <div className={styles.account}>
       <p className={styles.who} title="Signed in with Google">
@@ -84,19 +106,7 @@ const Account = ({ onProfile }) => {
         <Button variant="quiet" disabled={busy} onClick={() => run(leave(signOut), "Couldn't sign out. Try again.")}>
           Sign out
         </Button>
-        <Button
-          variant="quiet"
-          className={confirming ? styles.danger : ''}
-          disabled={busy}
-          title="Deletes your record and its link to your Google account"
-          onClick={() =>
-            confirming
-              ? run(leave(deleteRecord), "Couldn't delete your record. Check your connection and try again.")
-              : setConfirming(true)
-          }
-        >
-          {confirming ? 'Delete for good?' : 'Delete record'}
-        </Button>
+        {deleteButton}
       </div>
     </div>
   );
