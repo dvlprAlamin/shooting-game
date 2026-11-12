@@ -8,7 +8,7 @@
  * Requirements (install anywhere, e.g. a temp folder):
  *   npm i @gltf-transform/core @gltf-transform/extensions @gltf-transform/functions meshoptimizer sharp draco3dgltf three
  * Usage:
- *   node scripts/build-models.mjs <srcDir> <outDir> <publicDir>
+ *   node scripts/build-models.mjs <srcDir> <outDir>
  */
 import path from 'path';
 import { NodeIO } from '@gltf-transform/core';
@@ -29,7 +29,7 @@ import sharp from 'sharp';
 import draco3d from 'draco3dgltf';
 import * as THREE from 'three';
 
-const [srcDir = 'assets-src', outDir = 'public/models', publicDir = 'public'] = process.argv.slice(2);
+const [srcDir = 'assets-src', outDir = 'public/models'] = process.argv.slice(2);
 
 await MeshoptEncoder.ready;
 await MeshoptDecoder.ready;
@@ -323,7 +323,7 @@ async function buildSoldier() {
 // origin at the pistol grip (see GUN_* constants in src/game/soldierRig.js).
 // ---------------------------------------------------------------------------
 async function buildThirdPersonWeapon() {
-  const doc = await io.read(path.join(publicDir, 'weapon.glb'));
+  const doc = await io.read(path.join(srcDir, 'weapon.glb'));
   const root = doc.getRoot();
   const SCALE = 0.17;
   const GRIP = [0, -0.3, 0.49]; // source units
