@@ -9,6 +9,7 @@ import { initAudio, playHitTick, playSound, resumeAudio } from '@/game/audio';
 import { usePlayerStore } from '@/store/PlayersStore';
 import { useWeaponStore } from '@/store/WeaponStore';
 import { useHudStore } from '@/store/HudStore';
+import { useSettingsStore } from '@/store/SettingsStore';
 import { ViewModel } from '@/ViewModel';
 import { Impacts } from '@/Impacts';
 import { SOUNDS } from '@/weapons/items';
@@ -295,7 +296,10 @@ export const Player = memo(function Player({
     const dead = state.isDead;
     const weapons = useWeaponStore.getState();
     const weapon = getWeapon(weapons.weapon);
-    const lookSpeed = THREE.MathUtils.lerp(1, weapon.scope ? weapon.aimFov / WORLD_FOV : AIM_LOOK, state.ads);
+    // Slower while aiming, times the look sensitivity in the settings.
+    const lookSpeed =
+      THREE.MathUtils.lerp(1, weapon.scope ? weapon.aimFov / WORLD_FOV : AIM_LOOK, state.ads) *
+      useSettingsStore.getState().lookSpeed;
 
     // --- look ------------------------------------------------------------
     _euler.setFromQuaternion(camera.quaternion, 'YXZ');

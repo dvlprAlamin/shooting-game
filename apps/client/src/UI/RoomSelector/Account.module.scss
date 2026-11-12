@@ -1,6 +1,7 @@
 @use '@/styles/kit' as *;
 
 // Under the record: one row the height of a quiet button, so the quick play pane stays no taller than the others.
+// Google's button and who you're signed in as also show in Settings (Settings/AccountSettings.jsx).
 .account {
   display: flex;
   align-items: center;
@@ -87,35 +88,11 @@
   align-items: center;
   gap: 0.5rem;
   color: var(--bone);
+  white-space: nowrap;
 
   span {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-}
-
-.buttons {
-  flex: none;
-  display: flex;
-  gap: 0.4rem;
-  margin-left: auto;
-
-  @include short {
-    > button {
-      min-height: 32px;
-    }
-  }
-
-  @include shortest {
-    > button {
-      min-height: 28px;
-    }
-  }
-}
-
-// The second tap deletes. Under .buttons so it wins over the quiet button's own colours.
-.buttons .danger {
-  color: var(--red);
-  box-shadow: inset 0 0 0 1px var(--red);
 }

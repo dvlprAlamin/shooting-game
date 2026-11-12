@@ -1,71 +1,8 @@
 @use '@/styles/kit' as *;
 
-// A modal over the menu; scrolls inside itself if the screen is too short for it.
-.dialog {
-  @include panel;
-  @include chamfer(18px);
-  width: min(36rem, 100% - 2rem);
-  max-height: calc(100% - var(--safe-top) - var(--safe-bottom) - 2rem);
-  margin: auto; // centred: the global reset zeroes the browser's own margin: auto
-  padding: 1.5rem 1.5rem 1.75rem;
-  color: var(--bone);
-  border: 0;
-  overflow-y: auto;
-  // With the backdrop's two rules below: scrolling in here or over the backdrop never moves the page behind.
-  overscroll-behavior: contain;
-  scrollbar-color: rgb(213 154 98 / 0.55) transparent;
-
-  &::backdrop {
-    background: rgb(0 0 0 / 0.55);
-    overflow: hidden;
-    overscroll-behavior: contain;
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    &[open] {
-      animation: rise 0.18s ease-out;
-    }
-  }
-
-  // Phones in landscape: wider, with the credits in two columns, so they fit without scrolling.
-  @include short {
-    width: min(50rem, 100% - var(--safe-left) - var(--safe-right) - 2rem);
-    max-height: calc(100% - var(--safe-top) - var(--safe-bottom) - 1rem);
-    padding: 0.8rem 1.1rem 1rem;
-  }
-}
-
-@keyframes rise {
-  from {
-    opacity: 0;
-    translate: 0 8px;
-  }
-}
-
-.head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-
-  @include short {
-    margin-bottom: 0.4rem;
-  }
-}
-
-.title {
-  @include stencil;
-  font-size: clamp(2.25rem, 7vw, 3rem);
-
-  @include short {
-    font-size: 2rem;
-  }
-}
-
 .note {
   max-width: 52ch;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
   color: var(--muted);
 
   @include short {
@@ -114,7 +51,7 @@
   color: var(--muted);
 }
 
-.dialog a {
+.credits a {
   // A taller tap area than the text, without changing the line height.
   padding-block: 0.2em;
   color: inherit;

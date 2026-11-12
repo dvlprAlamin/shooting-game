@@ -1,13 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { GOOGLE_SIGN_IN } from '@/config';
-import { deleteRecord, prepareSignIn, signInWithGoogle, signOut } from '@/net/account';
-import { failureMessage } from '@/net/api';
+import { prepareSignIn, signInWithGoogle } from '@/net/account';
 import { useAccountStore } from '@/store/AccountStore';
 import { useFeedStore } from '@/store/FeedStore';
-import Button from '../elements/Button';
+import { SIGN_IN_FAILED, useAccountTask } from './useAccountTask';
 import styles from './Account.module.scss';
-
-const CONFIRM_MS = 4000; // how long "Delete for good?" waits for the second tap
 
 // Google's "G" as its sign-in buttons show it: Google's branding rules ask for this mark, unchanged.
 const GoogleMark = () => (
@@ -19,97 +16,48 @@ const GoogleMark = () => (
   </svg>
 );
 
-/** Under your record: sign in to keep it on any device, or who you're signed in as, and deleting it (`hasRecord`:
- *  there's one to delete). `onProfile` gets the record to show afterwards: the account's when signing in, a new
- *  empty one (null) after signing out or deleting. */
-const Account = ({ hasRecord, onProfile }) => {
+/** Google's own sign-in button. */
+export const GoogleButton = ({ busy, onClick }) => (
+  <button type="button" className={styles.google} disabled={busy} onClick={onClick}>
+    <GoogleMark />
+    {busy ? 'Signing in' : 'Sign in with Google'}
+  </button>
+);
+
+/** Who you're signed in as. */
+export const Who = ({ account }) => (
+  <p className={styles.who} title="Signed in with Google">
+    <GoogleMark />
+    <span>{account.email ?? 'Signed in with Google'}</span>
+  </p>
+);
+
+const notice = (message) => useFeedStore.getState().pushNotice(message);
+
+/** Under your record: sign in to keep it on any device, or who you're signed in as. Signing out and deleting the
+ *  record are in Settings. `onProfile` gets the account's record after signing in. */
+const SignIn = ({ onProfile }) => {
   const account = useAccountStore((s) => s.account);
-  const [busy, setBusy] = useState(false);
-  const [confirming, setConfirming] = useState(false);
+  const { busy, run } = useAccountTask(onProfile, notice);
 
   useEffect(() => {
     prepareSignIn().catch(() => {}); // early, so the tap opens Google's sign-in right away
   }, []);
 
-  useEffect(() => {
-    if (!confirming) return undefined;
-    const timer = setTimeout(() => setConfirming(false), CONFIRM_MS);
-    return () => clearTimeout(timer);
-  }, [confirming]);
-
-  if (!account && !GOOGLE_SIGN_IN && !hasRecord) return null;
-
-  const run = async (task, failure) => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      const profile = await task();
-      if (profile !== undefined) onProfile(profile);
-    } catch (e) {
-      console.error(e);
-      useFeedStore.getState().pushNotice(failureMessage(e, failure));
-    } finally {
-      setBusy(false);
-      setConfirming(false);
-    }
-  };
-
-  const leave = (task) => async () => {
-    await task();
-    return null;
-  };
-  const deleteButton = (
-    <Button
-      variant="quiet"
-      className={confirming ? styles.danger : ''}
-      disabled={busy}
-      title={account ? 'Deletes your record and its link to your Google account' : 'Deletes your record from the server'}
-      onClick={() =>
-        confirming
-          ? run(leave(deleteRecord), "Couldn't delete your record. Check your connection and try again.")
-          : setConfirming(true)
-      }
-    >
-      {confirming ? 'Delete for good?' : 'Delete record'}
-    </Button>
-  );
-
-  if (!account) {
+  if (account) {
     return (
       <div className={styles.account}>
-        {GOOGLE_SIGN_IN && (
-          <>
-            <button
-              type="button"
-              className={styles.google}
-              disabled={busy}
-              onClick={() => run(signInWithGoogle, "Couldn't sign in with Google. Check your connection and try again.")}
-            >
-              <GoogleMark />
-              {busy ? 'Signing in' : 'Sign in with Google'}
-            </button>
-            <p>Keep your record on any device</p>
-          </>
-        )}
-        {hasRecord && <div className={styles.buttons}>{deleteButton}</div>}
+        <Who account={account} />
       </div>
     );
   }
-
+  if (!GOOGLE_SIGN_IN) return null;
   return (
     <div className={styles.account}>
-      <p className={styles.who} title="Signed in with Google">
-        <GoogleMark />
-        <span>{account.email ?? 'Signed in with Google'}</span>
-      </p>
-      <div className={styles.buttons}>
-        <Button variant="quiet" disabled={busy} onClick={() => run(leave(signOut), "Couldn't sign out. Try again.")}>
-          Sign out
-        </Button>
-        {deleteButton}
-      </div>
+      <GoogleButton busy={busy} onClick={() => run(signInWithGoogle, SIGN_IN_FAILED)} />
+      <p>Keep your record on any device</p>
     </div>
   );
 };
 
-export default Account;
+export default SignIn;

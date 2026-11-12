@@ -1,5 +1,3 @@
-import { useRef } from 'react';
-import Button from '../elements/Button';
 import styles from './Credits.module.scss';
 
 const CC_BY = 'https://creativecommons.org/licenses/by/4.0/';
@@ -37,65 +35,27 @@ const CREDITS = [
   },
 ];
 
-// Tapping outside closes the dialog: `closedby="any"`, which Safari lacks, so there it's done here. Pressed and
-// released outside the box, so a drag that ends there doesn't close it.
-const NATIVE_DISMISS = typeof HTMLDialogElement !== 'undefined' && 'closedBy' in HTMLDialogElement.prototype;
-const outside = (e) => {
-  const r = e.currentTarget.getBoundingClientRect();
-  return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
-};
-
 const Link = (props) => <a target="_blank" rel="noreferrer" {...props} />;
 
-/** A button that opens the credits for the models the game uses. */
-const Credits = ({ className = '' }) => {
-  const dialog = useRef(null);
-  const pressedOutside = useRef(false);
-  const dismiss = NATIVE_DISMISS
-    ? {}
-    : {
-        onPointerDown: (e) => {
-          pressedOutside.current = outside(e);
-        },
-        onPointerUp: (e) => {
-          if (pressedOutside.current && outside(e)) dialog.current.close();
-        },
-      };
-
-  return (
-    <>
-      <Button variant="quiet" className={className} onClick={() => dialog.current.showModal()}>
-        Credits
-      </Button>
-      <dialog ref={dialog} className={styles.dialog} closedby="any" aria-labelledby="credits-title" {...dismiss}>
-        <div className={styles.head}>
-          <h2 id="credits-title" className={styles.title}>
-            Credits
-          </h2>
-          <form method="dialog">
-            <Button type="submit" variant="quiet">
-              Close
-            </Button>
-          </form>
-        </div>
-        <p className={styles.note}>
-          3D models from Sketchfab, used under the <Link href={CC_BY}>Creative Commons Attribution 4.0</Link>{' '}
-          license. Each one was modified for RimFire.
-        </p>
-        <ul className={styles.list}>
-          {CREDITS.map(({ used, title, url, author, authorUrl }) => (
-            <li key={url}>
-              <span className={styles.used}>{used}</span>
-              <span className={styles.work}>
-                <Link href={url}>{title}</Link> by <Link href={authorUrl}>{author}</Link>
-              </span>
-              <span className={styles.license}>CC BY 4.0, modified</span>
-            </li>
-          ))}
-        </ul>
-      </dialog>
-    </>
-  );
-};
+/** The credits for the models the game uses (Settings, About). */
+const Credits = () => (
+  <div className={styles.credits}>
+    <p className={styles.note}>
+      3D models from Sketchfab, used under the <Link href={CC_BY}>Creative Commons Attribution 4.0</Link> license.
+      Each one was modified for RimFire.
+    </p>
+    <ul className={styles.list}>
+      {CREDITS.map(({ used, title, url, author, authorUrl }) => (
+        <li key={url}>
+          <span className={styles.used}>{used}</span>
+          <span className={styles.work}>
+            <Link href={url}>{title}</Link> by <Link href={authorUrl}>{author}</Link>
+          </span>
+          <span className={styles.license}>CC BY 4.0, modified</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+);
 
 export default Credits;

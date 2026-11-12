@@ -1,0 +1,144 @@
+@use '@/styles/kit' as *;
+
+// The whole screen, over the canyon, like a match.
+.editor {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  color: var(--bone);
+  background: var(--canopy) url('../../assets/images/game-bg.webp') center / cover no-repeat;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+
+  &::backdrop {
+    background: var(--canopy);
+  }
+}
+
+// Where a touch moves you instead of looking. A button placed here takes the touch from the stick.
+.zone {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: grid;
+  place-items: center;
+  background: rgb(var(--canopy-rgb) / 0.3);
+  box-shadow: inset -2px 0 0 rgb(238 231 212 / 0.25);
+  pointer-events: none;
+
+  span {
+    @include over-scene;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--muted);
+  }
+}
+
+.crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  translate: -50% -50%;
+  background:
+    linear-gradient(var(--bone), var(--bone)) center / 2px 100% no-repeat,
+    linear-gradient(var(--bone), var(--bone)) center / 100% 2px no-repeat;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+// Over the toolbar, so a button dragged under it can still be picked up; the empty space lets touches through.
+.buttons {
+  z-index: 2;
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+    cursor: grab;
+  }
+}
+
+.toolbar {
+  @include panel;
+  @include chamfer(12px);
+  position: absolute;
+  z-index: 1;
+  top: calc(var(--safe-top) + 8px);
+  left: 50%;
+  translate: -50% 0;
+  width: min(36rem, 100% - var(--safe-left) - var(--safe-right) - 1rem);
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 36px;
+}
+
+.name {
+  flex: none;
+  min-width: 6.5rem;
+  font-weight: 700;
+}
+
+.slider {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--sand);
+
+  input {
+    flex: 1;
+    min-width: 3rem;
+    height: 32px;
+  }
+
+  output {
+    min-width: 4ch;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--bone);
+  }
+}
+
+.hint,
+.fixed {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.fixed {
+  flex: none;
+}
+
+// Saving is the way forward: blaze, as the kit has it for "go".
+.toolbar .save {
+  background: var(--blaze);
+  color: var(--canopy);
+  box-shadow: none;
+
+  &:hover {
+    background: #ff8442;
+  }
+}
+
+.rotate {
+  z-index: 3;
+}

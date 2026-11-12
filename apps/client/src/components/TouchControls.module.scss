@@ -44,6 +44,12 @@
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
 }
 
+// The buttons' box: the screen inside the safe areas. Buttons moved in the settings are placed by share of it.
+.area {
+  position: absolute;
+  inset: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+}
+
 .button {
   position: absolute;
   display: flex;
@@ -53,6 +59,7 @@
   border: 2px solid rgb(238 231 212 / 0.55);
   background: rgb(var(--canopy-rgb) / 0.35);
   color: var(--bone);
+  opacity: var(--alpha, 1); // the settings' button opacity
 
   svg {
     width: 46%;
@@ -67,11 +74,8 @@
   }
 }
 
-.fire {
-  right: calc(var(--safe-right) + 104px);
-  bottom: calc(var(--safe-bottom) + 64px);
-  width: 88px;
-  height: 88px;
+// Both fire buttons.
+.trigger {
   border-color: rgb(255 106 31 / 0.85);
   background: rgb(140 45 5 / 0.35);
 
@@ -80,31 +84,46 @@
   }
 }
 
+.fire {
+  right: 104px;
+  bottom: 64px;
+  width: 88px;
+  height: 88px;
+}
+
+// For the left thumb, above where the stick rests and below the kill feed: shoot while the right thumb aims.
+.fireLeft {
+  left: 28px;
+  bottom: 168px;
+  width: 68px;
+  height: 68px;
+}
+
 .aim {
-  right: calc(var(--safe-right) + 30px);
-  bottom: calc(var(--safe-bottom) + 112px);
+  right: 30px;
+  bottom: 112px;
   width: 60px;
   height: 60px;
 }
 
 .jump {
-  right: calc(var(--safe-right) + 28px);
-  bottom: calc(var(--safe-bottom) + 30px);
+  right: 28px;
+  bottom: 30px;
   width: 62px;
   height: 62px;
 }
 
 .reload {
-  right: calc(var(--safe-right) + 210px);
-  bottom: calc(var(--safe-bottom) + 28px);
+  right: 210px;
+  bottom: 28px;
   width: 54px;
   height: 54px;
 }
 
 // Above the fire button: the gun in hand (tap for the next one), and the medkit above the aim button.
 .weapon {
-  right: calc(var(--safe-right) + 112px);
-  bottom: calc(var(--safe-bottom) + 166px);
+  right: 112px;
+  bottom: 166px;
   width: 58px;
   height: 58px;
 
@@ -115,8 +134,8 @@
 }
 
 .medkit {
-  right: calc(var(--safe-right) + 34px);
-  bottom: calc(var(--safe-bottom) + 186px);
+  right: 34px;
+  bottom: 186px;
   width: 52px;
   height: 52px;
 
@@ -126,8 +145,19 @@
   }
 
   &.used {
-    opacity: 0.4;
+    opacity: calc(var(--alpha, 1) * 0.4);
   }
+}
+
+// In the layout editor: a hidden button, still there to pick and show again, and the one being changed.
+.button.hidden {
+  opacity: 0.3;
+  border-style: dashed;
+}
+
+.selected {
+  outline: 2px dashed var(--bone);
+  outline-offset: 5px;
 }
 
 // The medkits left, on the medkit button's corner.

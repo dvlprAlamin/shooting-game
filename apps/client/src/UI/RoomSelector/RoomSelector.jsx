@@ -4,8 +4,7 @@ import { MODES, PLAYER_LIMITS, QUICK_PLAY, ROOM_DURATIONS } from '@rimfire/share
 import { DEFAULT_MAP, MAPS, getMap } from '@rimfire/shared/maps';
 import Button from '../elements/Button';
 import CopyButton from '../elements/CopyButton';
-import Credits from '../Credits/Credits';
-import { PRIVACY_URL } from '@/config';
+import Settings from '../Settings/Settings';
 import { failureMessage, fetchProfile, quickPlay } from '@/net/api';
 import { getProfileId } from '@/net/profile';
 import { socket } from '@/net/socket';
@@ -13,7 +12,7 @@ import { NEARBY } from '@/net/lan/native';
 import { startHosting } from '@/net/lan/host';
 import { closeTunnels, parseAddress, probe, serverAt, watchNearby } from '@/net/lan/nearby';
 import { useFeedStore } from '@/store/FeedStore';
-import Account from './Account';
+import SignIn from './Account';
 import styles from './RoomSelector.module.scss';
 
 const TABS = [
@@ -158,7 +157,7 @@ const NearbyGames = ({ games, blocked, pick, onPick, address, onAddress }) => (
       ) : (
         <p className={styles.looking}>
           {blocked
-            ? 'Turn on Local Network for RimFire in Settings to find games nearby.'
+            ? 'Turn on Local Network for RimFire in the Settings app to find games nearby.'
             : 'Looking on your Wi-Fi and hotspot…'}
         </p>
       )}
@@ -355,10 +354,7 @@ const RoomSelector = ({ joinRoom }) => {
         </h1>
         <p className={styles.tagline}>Deathmatch with friends. Create a room and share the code, or join theirs.</p>
         <div className={styles.about}>
-          <Credits />
-          <Button variant="quiet" href={PRIVACY_URL} target="_blank" rel="noreferrer">
-            Privacy
-          </Button>
+          <Settings record={profile} onProfile={setProfile} />
         </div>
       </header>
 
@@ -403,7 +399,7 @@ const RoomSelector = ({ joinRoom }) => {
               <legend className="sr-only">Quick play</legend>
               {profile !== undefined ? (
                 <Record profile={profile} note={quickNote}>
-                  <Account hasRecord={profile !== null} onProfile={setProfile} />
+                  <SignIn onProfile={setProfile} />
                 </Record>
               ) : (
                 <p className={styles.blurb}>

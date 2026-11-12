@@ -1,0 +1,207 @@
+@use '@/styles/kit' as *;
+
+.icon {
+  width: 1.15em;
+  height: 1.15em;
+}
+
+// A modal over the menu, as tall as the tab needs: pinned near the top, so switching tabs moves only its bottom edge.
+// A tab's content scrolls inside it if the screen is too short.
+.dialog {
+  @include panel;
+  @include chamfer(18px);
+  width: min(38rem, 100% - 2rem);
+  max-width: none;
+  max-height: calc(100% - max(1rem, 12vh) - var(--safe-bottom) - 1rem);
+  margin: max(1rem, 12vh) auto auto;
+  padding: 1.25rem 1.5rem 0;
+  color: var(--bone);
+  border: 0;
+  overflow: hidden;
+
+  &[open] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  // With the backdrop's two rules below: scrolling in here or over the backdrop never moves the page behind.
+  &::backdrop {
+    background: rgb(0 0 0 / 0.55);
+    overflow: hidden;
+    overscroll-behavior: contain;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    &[open] {
+      animation: rise 0.18s ease-out;
+    }
+  }
+
+  // Phones in landscape: wider, and the whole height on every tab.
+  @include short {
+    width: min(46rem, 100% - var(--safe-left) - var(--safe-right) - 2rem);
+    height: calc(100% - var(--safe-top) - var(--safe-bottom) - 1rem);
+    max-height: none;
+    margin: auto;
+    padding: 0.7rem 1.1rem 0;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+
+  @include short {
+    margin-bottom: 0.4rem;
+  }
+}
+
+.title {
+  @include stencil;
+  font-size: clamp(2.25rem, 7vw, 3rem);
+
+  @include short {
+    font-size: 2rem;
+  }
+}
+
+// Radio buttons styled as tabs, like the menu's.
+.tabs {
+  flex: none;
+  display: flex;
+  border: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+
+.tab {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s, background-color 0.15s;
+
+  input {
+    @include visually-hidden;
+  }
+
+  &:hover {
+    color: var(--bone);
+  }
+
+  &:has(:checked) {
+    color: var(--bone);
+    background: rgb(238 231 212 / 0.06);
+    box-shadow: inset 0 -3px 0 var(--bone);
+  }
+
+  &:has(:focus-visible) {
+    outline: 2px solid var(--bone);
+    outline-offset: -4px;
+  }
+
+  @include short {
+    min-height: 38px;
+    font-size: 1rem;
+  }
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.1rem 0 1.5rem;
+  scrollbar-color: rgb(213 154 98 / 0.55) transparent;
+
+  @include short {
+    padding: 0.7rem 0 1rem;
+  }
+}
+
+// One setting or group: a heading, a line about it, then its controls. A rule between groups.
+.section + .section {
+  margin-top: 1.1rem;
+  padding-top: 1.1rem;
+  box-shadow: inset 0 1px 0 var(--line);
+
+  @include short {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+  }
+}
+
+.heading {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-weight: 700;
+  font-size: 1.15rem;
+
+  @include short {
+    font-size: 1.05rem;
+  }
+}
+
+.note {
+  max-width: 52ch;
+  margin-bottom: 0.65rem;
+  color: var(--muted);
+
+  @include short {
+    max-width: none;
+    margin-bottom: 0.45rem;
+    font-size: 0.95rem;
+  }
+}
+
+.range {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  input {
+    flex: 1;
+    min-width: 0;
+    max-width: 22rem;
+    height: 36px; // a bigger target than the track
+  }
+
+  output {
+    min-width: 3.5ch;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+// The second tap deletes. Under .buttons so it wins over the quiet button's own colours.
+.buttons .danger {
+  color: var(--red);
+  box-shadow: inset 0 0 0 1px var(--red);
+}
+
+.failure {
+  margin-top: 1rem;
+  font-weight: 600;
+  color: var(--red);
+}
