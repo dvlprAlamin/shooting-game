@@ -4,6 +4,7 @@ import { MODES, PLAYER_LIMITS, QUICK_PLAY, ROOM_DURATIONS } from '@rimfire/share
 import { DEFAULT_MAP, MAPS, getMap } from '@rimfire/shared/maps';
 import Button from '../elements/Button';
 import CopyButton from '../elements/CopyButton';
+import Credits from '../Credits/Credits';
 import { fetchProfile, quickPlay } from '@/net/api';
 import { getProfileId } from '@/net/profile';
 import { socket } from '@/net/socket';
@@ -351,6 +352,7 @@ const RoomSelector = ({ joinRoom }) => {
           <span>Rim</span><span>Fire</span>
         </h1>
         <p className={styles.tagline}>Deathmatch with friends. Create a room and share the code, or join theirs.</p>
+        <Credits className={styles.credits} />
       </header>
 
       <form className={styles.deploy} onSubmit={handleSubmit} aria-label={TABS.find((t) => t.value === tab).label}>

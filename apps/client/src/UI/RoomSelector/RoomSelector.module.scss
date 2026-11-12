@@ -76,6 +76,14 @@
   }
 }
 
+.credits {
+  margin-top: 1.1rem;
+
+  @include short {
+    margin-top: 0.6rem;
+  }
+}
+
 // Create / Join: two radio buttons styled as tabs on top of the panel.
 .tabs {
   display: flex;
