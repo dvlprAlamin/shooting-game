@@ -10,7 +10,8 @@
     "app:sync": "vite build && cap sync",
     "app:android": "vite build && cap sync android && cap open android",
     "app:ios": "vite build && cap sync ios && cap open ios",
-    "app:apk": "vite build && cap sync android && cd android && ./gradlew assembleDebug"
+    "app:apk": "vite build && cap sync android && cd android && ./gradlew assembleDebug",
+    "app:aab": "vite build && cap sync android && cd android && ./gradlew bundleRelease"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",
