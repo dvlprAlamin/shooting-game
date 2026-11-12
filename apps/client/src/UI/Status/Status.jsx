@@ -9,7 +9,7 @@ export const Reconnecting = () => (
   </div>
 );
 
-/** Inside the 3D canvas while the map and models load. */
+/** Over the 3D canvas while the map and models load. */
 export const Loading = () => (
   <div className={styles.loading} role="status">
     <p className={styles.title}>Loading map</p>

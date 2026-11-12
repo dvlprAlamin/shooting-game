@@ -1,6 +1,6 @@
 import React, { memo, Suspense, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Html, PointerLockControls } from '@react-three/drei';
+import { PointerLockControls } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
 import { DEFAULT_MAP, getMap } from '@rimfire/shared/maps';
 import { World } from '@/maps/World';
@@ -59,6 +59,7 @@ const App = () => {
   const [teamScores, setTeamScores] = useState(null); // { a, b } in a team match
   // Your team, kept here because you drop out of `players` for a moment while you respawn.
   const [myTeam, setMyTeam] = useState(null);
+  const [isLoading, setIsLoading] = useState(false); // the map and models, see LoadingSignal
 
   useEffect(() => {
     const { setPlayers, setPlayer, updatePlayer, removePlayer, setLeaderboard } = usePlayerStore.getState();
@@ -301,6 +302,7 @@ const App = () => {
         <></>
       )}
       {isReconnecting && <Reconnecting />}
+      {isLoading && <Loading />}
 
       <Hud
         timeRemaining={timeRemaining}
@@ -321,13 +323,7 @@ const App = () => {
         dpr={LOW_QUALITY ? 1 : [1, 1.5]}
         shadows={!LOW_QUALITY}
       >
-        <Suspense
-          fallback={
-            <Html center>
-              <Loading />
-            </Html>
-          }
-        >
+        <Suspense fallback={<LoadingSignal onChange={setIsLoading} />}>
           <Scene map={map} players={players} myTeam={myTeam} isDead={isDead} isGameOver={isGameOver} />
         </Suspense>
       </Canvas>
@@ -336,6 +332,16 @@ const App = () => {
 };
 
 export default App;
+
+// The canvas's Suspense fallback: says the map is loading for as long as it's up, so the loading screen can be
+// plain DOM over the canvas. (drei's Html in the fallback threw on unmount with React 19.)
+function LoadingSignal({ onChange }) {
+  useEffect(() => {
+    onChange(true);
+    return () => onChange(false);
+  }, [onChange]);
+  return null;
+}
 
 // Memoized, like World and the players in it: App re-renders on every timer tick and HUD change, and taking
 // the 3D tree along cost a long frame (50-70 ms) each time on a low-end phone.

@@ -14,10 +14,14 @@
 }
 
 .loading {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-screen);
   display: grid;
+  place-content: center;
   justify-items: center;
   gap: 1rem;
-  width: max-content;
+  pointer-events: none;
   @include over-scene;
 }
 
