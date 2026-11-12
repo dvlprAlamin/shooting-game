@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The launch screen's icon (styles.xml): resources/icon.svg without its background, which is the launch
+     screen's colour. 288dp, with the scope inside the 192dp circle Android shows of it. index.html draws the same
+     scope at the same size, so the page takes over from the launch screen without a jump. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+    <group>
+        <clip-path android:pathData="M188,512a324,324 0,1 1,648,0a324,324 0,1 1,-648,0Z" />
+        <path android:pathData="M236,512a276,276 0,1 1,552,0a276,276 0,1 1,-552,0Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="512"
+                    android:centerY="512"
+                    android:gradientRadius="276">
+                    <item android:offset="0" android:color="#8CFF6A1F" />
+                    <item android:offset="0.78" android:color="#8CFF6A1F" />
+                    <item android:offset="1" android:color="#00FF6A1F" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:fillColor="#FF6A1F"
+            android:pathData="M291,512a221,221 0,1 1,442,0a221,221 0,1 1,-442,0Z" />
+        <path
+            android:fillColor="#21432B"
+            android:pathData="M180,698H343L378,643L474,624L502,490Q506,474 528,474H844V844H180Z" />
+        <path
+            android:fillColor="#EEE7D4"
+            android:pathData="M505,180h14v148h-14zM505,696h14v148h-14zM180,505h148v14h-148zM696,505h148v14h-148zM510,328h4v142h-4zM510,554h4v142h-4zM328,510h142v4h-142zM554,510h142v4h-142z" />
+    </group>
+    <path
+        android:pathData="M185,512a327,327 0,1 1,654,0a327,327 0,1 1,-654,0Z"
+        android:strokeWidth="10"
+        android:strokeColor="#EEE7D4" />
+</vector>

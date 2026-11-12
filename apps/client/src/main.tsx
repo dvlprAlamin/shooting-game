@@ -7,6 +7,7 @@ import '@fontsource/barlow-semi-condensed/600.css';
 import '@fontsource/barlow-semi-condensed/700.css';
 import '@/index.scss';
 import { GOOGLE_SIGN_IN, IS_NATIVE, IS_TOUCH } from '@/config';
+import { hideSplash } from '@/splash';
 
 document.documentElement.classList.toggle('touch', IS_TOUCH);
 
@@ -16,6 +17,7 @@ document.documentElement.classList.toggle('touch', IS_TOUCH);
 const signInPopup = GOOGLE_SIGN_IN && !IS_NATIVE && /[#&]state=popup(&|$)/.test(window.location.hash);
 
 if (signInPopup) {
+  hideSplash();
   import('@capgo/capacitor-social-login');
 } else {
   import('@/Game.jsx').then(({ default: Game }) =>

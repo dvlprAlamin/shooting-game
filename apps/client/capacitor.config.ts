@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
   appId: 'com.dvlpralamin.rimfire',
   appName: 'RimFire',
   webDir: 'dist',
-  backgroundColor: '#000000',
+  backgroundColor: '#0f1d17', // the WebView's, under the page: the splash screen's canopy colour (index.html)
   server: {
     cleartext: allowInsecure,
   },

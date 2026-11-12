@@ -6,9 +6,143 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>RimFire</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <style>
+    /* Splash screen (src/splash.ts), inline so it's on the first frame, before the app's scripts and styles.
+       The scope starts where the native launch screen has it: a 288 px box, the size of
+       android/app/src/main/res/drawable/splash_icon.xml. Then it moves aside for the name: scope 112 + gap 20 +
+       name 104 = a 236 px lockup, centred. */
+    #splash {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      overflow: hidden;
+      background: #0f1d17;
+      transition: opacity 0.3s;
+    }
+
+    #splash > * {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+    }
+
+    .splash-scope {
+      width: 288px;
+      height: 288px;
+      margin: -144px 0 0 -144px;
+    }
+
+    .splash-name {
+      margin: 0 0 0 14px;
+      translate: -16px -50%;
+      opacity: 0;
+      font: 800 68px/0.82 'Big Shoulders Stencil', Impact, 'Arial Narrow', sans-serif;
+      color: #eee7d4;
+    }
+
+    .splash-name span {
+      display: block;
+    }
+
+    /* Indeterminate, like the in-game loading bar (UI/Status). */
+    .splash-bar {
+      width: 236px;
+      height: 4px;
+      margin: 82px 0 0 -118px;
+      overflow: hidden;
+      opacity: 0;
+      background: rgb(213 154 98 / 0.3);
+    }
+
+    .splash-bar::after {
+      content: '';
+      display: block;
+      width: 40%;
+      height: 100%;
+      background: #eee7d4;
+    }
+
+    .splash-in .splash-scope {
+      scale: 0.6;
+      translate: -62px 0;
+    }
+
+    .splash-in .splash-name {
+      translate: 0 -50%;
+      opacity: 1;
+    }
+
+    .splash-in .splash-bar {
+      opacity: 1;
+    }
+
+    #splash.splash-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .splash-scope {
+        transition: scale 0.55s cubic-bezier(0.2, 0.8, 0.2, 1), translate 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      .splash-name {
+        transition: opacity 0.35s 0.2s, translate 0.45s 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      .splash-bar {
+        transition: opacity 0.3s 0.4s;
+      }
+
+      .splash-bar::after {
+        animation: splash-run 1.1s ease-in-out infinite;
+      }
+    }
+
+    @keyframes splash-run {
+      from {
+        translate: -100% 0;
+      }
+      to {
+        translate: 250% 0;
+      }
+    }
+  </style>
 </head>
 
 <body>
+  <div id="splash" role="status" aria-label="Loading">
+    <!-- resources/icon.svg without its background -->
+    <svg class="splash-scope" viewBox="0 0 1024 1024" aria-hidden="true">
+      <defs>
+        <clipPath id="splash-clip">
+          <circle cx="512" cy="512" r="324" />
+        </clipPath>
+        <radialGradient id="splash-glow" cx="512" cy="512" r="276" gradientUnits="userSpaceOnUse">
+          <stop offset="0.78" stop-color="#ff6a1f" stop-opacity="0.55" />
+          <stop offset="1" stop-color="#ff6a1f" stop-opacity="0" />
+        </radialGradient>
+      </defs>
+      <g clip-path="url(#splash-clip)">
+        <circle cx="512" cy="512" r="276" fill="url(#splash-glow)" />
+        <circle cx="512" cy="512" r="221" fill="#ff6a1f" />
+        <path fill="#21432b" d="M180 698H343L378 643L474 624L502 490Q506 474 528 474H844V844H180Z" />
+        <g fill="#eee7d4">
+          <rect x="505" y="180" width="14" height="148" />
+          <rect x="505" y="696" width="14" height="148" />
+          <rect x="180" y="505" width="148" height="14" />
+          <rect x="696" y="505" width="148" height="14" />
+          <rect x="510" y="328" width="4" height="142" />
+          <rect x="510" y="554" width="4" height="142" />
+          <rect x="328" y="510" width="142" height="4" />
+          <rect x="554" y="510" width="142" height="4" />
+        </g>
+      </g>
+      <circle cx="512" cy="512" r="327" fill="none" stroke="#eee7d4" stroke-width="10" />
+    </svg>
+    <p class="splash-name"><span>Rim</span><span>Fire</span></p>
+    <span class="splash-bar"></span>
+  </div>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
