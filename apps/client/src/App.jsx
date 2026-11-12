@@ -81,7 +81,10 @@ const App = () => {
       closeTunnels();
       setIsReconnecting(false);
       setIsJoinedRoom(false);
+      respawnTimeouts.forEach(clearTimeout); // a respawn from the room you left would come back as a ghost
+      respawnTimeouts.clear();
       setIsDead(false);
+      setKilledBy(null);
       setIsGameOver(false);
       setRematch(NO_REMATCH);
       setMode('ffa');
@@ -110,6 +113,9 @@ const App = () => {
         protect(player);
       }
       setPlayers(currentPlayers);
+      // Back in a match you were dead in (a reconnect, or a reload inside the grace period): the server still
+      // has you down, and its playerDead may never have reached you, so this is what brings up Respawn.
+      setIsDead(!!currentPlayers[socket.id]?.isDead);
       const team = currentPlayers[socket.id]?.team ?? null;
       setMyTeam(team);
       if (announceTeam && team) hud.showCallout(`${teamName(team)} team`, 'Most team kills wins');
