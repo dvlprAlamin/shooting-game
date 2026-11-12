@@ -25,12 +25,12 @@
     "@rimfire/game": "workspace:*",
     "@rimfire/shared": "workspace:*",
     "@tweenjs/tween.js": "^25.0.0",
-    "immer": "^10.1.1",
-    "nanoid": "^5.0.7",
+    "immer": "^11.2.10",
+    "nanoid": "^6.0.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "three": "^0.167.1",
-    "zustand": "^4.4.1"
+    "three": "^0.187.0",
+    "zustand": "^5.1.0"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.6.0",

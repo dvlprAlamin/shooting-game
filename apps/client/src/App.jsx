@@ -321,7 +321,7 @@ const App = () => {
       <Canvas
         camera={{ fov: WORLD_FOV, near: 0.05, far: 1000 }}
         dpr={LOW_QUALITY ? 1 : [1, 1.5]}
-        shadows={!LOW_QUALITY}
+        shadows={LOW_QUALITY ? false : 'percentage'} // PCF: three has dropped the soft kind, fiber's default
       >
         <Suspense fallback={<LoadingSignal onChange={setIsLoading} />}>
           <Scene map={map} players={players} myTeam={myTeam} isDead={isDead} isGameOver={isGameOver} />
