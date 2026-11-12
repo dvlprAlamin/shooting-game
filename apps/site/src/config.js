@@ -8,4 +8,4 @@ export const API_URL = 'https://rimfire-api.anminas.com';
 export const GOOGLE_WEB_CLIENT_ID = '378969469504-154hsjlr8fbni6481c6km1c9794pjd5d.apps.googleusercontent.com';
 
 export const DEVELOPER = 'dvlprAlamin'; // as on the Play listing
-export const CONTACT = 'alaminhowladerofficial@gmail.com';
+export const CONTACT = 'rimfire@anminas.com';
