@@ -26,7 +26,7 @@ export default defineConfig([
   },
   {
     // Node: build scripts, config files, tests
-    files: ['*.js', 'apps/client/*.{js,ts}', 'apps/client/scripts/**', 'apps/server/test/**', 'packages/*/test/**'],
+    files: ['*.js', 'apps/client/*.{js,ts}', 'apps/client/scripts/**', 'apps/client/resources/**/*.mjs', 'apps/server/test/**', 'packages/*/test/**'],
     languageOptions: { globals: globals.node },
   },
   {

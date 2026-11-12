@@ -1,0 +1,145 @@
+<!doctype html>
+<!--
+  Canyon signboard atlas: the "sineboard" material's texture (Image_12) in public/physics-scene.glb.
+  Rendered to signboard.png by render.mjs; embed.mjs writes that PNG into the GLB.
+
+  The sign meshes squeeze every panel to ~0.55 of its atlas width, and two panels are mapped rotated,
+  so each panel below is drawn at its in-game proportions (display units) and transformed into place:
+    welcome  atlas 0..553 x 11..447     upright, x * 1/0.55
+    photo    atlas 560..1018 x 3..335    upright, x * 1/0.55
+    fire     atlas 690..1015 x 362..760  upright, x * 1/0.545
+    route    atlas 544..789 x 768..953   shown rotated 90deg CCW (peak of the notice boards)
+    shield   atlas 801..1008 x 785..952  shown rotated 90deg CW (badge under the welcome sign)
+  The wood planks (left middle) and the bottom strip come from base.jpg untouched; the strip wraps.
+  photo.jpg is a crop of the full-size original photo (1396x894).
+
+  Keep these welcome-panel zones plain board colour, other faces sample them:
+    atlas x 56..88, y 16..336   board edges and posts   (display x 31..48)
+    atlas x 440..540, y 88..208 back of the fire sign   (display x 242..297)
+    atlas x 40..128, y 136..244 post behind the shield  (display x 22..70)
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: Stencil; font-weight: 800; src: url(../../node_modules/@fontsource/big-shoulders-stencil/files/big-shoulders-stencil-latin-800-normal.woff2); }
+  @font-face { font-family: Barlow; font-weight: 600; src: url(../../node_modules/@fontsource/barlow-semi-condensed/files/barlow-semi-condensed-latin-600-normal.woff2); }
+  @font-face { font-family: Barlow; font-weight: 700; src: url(../../node_modules/@fontsource/barlow-semi-condensed/files/barlow-semi-condensed-latin-700-normal.woff2); }
+  html, body { margin: 0; background: #000; }
+  svg { display: block; }
+  .stencil { font-family: Stencil; font-weight: 800; }
+  .barlow { font-family: Barlow; font-weight: 700; }
+  .barlow6 { font-family: Barlow; font-weight: 600; }
+</style>
+</head>
+<body>
+<svg id="atlas" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" text-anchor="middle">
+  <defs>
+    <!-- The app icon's scope (resources/icon.svg) on its dark disc. -->
+    <clipPath id="scope-clip"><circle cx="512" cy="512" r="324"/></clipPath>
+    <radialGradient id="scope-glow" cx="512" cy="512" r="276" gradientUnits="userSpaceOnUse">
+      <stop offset="0.78" stop-color="#ff6a1f" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ff6a1f" stop-opacity="0"/>
+    </radialGradient>
+    <symbol id="scope" viewBox="176 176 672 672">
+      <circle cx="512" cy="512" r="334" fill="#0f1d17"/>
+      <g clip-path="url(#scope-clip)">
+        <circle cx="512" cy="512" r="276" fill="url(#scope-glow)"/>
+        <circle cx="512" cy="512" r="221" fill="#ff6a1f"/>
+        <path fill="#21432b" d="M180 698H343L378 643L474 624L502 490Q506 474 528 474H844V844H180Z"/>
+        <g fill="#eee7d4">
+          <rect x="505" y="180" width="14" height="148"/><rect x="505" y="696" width="14" height="148"/>
+          <rect x="180" y="505" width="148" height="14"/><rect x="696" y="505" width="148" height="14"/>
+          <rect x="510" y="328" width="4" height="142"/><rect x="510" y="554" width="4" height="142"/>
+          <rect x="328" y="510" width="142" height="4"/><rect x="554" y="510" width="142" height="4"/>
+        </g>
+      </g>
+      <circle cx="512" cy="512" r="327" fill="none" stroke="#eee7d4" stroke-width="14"/>
+    </symbol>
+    <radialGradient id="paper" cx="0.5" cy="0.45" r="0.75">
+      <stop offset="0.55" stop-color="#efe6cf"/>
+      <stop offset="1" stop-color="#cfae7e"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Wood planks and the bottom strip from the old texture; dark wood in the gaps (no black mip fringes). -->
+  <image href="base.jpg" width="1024" height="1024"/>
+  <rect x="545" y="0" width="479" height="958" fill="#2b201b"/>
+
+  <!-- Welcome sign (x4 in the map). Display 304 x 456. -->
+  <g transform="scale(1.81818 1)">
+    <rect width="306" height="456" fill="#634843"/>
+    <text class="barlow" x="156" y="68" font-size="30" fill="#d59a62" data-fit="200">Welcome to</text>
+    <text class="stencil" x="156" y="160" font-size="82" fill="#eee7d4" data-fit="166">Alamin's</text>
+    <text class="stencil" x="156" y="236" font-size="82" fill="#eee7d4" data-fit="166">Kingdom</text>
+    <g stroke="#d59a62" stroke-width="3">
+      <line x1="72" y1="292" x2="116" y2="292"/>
+      <line x1="196" y1="292" x2="240" y2="292"/>
+    </g>
+    <use href="#scope" x="124" y="260" width="64" height="64"/>
+    <rect y="336" width="306" height="120" fill="#ff6a1f"/>
+    <rect y="336" width="306" height="4" fill="#eee7d4"/>
+    <text class="stencil" x="153" y="406" font-size="50" fill="#0f1d17" data-fit="206">RimFire canyon</text>
+  </g>
+
+  <!-- Notice board poster (x2). Display 252 x 332. -->
+  <g transform="translate(560 3) scale(1.81818 1)">
+    <rect width="252" height="332" fill="url(#paper)"/>
+    <rect x="7" y="7" width="238" height="318" fill="none" stroke="#3b2a22" stroke-width="4"/>
+    <text class="stencil" x="126" y="76" font-size="78" fill="#3b2a22" data-fit="206">Wanted</text>
+    <image href="photo.jpg" x="27" y="86" width="198" height="172" preserveAspectRatio="xMidYMin slice"/>
+    <rect x="27" y="86" width="198" height="172" fill="none" stroke="#3b2a22" stroke-width="3"/>
+    <text class="stencil" x="126" y="295" font-size="46" fill="#3b2a22" data-fit="200">Alamin</text>
+    <text class="barlow" x="126" y="318" font-size="20" fill="#8a3b12" data-fit="206">for building RimFire</text>
+  </g>
+
+  <!-- Fire danger sign on the notice board post (x2). Display 177 x 398. -->
+  <g transform="translate(690 362) scale(1.83486 1)">
+    <rect width="177" height="398" fill="#0f1d17"/>
+    <rect x="6" y="6" width="165" height="386" fill="none" stroke="#eee7d4" stroke-width="4"/>
+    <text class="stencil" x="88.5" y="52" font-size="42" fill="#eee7d4" data-fit="150">Fire danger</text>
+    <text class="barlow6" x="88.5" y="76" font-size="20" fill="#d59a62">today</text>
+    <g class="barlow" font-size="20" fill="#0f1d17">
+      <rect x="18" y="88" width="108" height="50" fill="#f2463a"/><text x="72" y="120" data-fit="100">Extreme</text>
+      <rect x="18" y="142" width="108" height="50" fill="#ff6a1f"/><text x="72" y="174" data-fit="100">Very high</text>
+      <rect x="18" y="196" width="108" height="50" fill="#f2c230"/><text x="72" y="228" data-fit="100">High</text>
+      <rect x="18" y="250" width="108" height="50" fill="#47c6cb"/><text x="72" y="282" data-fit="100">Moderate</text>
+      <rect x="18" y="304" width="108" height="50" fill="#b5cc4e"/><text x="72" y="336" data-fit="100">Low</text>
+    </g>
+    <rect x="16" y="86" width="112" height="54" fill="none" stroke="#eee7d4" stroke-width="3"/>
+    <polygon points="132,113 162,94 162,132" fill="#eee7d4"/>
+    <text class="barlow6" x="88.5" y="380" font-size="16" fill="#eee7d4" data-fit="150">Put out every spark</text>
+  </g>
+
+  <!-- Peak of the notice boards, where the "2" was. Display 100 x 245, top of the content at atlas x=789. -->
+  <g transform="matrix(0 1.85185 -1 0 789 768)">
+    <rect width="100" height="245" fill="#0f1d17"/>
+    <use href="#scope" x="9" y="16" width="82" height="82"/>
+    <text class="stencil" x="50" y="162" font-size="56" fill="#eee7d4" data-fit="84">Rim</text>
+    <text class="stencil" x="50" y="222" font-size="56" fill="#ff6a1f" data-fit="84">Fire</text>
+  </g>
+
+  <!-- Badge on the welcome sign post (x2). Display 93.5 x 207, point at the bottom; top edge at atlas x=801. -->
+  <g transform="matrix(0 -1.78571 1 0 801 952)">
+    <rect width="94" height="207" fill="#634843"/>
+    <path d="M4 0H89.6L93.5 165L47.6 207L0 165Z" fill="#0f1d17"/>
+    <path d="M10.5 7H83.5L86.5 161L47.6 197L7 161Z" fill="none" stroke="#eee7d4" stroke-width="4"/>
+    <use href="#scope" x="17" y="20" width="60" height="60"/>
+    <text class="barlow" x="47" y="108" font-size="16" fill="#d59a62" data-fit="66">Canyon</text>
+    <text class="stencil" x="47" y="140" font-size="32" fill="#eee7d4" data-fit="68">Ranger</text>
+    <polygon points="47,150 50,158 58,158 51.5,163 54,171 47,166 40,171 42.5,163 36,158 44,158" fill="#ff6a1f"/>
+  </g>
+</svg>
+<script>
+  // Shrink any text wider than its data-fit width (display units), once the fonts are in.
+  document.fonts.ready.then(() => {
+    for (const el of document.querySelectorAll('[data-fit]')) {
+      const max = +el.dataset.fit;
+      let size = parseFloat(el.getAttribute('font-size') || getComputedStyle(el).fontSize);
+      while (el.getComputedTextLength() > max && size > 6) el.setAttribute('font-size', (size -= 0.5));
+    }
+    window.done = true;
+  });
+</script>
+</body>
+</html>
