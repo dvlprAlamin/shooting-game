@@ -1,10 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { RESPAWN_DELAY } from '@rimfire/shared';
 import Button from '../elements/Button';
 import LeaderBoard from '../LeaderBoard/LeaderBoard';
 import { otherTeam, teamName } from '@/game/teams';
+import { useHudStore } from '@/store/HudStore';
 import styles from './RespawnPopup.module.scss';
 
-const RESPAWN_DELAY = 5; // seconds before the Respawn button unlocks
+const UNLOCK = RESPAWN_DELAY / 1000; // seconds before the Respawn button unlocks: the server's wait
+// Seconds after that before it presses itself, if you did something in the life you just lost (see
+// HudStore.activeThisLife). Otherwise it waits for a tap.
+const AUTO_AFTER = 3;
 
 /** Most kills first; fewer deaths breaks a tie. */
 const rankPlayers = (players) => Object.values(players ?? {}).sort((a, b) => b.kills - a.kills || a.deaths - b.deaths);
@@ -50,7 +55,11 @@ const RespawnPopup = ({
   onRematch,
   onLeave,
 }) => {
-  const [wait, setWait] = useState(RESPAWN_DELAY);
+  const [elapsed, setElapsed] = useState(0); // seconds since you died
+  const [auto] = useState(() => useHudStore.getState().activeThisLife);
+  const wait = UNLOCK - elapsed; // until Respawn unlocks
+  const autoIn = UNLOCK + AUTO_AFTER - elapsed; // until it presses itself, if `auto`
+  const respawnNow = useEffectEvent(() => reSpawnHandler());
   const respawnRef = useRef(null);
   const againRef = useRef(null);
   const ranked = rankPlayers(leaderboard);
@@ -60,13 +69,12 @@ const RespawnPopup = ({
 
   useEffect(() => {
     if (isGameOver) return;
-    if (wait <= 0) {
-      respawnRef.current?.focus(); // so Enter or Space respawns
-      return;
-    }
-    const id = setTimeout(() => setWait((w) => w - 1), 1000);
+    if (elapsed === UNLOCK) respawnRef.current?.focus(); // so Enter or Space respawns
+    if (auto && elapsed === UNLOCK + AUTO_AFTER) respawnNow();
+    if (elapsed >= UNLOCK + (auto ? AUTO_AFTER : 0)) return;
+    const id = setTimeout(() => setElapsed((s) => s + 1), 1000);
     return () => clearTimeout(id);
-  }, [wait, isGameOver]);
+  }, [elapsed, auto, isGameOver]);
 
   useEffect(() => {
     if (isGameOver) againRef.current?.focus();
@@ -96,14 +104,22 @@ const RespawnPopup = ({
                   {voted ? 'Ready' : 'Play again'}
                 </Button>
               </div>
-              <p className={styles.votes} role="status">
+              <p className={styles.status} role="status">
                 {startsIn ? `${ready}, starting in ${startsIn}` : ready}
               </p>
             </div>
           ) : (
-            <Button ref={respawnRef} className={styles.respawn} disabled={wait > 0} onClick={reSpawnHandler}>
-              {wait > 0 ? `Respawn in ${wait}` : 'Respawn'}
-            </Button>
+            <div className={styles.actions}>
+              <Button ref={respawnRef} className={styles.respawn} disabled={wait > 0} onClick={reSpawnHandler}>
+                {wait > 0 ? `Respawn in ${wait}` : 'Respawn'}
+              </Button>
+              {/* Its room is kept from the start, so nothing moves when it shows. */}
+              {auto && (
+                <p className={`${styles.status} ${wait > 0 ? styles.later : ''}`}>
+                  {autoIn > 0 ? `Respawning in ${Math.min(autoIn, AUTO_AFTER)}` : 'Respawning…'}
+                </p>
+              )}
+            </div>
           )}
         </header>
         <LeaderBoard ranked={ranked} myId={myId} ready={isGameOver ? votes : null} teams={teams} />

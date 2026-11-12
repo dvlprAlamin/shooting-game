@@ -98,7 +98,8 @@
   }
 }
 
-// After the match: Leave and Play again, with the rematch vote count under them.
+// The buttons with a line under them: after the match, the rematch vote count; after a death, when Respawn
+// presses itself.
 .actions {
   display: grid;
   justify-items: end;
@@ -124,11 +125,15 @@
   }
 }
 
-.votes {
+.status {
   font-weight: 600;
   font-size: 0.95rem;
   color: var(--sand);
   font-variant-numeric: tabular-nums;
+}
+
+.later {
+  visibility: hidden;
 }
 
 @keyframes land {

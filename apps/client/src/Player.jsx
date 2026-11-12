@@ -54,6 +54,9 @@ const SHOT_BUFFER = 250;
 const HEAL_SPEED = 0.6;
 // Look speed while aiming, against hip fire (a scope slows it in step with its zoom instead).
 const AIM_LOOK = 0.65;
+// Turning this far (rad) from the way you spawned facing counts as looking around (see HudStore.activeThisLife).
+const LOOKED = 0.02;
+const turned = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
 
 // `initialYaw`: the way to face on spawning. `fall`: below this height you've fallen out of the map and are put
 // back at `fallReset`.
@@ -110,6 +113,9 @@ export const Player = memo(function Player({
       nextSend: 0,
       deadT: 0,
       isDead: false,
+      active: false, // see HudStore.activeThisLife
+      spawnYaw: NaN, // the way you faced on spawning (NaN until the camera is turned that way)
+      spawnPitch: NaN,
     }),
     []
   );
@@ -129,6 +135,9 @@ export const Player = memo(function Player({
     _euler.setFromQuaternion(camera.quaternion, 'YXZ');
     const yaw = Number.isFinite(initialYaw) ? initialYaw : _euler.y;
     camera.quaternion.setFromEuler(_euler.set(0, yaw, 0, 'YXZ'));
+    state.spawnYaw = yaw;
+    state.spawnPitch = 0;
+    useHudStore.getState().setActiveThisLife(false);
 
     const onHit = ({ health }) => {
       updatePlayer(socket.id, 'health', health);
@@ -333,6 +342,13 @@ export const Player = memo(function Player({
     // Keys are digital; the touch stick is analog (a partial push walks slower).
     const fx = THREE.MathUtils.clamp((input.forward ? 1 : 0) - (input.backward ? 1 : 0) + input.moveY, -1, 1);
     const sx = THREE.MathUtils.clamp((input.right ? 1 : 0) - (input.left ? 1 : 0) + input.moveX, -1, 1);
+    if (!dead && !state.active) {
+      const looked = turned(yaw, state.spawnYaw) > LOOKED || Math.abs(pitch - state.spawnPitch) > LOOKED;
+      if (fx || sx || input.jump || input.fire || input.aim || looked) {
+        state.active = true;
+        useHudStore.getState().setActiveThisLife(true);
+      }
+    }
     _forward.set(-Math.sin(yaw), 0, -Math.cos(yaw));
     _right.set(Math.cos(yaw), 0, -Math.sin(yaw));
     _wish.set(0, 0, 0).addScaledVector(_forward, fx).addScaledVector(_right, sx);

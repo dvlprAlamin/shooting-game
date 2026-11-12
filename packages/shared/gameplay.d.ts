@@ -5,6 +5,7 @@ export declare const PLAYER_CENTER_TO_FEET: number;
 export declare const EYE_HEIGHT: number;
 export declare const MAX_HEALTH: number;
 export declare const SPAWN_PROTECTION: number;
+export declare const RESPAWN_DELAY: number;
 export declare const HEAD_HEIGHT: number;
 export declare const MAX_SHOT_DISTANCE: number;
 export type Mode = 'ffa' | 'tdm';

@@ -10,6 +10,8 @@ export const EYE_HEIGHT = 0.7; // camera height above the capsule centre; shots 
 export const MAX_HEALTH = 100;
 // A player who just spawned can't be hurt for this long, or until they fire.
 export const SPAWN_PROTECTION = 3000; // ms
+// A player who died can come back this long after (the client unlocks Respawn then, and the server holds to it).
+export const RESPAWN_DELAY = 5000; // ms
 
 // Hits on the capsule higher than this above its centre are headshots (soldier.glb's neck is
 // 1.52 m above the feet, the capsule centre 0.9 m).

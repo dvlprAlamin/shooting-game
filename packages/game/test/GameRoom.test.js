@@ -11,6 +11,7 @@ import {
 import {
     MAX_HEALTH,
     PLAYER_LIMITS,
+    RESPAWN_DELAY,
     ROOM_DURATIONS,
     SPAWN_PROTECTION,
 } from '@rimfire/shared';
@@ -66,8 +67,9 @@ const killB = (s) => {
     for (let i = 0; i < KILL_SHOTS; i++) shootB(s);
 };
 
-// B back where A can shoot them, unprotected.
+// B back (as soon as they can) where A can shoot them, unprotected.
 const respawnB = (s) => {
+    s.clock.t += RESPAWN_DELAY;
     s.room.respawn('B');
     s.clock.t += SPAWN_PROTECTION;
     placeB(s);
@@ -189,6 +191,7 @@ test('a player who just spawned cannot be hurt until the protection runs out or 
 test('respawns pick a spawn point far from the living enemies', () => {
     const s = twoPlayers();
     killB(s);
+    s.clock.t += RESPAWN_DELAY;
     s.room.respawn('B');
     const [first, second] = farthestFrom(s.room.players.A.position);
     assert.deepEqual(s.room.players.B.position, first);
@@ -197,6 +200,7 @@ test('respawns pick a spawn point far from the living enemies', () => {
     placeB(s);
     killB(s);
     s.room.random = () => 0.99; // the other of the two safe choices
+    s.clock.t += RESPAWN_DELAY;
     s.room.respawn('B');
     assert.deepEqual(s.room.players.B.position, second);
 });
@@ -332,13 +336,20 @@ test('the killing shot announces the kill and updates the scores', () => {
     assert.ok(!s.sent.some((e) => e.event === 'hit'));
 });
 
-test('only dead players can respawn, at full health', () => {
+test('only dead players can respawn, once RESPAWN_DELAY has passed, at full health', () => {
     const s = twoPlayers();
     s.room.respawn('B');
     assert.deepEqual(s.take(), []);
 
     killB(s);
     s.take();
+    s.room.respawn('B'); // too soon
+    s.clock.t += RESPAWN_DELAY - TIMING_SLACK - 1;
+    s.room.respawn('B');
+    assert.deepEqual(s.take(), []);
+    assert.equal(s.room.players.B.isDead, true);
+
+    s.clock.t += 1;
     s.room.respawn('B');
     const b = s.room.players.B;
     assert.deepEqual([b.isDead, b.health, b.deaths], [false, MAX_HEALTH, 1]);
@@ -716,6 +727,7 @@ test('respawns in a team match keep away from the other team, not from teammates
     assert.equal(s.room.players.D.team, 'b');
     s.room.move('D', { t: 1, p: [first.x, first.y, first.z], yaw: 0, pitch: 0, f: 1 });
     killB(s);
+    s.clock.t += RESPAWN_DELAY;
     s.room.respawn('B');
     assert.deepEqual(s.room.players.B.position, first);
 });

@@ -22,6 +22,11 @@ export interface IHudStore {
   protectedUntil: number;
   /** Big text over the crosshair for your own streaks and headshot kills. */
   callout: ICallout | null;
+  /**
+   * You moved, aimed, fired or looked around since you last spawned. Respawn comes on its own after a death only
+   * then: someone who did none of that may have put the game down.
+   */
+  activeThisLife: boolean;
   showHitMarker: (kind?: MarkerKind) => void;
   showDamage: () => void;
   setReloading: (value: boolean, time?: number) => void;
@@ -29,6 +34,7 @@ export interface IHudStore {
   /** `ms` of protection left, as the server says; 0 ends it. */
   setProtection: (ms: number) => void;
   showCallout: (title: string, detail?: string) => void;
+  setActiveThisLife: (value: boolean) => void;
 }
 
 export const useHudStore = create<IHudStore>()((set) => ({
@@ -39,10 +45,12 @@ export const useHudStore = create<IHudStore>()((set) => ({
   scoped: false,
   protectedUntil: 0,
   callout: null,
+  activeThisLife: false,
   showHitMarker: (kind = 'hit') => set((s) => ({ marker: { n: s.marker.n + 1, kind } })),
   showDamage: () => set((s) => ({ damageFlash: s.damageFlash + 1 })),
   setReloading: (value, time = 0) => set(() => ({ isReloading: value, reloadTime: time })),
   setScoped: (value) => set(() => ({ scoped: value })),
   setProtection: (ms) => set(() => ({ protectedUntil: ms > 0 ? performance.now() + ms : 0 })),
   showCallout: (title, detail) => set((s) => ({ callout: { n: (s.callout?.n ?? 0) + 1, title, detail } })),
+  setActiveThisLife: (value) => set(() => ({ activeThisLife: value })),
 }));

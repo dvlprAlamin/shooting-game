@@ -1,4 +1,4 @@
-import { EYE_HEIGHT, PLAYER_CENTER_TO_FEET } from '@rimfire/shared';
+import { EYE_HEIGHT, PLAYER_CENTER_TO_FEET, RESPAWN_DELAY } from '@rimfire/shared';
 import { getWeapon } from '@rimfire/shared/weapons';
 import { wallBetween } from '../walls.js';
 import { buildNav, findPath } from './nav.js';
@@ -20,7 +20,7 @@ const ACCURACY = 0.42; // chance a shot hits a still target at point-blank range
 const HEADSHOT_SHARE = 0.12; // of the hits
 const RUN_SPEED = 4.5; // m/s, a player's walk speed
 const STRAFE_SPEED = 2.6;
-const RESPAWN_MS = [3000, 5000];
+const RESPAWN_MS = [RESPAWN_DELAY, RESPAWN_DELAY + 3000]; // no sooner than people can, and about when theirs is automatic
 const LOW_HEALTH = 40; // they use their medkit below this, when nobody is around
 const GROUNDED = 1; // movement flag (client FLAG_GROUNDED)
 const GUNS = ['rifle', 'rifle', 'rifle', 'smg']; // what a bot picks when it spawns

@@ -5,6 +5,7 @@ import {
     MODES,
     PLAYER_LIMITS,
     PLAYER_RADIUS,
+    RESPAWN_DELAY,
     ROOM_DURATIONS,
     SPAWN_PROTECTION,
     TEAMS,
@@ -18,7 +19,7 @@ import { BOT_NAMES, BotDirector, botsCanPlay } from './bots/BotDirector.js';
 
 // Shots may arrive this much closer together than the gun's fire interval (network jitter).
 const FIRE_JITTER = 20;
-// Switching, reloading and using a medkit may finish this much early, for the same reason.
+// Switching, reloading, using a medkit and respawning may come this much early, for the same reason.
 export const TIMING_SLACK = 150;
 const HISTORY_MS = 1000;
 const MAX_NAME_LENGTH = 24;
@@ -105,7 +106,8 @@ const pushHistory = (player, now) => {
  *
  * Weapons (@rimfire/shared/weapons): every player carries all of them and the room keeps count of each
  * one's magazine, so a client can't fire faster, longer or harder than its gun allows. Reloads and medkits
- * are timed here too, and finish on the player's next message after their time is up.
+ * are timed here too, and finish on the player's next message after their time is up. So are respawns: not
+ * before RESPAWN_DELAY after dying.
  */
 export class GameRoom {
     /**
@@ -186,6 +188,7 @@ export class GameRoom {
             streak: 0, // kills since the last death
             bestStreak: 0,
             isDead: false,
+            diedAt: 0, // when they last died
             protectedUntil: now + SPAWN_PROTECTION,
             lastShotAt: 0,
             lastHitAt: 0,
@@ -390,6 +393,7 @@ export class GameRoom {
         if (target.health <= 0) {
             const endedStreak = target.streak;
             target.isDead = true;
+            target.diedAt = now;
             target.deaths += 1;
             target.streak = 0;
             shooter.kills += 1;
@@ -468,6 +472,7 @@ export class GameRoom {
         const player = this.players[id];
         if (!player || !player.isDead || this.ended) return;
         const now = this.now();
+        if (now - player.diedAt < RESPAWN_DELAY - TIMING_SLACK) return;
         // Coming back is the moment to even out teams that players leaving have made lopsided.
         if (this.teams) {
             const count = this.teamCounts();
