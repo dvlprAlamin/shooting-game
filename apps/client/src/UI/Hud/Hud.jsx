@@ -56,6 +56,7 @@ const Protection = () => {
 
   useEffect(() => {
     const ms = until - performance.now();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- read off the clock once per spawn, for the bar's CSS
     setLeft(Math.max(0, ms));
     if (ms <= 0) return;
     const id = setTimeout(() => setLeft(0), ms);

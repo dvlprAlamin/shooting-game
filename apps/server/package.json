@@ -11,9 +11,9 @@
   "dependencies": {
     "@rimfire/game": "workspace:*",
     "@rimfire/shared": "workspace:*",
-    "hono": "^4.13.17"
+    "hono": "^4.13.18"
   },
   "devDependencies": {
-    "wrangler": "^4.160.0"
+    "wrangler": "^4.160.1"
   }
 }

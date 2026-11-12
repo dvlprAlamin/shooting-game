@@ -225,12 +225,13 @@ const RoomSelector = ({ joinRoom }) => {
 
   useEffect(() => {
     if (!looking) return;
-    setGames([]);
-    setBlocked(false);
     const stop = watchNearby(setGames, setBlocked);
     return () => {
       stop();
       closeTunnels(joining.current);
+      // Start from nothing next time (the pane is hidden meanwhile).
+      setGames([]);
+      setBlocked(false);
     };
   }, [looking]);
 
@@ -258,7 +259,7 @@ const RoomSelector = ({ joinRoom }) => {
 
   // Joins the nearby game typed in, or else the one picked (or else the only one found).
   const joinNearby = async (playerName) => {
-    let game = null;
+    let game;
     if (address.trim()) {
       const at = parseAddress(address);
       if (!at) return notice("That isn't an address. It looks like 192.168.1.5.");
