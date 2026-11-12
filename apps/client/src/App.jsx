@@ -1,4 +1,4 @@
-import React, { memo, Suspense, useEffect, useState } from 'react';
+import React, { memo, Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { PointerLockControls } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
@@ -346,6 +346,16 @@ function LoadingSignal({ onChange }) {
 // Memoized, like World and the players in it: App re-renders on every timer tick and HUD change, and taking
 // the 3D tree along cost a long frame (50-70 ms) each time on a low-end phone.
 const Scene = memo(function Scene({ map, players, myTeam, isDead, isGameOver }) {
+  const controlsRef = useRef(null);
+  const mouseLook = !IS_TOUCH && !isDead && !isGameOver;
+
+  // The pointer stays locked through a death and a respawn, but the controls come and go with them, and new ones
+  // only learn they're locked from a pointerlockchange that never comes: the mouse wouldn't turn you until a click.
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (mouseLook && controls?.domElement && document.pointerLockElement === controls.domElement) controls.isLocked = true;
+  }, [mouseLook]);
+
   const pointerLockControlsLockHandler = () => {
     usePointerLockControlsStore.setState({ isLock: true });
   };
@@ -357,8 +367,9 @@ const Scene = memo(function Scene({ map, players, myTeam, isDead, isGameOver }) 
   return (
     <>
       {/* Mouse look needs the Pointer Lock API, which phones don't have; touch look is in TouchControls. */}
-      {!IS_TOUCH && !isDead && !isGameOver ? (
+      {mouseLook ? (
         <PointerLockControls
+          ref={controlsRef}
           makeDefault
           onLock={pointerLockControlsLockHandler}
           onUnlock={pointerLockControlsUnlockHandler}
