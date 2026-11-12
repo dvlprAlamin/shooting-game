@@ -26,13 +26,17 @@
     { "name": "LIMIT_PROFILE", "namespace_id": "7303", "simple": { "limit": 60, "period": 60 } },
     { "name": "LIMIT_AUTH", "namespace_id": "7304", "simple": { "limit": 20, "period": 60 } }
   ],
-  // The address the apps use for now (VITE_SERVER_URL in apps/client/.env.production).
+  // The address the apps use (VITE_SERVER_URL in apps/client/.env.production). anminas.com is a zone in the same
+  // Cloudflare account: deploying makes the DNS record and the certificate.
+  "routes": [{ "pattern": "rimfire-api.anminas.com", "custom_domain": true }],
+  // The old address, still on for builds made before the custom domain.
   "workers_dev": true,
   "vars": {
-    // Sign in with Google: the Web OAuth client id from Google Cloud, the same one as VITE_GOOGLE_WEB_CLIENT_ID in
-    // the client (comma-separated for several, the Web one first: /delete-account signs in with it). Not a secret.
-    // Empty: sign-in is off.
-    "GOOGLE_CLIENT_ID": "378969469504-154hsjlr8fbni6481c6km1c9794pjd5d.apps.googleusercontent.com"
+    // Sign in with Google: the OAuth client ids from Google Cloud, comma-separated: the Web one (VITE_GOOGLE_WEB_CLIENT_ID
+    // in the client, and the website's deletion page) and any others. Not a secret. Empty: sign-in is off.
+    "GOOGLE_CLIENT_ID": "378969469504-154hsjlr8fbni6481c6km1c9794pjd5d.apps.googleusercontent.com",
+    // The website (apps/site): the privacy policy and the deletion page, which used to be served here.
+    "SITE_URL": "https://rimfire.anminas.com"
   },
   "observability": { "enabled": true }
 }

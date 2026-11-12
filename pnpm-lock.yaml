@@ -131,6 +131,18 @@ importers:
         specifier: ^4.160.1
         version: 4.160.1
 
+  apps/site:
+    devDependencies:
+      '@fontsource/barlow-semi-condensed':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/big-shoulders-stencil':
+        specifier: ^5.3.0
+        version: 5.3.0
+      wrangler:
+        specifier: ^4.160.1
+        version: 4.160.1
+
   packages/game:
     dependencies:
       '@rimfire/shared':

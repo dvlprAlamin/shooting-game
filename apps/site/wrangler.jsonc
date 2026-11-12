@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // The game's website: the landing page, the privacy policy and the account deletion page (the links on the Play
+  // listing and in the app). Only files, no Worker code: `pnpm build` writes them to dist/.
+  "name": "rimfire-site",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist",
+    // /privacy serves privacy.html; anything else missing gets 404.html.
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  // anminas.com is a zone in the same Cloudflare account: deploying makes the DNS record and the certificate.
+  "routes": [{ "pattern": "rimfire.anminas.com", "custom_domain": true }],
+  "workers_dev": false
+}

@@ -28,10 +28,11 @@ Requirements: Android Studio (with the Android SDK) for Android; Xcode on macOS 
    `.env.production`, which points at the deployed Worker:
 
    ```
-   VITE_SERVER_URL=https://shooting-game.services-65f.workers.dev
+   VITE_SERVER_URL=https://rimfire-api.anminas.com
    ```
 
-   This is the Cloudflare Worker in `apps/server`, on its `workers.dev` address for now (a custom domain later).
+   This is the Cloudflare Worker in `apps/server`, on its custom domain (its old `workers.dev` address still works
+   for older builds). The privacy link in Settings goes to the website, `apps/site` (`VITE_SITE_URL` overrides it).
    The client no longer talks to the old Node + Socket.IO server.
 
    Use `https://` in production: Android and iOS block plain `http://` / `ws://` by default.

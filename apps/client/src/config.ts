@@ -29,8 +29,9 @@ if (IS_NATIVE && !env.VITE_SERVER_URL) {
 // Without VITE_SERVER_URL: the same host on port 8787, where `wrangler dev` serves the game server.
 export const SERVER_URL: string =
   env.VITE_SERVER_URL || `${window.location.protocol}//${window.location.hostname}:8787`;
-// The privacy policy, a page the game server serves (and Play links to).
-export const PRIVACY_URL = `${SERVER_URL.replace(/\/+$/, '')}/privacy`;
+// The game's website (apps/site), which has the privacy policy that Play links to. `VITE_SITE_URL` overrides it.
+export const SITE_URL: string = env.VITE_SITE_URL || 'https://rimfire.anminas.com';
+export const PRIVACY_URL = `${SITE_URL.replace(/\/+$/, '')}/privacy`;
 // Sign in with Google (optional; keeps your record on any device): the Web OAuth client id from Google Cloud,
 // the same one as the server's GOOGLE_CLIENT_ID. Not set: no sign-in. iOS needs a client id of its own as well,
 // so for now it's Android and the web.

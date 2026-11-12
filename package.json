@@ -10,7 +10,9 @@
     "build": "pnpm --filter @rimfire/client build",
     "test": "pnpm -r test",
     "lint": "eslint .",
-    "deploy:server": "pnpm --filter @rimfire/server run deploy"
+    "deploy:server": "pnpm --filter @rimfire/server run deploy",
+    "build:site": "pnpm --filter @rimfire/site build",
+    "deploy:site": "pnpm --filter @rimfire/site run deploy"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -161,25 +161,32 @@ test('/auth/google/delete deletes the record of the account the token is for', {
     assert.equal(off.status, 503);
 });
 
-test('the privacy and account deletion pages are served, never in a frame', async () => {
-    const privacy = await app.request('/privacy', {}, env);
-    assert.equal(privacy.status, 200);
-    assert.match(privacy.headers.get('Content-Type'), /text\/html/);
-    assert.match(privacy.headers.get('Content-Security-Policy'), /frame-ancestors 'none'/);
-    const policy = await privacy.text();
-    assert.match(policy, /RimFire privacy policy/);
-    assert.match(policy, /href="\/delete-account"/);
-    assert.doesNotMatch(policy, /<script/); // loads nothing from elsewhere
+test('the old privacy and deletion page addresses go to the website', async () => {
+    const site = { ...env, SITE_URL: 'https://rimfire.example/' };
+    for (const path of ['/privacy', '/delete-account']) {
+        const res = await app.request(path, {}, site);
+        assert.equal(res.status, 301);
+        assert.equal(res.headers.get('Location'), `https://rimfire.example${path}`);
+    }
+});
 
-    // The deletion page signs in with the first (Web) client; without sign-in it gives the steps and an email.
-    const withAuth = { ...env, DB: fakeDb(), GOOGLE_CLIENT_ID: `${CLIENT}, ios-client` };
-    const deletion = await (await app.request('/delete-account', {}, withAuth)).text();
-    assert.match(deletion, new RegExp(`CLIENT_ID = "${CLIENT}"`));
-    assert.match(deletion, /accounts\.google\.com\/gsi\/client/);
-    const off = await (await app.request('/delete-account', {}, env)).text();
-    assert.doesNotMatch(off, /<script/);
-    assert.match(off, /Delete record/);
-    assert.match(off, /mailto:/);
+test("the website's deletion page may call the delete endpoint from its own origin", async () => {
+    const res = await app.request(
+        '/auth/google/delete',
+        {
+            method: 'OPTIONS',
+            headers: {
+                Origin: 'https://rimfire.example',
+                'Access-Control-Request-Method': 'POST',
+                'Access-Control-Request-Headers': 'content-type',
+            },
+        },
+        env,
+    );
+    assert.ok(res.status === 204 || res.status === 200, `preflight status ${res.status}`);
+    assert.equal(res.headers.get('Access-Control-Allow-Origin'), '*');
+    assert.match(res.headers.get('Access-Control-Allow-Methods'), /POST/);
+    assert.match(res.headers.get('Access-Control-Allow-Headers'), /content-type/i);
 });
 
 // A rate limiting binding stand-in: lets `allow` requests per key through, then refuses. `seen` lists the keys.

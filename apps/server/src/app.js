@@ -4,7 +4,6 @@ import { CLOSE } from '@rimfire/game';
 import { PROFILE_ID_PATTERN, ROOM_ID_PATTERN } from '@rimfire/shared';
 import { verifyGoogleIdToken } from './googleAuth.js';
 import { lobbyOf } from './lobbyOf.js';
-import { deletionPage, privacyPage } from './pages.js';
 import { deleteAccount, deleteProfile, getProfile, signIn } from './profiles.js';
 
 const app = new Hono();
@@ -73,8 +72,7 @@ app.delete('/profile/:id', async (c) => {
     return c.body(null, 204);
 });
 
-// GOOGLE_CLIENT_ID: the OAuth clients Google's ID tokens may be issued for, comma-separated, the Web client first
-// (the deletion page signs in with it). Empty: sign-in is off.
+// GOOGLE_CLIENT_ID: the OAuth clients Google's ID tokens may be issued for, comma-separated. Empty: sign-in is off.
 const googleClients = (env) =>
     String(env.GOOGLE_CLIENT_ID ?? '')
         .split(',')
@@ -106,8 +104,8 @@ app.post('/auth/google', async (c) => {
     return c.json({ profileId: id, profile: await getProfile(c.env.DB, id) });
 });
 
-// Deletes the record of the Google account an ID token is for, and its link: the deletion page's way, for
-// anyone without the app (the app deletes by profile id). `deleted` false: the account had no record.
+// Deletes the record of the Google account an ID token is for, and its link: the way of the website's deletion page
+// (apps/site), for anyone without the app (the app deletes by profile id). `deleted` false: the account had no record.
 app.post('/auth/google/delete', async (c) => {
     if (signInOff(c)) return c.json({ error: 'Sign-in is not set up on this server' }, 503);
     const { idToken } = (await c.req.json().catch(() => null)) ?? {};
@@ -117,13 +115,10 @@ app.post('/auth/google/delete', async (c) => {
     return c.json({ deleted: await deleteAccount(c.env.DB, { provider: 'google', subject: claims.sub }) });
 });
 
-// The pages Google Play asks for (pages.js). Never framed: the deletion page has a delete button.
-const page = (c, html) => {
-    c.header('Content-Security-Policy', "frame-ancestors 'none'");
-    c.header('Cache-Control', 'public, max-age=300');
-    return c.html(html);
-};
-app.get('/privacy', (c) => page(c, privacyPage()));
-app.get('/delete-account', (c) => page(c, deletionPage(signInOff(c) ? '' : googleClients(c.env)[0])));
+// The privacy policy and the deletion page moved to the website (apps/site, SITE_URL); their old addresses here go
+// there, for links already out.
+for (const path of ['/privacy', '/delete-account']) {
+    app.get(path, (c) => c.redirect(`${String(c.env.SITE_URL ?? '').replace(/\/+$/, '')}${path}`, 301));
+}
 
 export default app;
