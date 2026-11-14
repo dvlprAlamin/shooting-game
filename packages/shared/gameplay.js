@@ -13,8 +13,8 @@ export const SPAWN_PROTECTION = 3000; // ms
 // A player who died can come back this long after (the client unlocks Respawn then, and the server holds to it).
 export const RESPAWN_DELAY = 5000; // ms
 
-// Hits on the capsule higher than this above its centre are headshots (soldier.glb's neck is
-// 1.52 m above the feet, the capsule centre 0.9 m).
+// Hits on the capsule higher than this above its centre are headshots (the soldiers' necks are
+// 1.48 m above the feet, the capsule centre 0.9 m).
 export const HEAD_HEIGHT = 0.6;
 // No gun reaches farther. Per-gun numbers (damage, fire rate, magazine, ...) are in weapons.js.
 export const MAX_SHOT_DISTANCE = 250;

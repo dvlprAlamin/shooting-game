@@ -13,25 +13,11 @@ const CREDITS = [
     authorUrl: 'https://sketchfab.com/siparminid',
   },
   {
-    used: 'First-person arms and guns',
+    used: "Arms, and every soldier's AK",
     title: 'FPS AK-74m animations',
     url: 'https://sketchfab.com/3d-models/fps-ak-74m-animations-94be8385c402474cacd39bc096c6ca14',
     author: 'Cransh',
     authorUrl: 'https://sketchfab.com/ccransh',
-  },
-  {
-    used: 'Soldiers',
-    title: 'Person',
-    url: 'https://sketchfab.com/3d-models/person-1d6f1156c1504b3499a2fcff713cff08',
-    author: 'skeyo',
-    authorUrl: 'https://sketchfab.com/hutcbugo',
-  },
-  {
-    used: "Soldiers' rifle",
-    title: 'Low-poly AKS-74U',
-    url: 'https://sketchfab.com/3d-models/low-poly-aks-74u-4aa2f92e016c434eafdba67b238bb7fb',
-    author: 'veightyfive',
-    authorUrl: 'https://sketchfab.com/veightyfive',
   },
 ];
 

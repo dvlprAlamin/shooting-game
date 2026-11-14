@@ -270,13 +270,13 @@ export function buildMedkit() {
   return { group };
 }
 
-// Third-person copies for other players' soldiers (game/soldierRig.js holds them like weapon_tp.glb): muzzle
+// Third-person copies for other players' soldiers (game/soldier.js holds them like rifle_tp.glb): muzzle
 // along +z, origin at the pistol grip. Built once, then cloned (clones share geometry and materials).
 const THIRD_PERSON_ORIGIN = new THREE.Vector3(0, -0.06, 0.15);
 const BUILDERS = { smg: buildSmg, pistol: buildPistol, scope: buildScope };
 const thirdPersonModels = {};
 
-/** A third-person `id` ('smg', 'pistol' or 'scope', the scope placed for the third-person rifle). */
+/** A third-person `id` ('smg', 'pistol' or 'scope', the scope placed for the AK). */
 export function thirdPersonModel(id) {
   if (!thirdPersonModels[id]) {
     const built = BUILDERS[id]();
@@ -285,8 +285,6 @@ export function thirdPersonModel(id) {
     if (built.bolt) inner.add(built.bolt);
     if (built.dot) built.dot.visible = false;
     inner.position.copy(THIRD_PERSON_ORIGIN).negate();
-    // The third-person rifle (an AKS-74U) sits a little lower than the AK the scope was made for.
-    if (id === 'scope') inner.position.y += 0.012;
     const outer = new THREE.Group();
     outer.rotation.y = Math.PI;
     outer.add(inner);

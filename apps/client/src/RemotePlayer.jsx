@@ -3,24 +3,23 @@ import { memo, useEffect, useMemo, useRef } from 'react';
 import { useFrame, useLoader } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import { CapsuleCollider, RigidBody } from '@react-three/rapier';
-import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import FlashShoot from '@/assets/textures/flash_shoot_256x256.png';
 import { DEFAULT_WEAPON } from '@rimfire/shared/weapons';
 import { getRemoteWeapon, isProtected, sampleRemote, setShotListener } from '@/net/remotePlayers';
-import { createSoldierRig, getMuzzleWorld, GUN_MUZZLE } from '@/game/soldierRig';
+import { CLIPS_URL, createSoldier, SKINS, skinFor, skinUrl } from '@/game/soldier';
 import { playSoundAt } from '@/game/audio';
 import { TEAM_INFO } from '@/game/teams';
 import { SOUNDS } from '@/weapons/items';
 import { thirdPersonModel, toThirdPerson } from '@/weapons/models';
 import {
+  FLAG_AIM,
   FLAG_GROUNDED,
   PLAYER_CENTER_TO_FEET,
   PLAYER_HALF_HEIGHT,
   PLAYER_RADIUS,
 } from '@/game/constants';
 
-const SOLDIER_URL = '/models/soldier.glb';
-const RIFLE_URL = '/models/weapon_tp.glb';
+const RIFLE_URL = '/models/rifle_tp.glb'; // the first-person AK, cut down (scripts/build-models.mjs)
 
 const _muzzle = new THREE.Vector3();
 const SHIELD_COLOR = '#47c6cb'; // --teal in index.scss
@@ -28,14 +27,35 @@ const TAG_SCALE = [1.1, 0.275, 1];
 // Teammates' tags keep one size on screen (a normal tag's at about 5.5 m), so they can be found at any range.
 const ALLY_TAG_SCALE = [0.2, 0.05, 1];
 
-// Where each gun's muzzle is and where the left hand holds it, gun-local (see game/soldierRig.js). The
-// rifle and the marksman rifle are the third-person AKS-74U; the others come from weapons/models.js.
-const HOLDS = {
-  rifle: { muzzle: GUN_MUZZLE },
-  marksman: { muzzle: GUN_MUZZLE },
-  smg: { muzzle: toThirdPerson({ x: 0, y: 0, z: -0.37 }), grip: new THREE.Vector3(0, 0.005, 0.27) },
-  pistol: { muzzle: toThirdPerson({ x: 0, y: -0.012, z: -0.028 }), grip: new THREE.Vector3(0.015, -0.03, 0.02) },
+// Where each gun's muzzle is, gun-local (grip at the origin, muzzle along +Z). The rifle and the marksman rifle are
+// the AK (its muzzle is AK_MUZZLE in ViewModel.jsx); the others come from weapons/models.js.
+const RIFLE_MUZZLE = toThirdPerson({ x: 0, y: 0, z: -0.5235 });
+const MUZZLES = {
+  rifle: RIFLE_MUZZLE,
+  marksman: RIFLE_MUZZLE,
+  smg: toThirdPerson({ x: 0, y: 0, z: -0.37 }),
+  pistol: toThirdPerson({ x: 0, y: -0.012, z: -0.028 }),
 };
+
+// Far and off-screen soldiers animate less often (their clips still advance by the time skipped): every frame up
+// close, every 2nd past 12 m, every 3rd past 30 m, every 4th past 60 m, every 6th out of view.
+const animationStride = (distance, inView) =>
+  !inView ? 6 : distance < 12 ? 1 : distance < 30 ? 2 : distance < 60 ? 3 : 4;
+const _frustum = new THREE.Frustum();
+const _viewProjection = new THREE.Matrix4();
+const _feet = new THREE.Sphere(new THREE.Vector3(), 1.2);
+let frustumFrame = -1;
+
+// The camera's view, worked out once per frame for every soldier.
+function inView(camera, frame, position) {
+  if (frustumFrame !== frame) {
+    frustumFrame = frame;
+    _viewProjection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    _frustum.setFromProjectionMatrix(_viewProjection);
+  }
+  _feet.center.set(position.x, position.y, position.z);
+  return _frustum.intersectsSphere(_feet);
+}
 
 function makeNameTag(name, color = '#ffffff') {
   const canvas = document.createElement('canvas');
@@ -65,17 +85,17 @@ export const RemotePlayer = memo(function RemotePlayer({
   team = null,
   myTeam = null,
 }) {
-  const soldier = useGLTF(SOLDIER_URL);
+  const skin = skinFor(id, team);
+  const soldierGltf = useGLTF(skinUrl(skin));
+  const clipsGltf = useGLTF(CLIPS_URL);
   const rifle = useGLTF(RIFLE_URL);
   const flashTexture = useLoader(THREE.TextureLoader, FlashShoot);
   const bodyRef = useRef();
   const rootRef = useRef();
-  const tiltRef = useRef();
   const shieldRef = useRef();
 
   const visual = useMemo(() => {
-    const model = cloneSkinned(soldier.scene);
-    // Every gun, in one holder the hands follow; the one in hand is shown.
+    // Every gun, in one holder in the right hand; the one in hand is shown.
     const gun = new THREE.Group();
     const scoped = new THREE.Group();
     scoped.add(rifle.scene.clone(true), thirdPersonModel('scope'));
@@ -89,12 +109,9 @@ export const RemotePlayer = memo(function RemotePlayer({
       item.visible = false;
       gun.add(item);
     }
-    for (const obj of [model, gun]) {
-      obj.traverse((o) => {
-        if (o.isMesh) o.castShadow = true;
-      });
-    }
-    const rig = createSoldierRig(model, gun);
+    gun.traverse((o) => {
+      if (o.isMesh) o.castShadow = true;
+    });
 
     const flash = new THREE.Sprite(
       new THREE.SpriteMaterial({
@@ -105,12 +122,14 @@ export const RemotePlayer = memo(function RemotePlayer({
         color: new THREE.Color(1, 0.85, 0.6),
       })
     );
-    flash.position.copy(GUN_MUZZLE).add(new THREE.Vector3(0, 0, 0.06));
     flash.visible = false;
     gun.add(flash);
 
-    return { model, gun, guns, rig, flash, shown: null };
-  }, [soldier, rifle, flashTexture]);
+    // Different soldiers start their death clips at different places in the list.
+    const seed = [...String(id)].reduce((h, c) => h + c.charCodeAt(0), 0);
+    const soldier = createSoldier({ gltf: soldierGltf, clipsGltf, skin, gun, seed });
+    return { soldier, gun, guns, flash, seed, shown: null };
+  }, [id, skin, soldierGltf, clipsGltf, rifle, flashTexture]);
 
   const ally = !!team && team === myTeam;
   const nameTag = useMemo(() => makeNameTag(playerName, TEAM_INFO[team]?.color), [playerName, team]);
@@ -123,6 +142,8 @@ export const RemotePlayer = memo(function RemotePlayer({
       vel: new THREE.Vector3(),
       flashUntil: 0,
       started: false,
+      frame: 0,
+      pending: 0, // animation time not played yet (far soldiers skip frames)
     }),
     []
   );
@@ -130,12 +151,13 @@ export const RemotePlayer = memo(function RemotePlayer({
   useEffect(() => {
     setShotListener(id, (shot) => {
       motion.flashUntil = performance.now() + 50;
+      visual.soldier.shot();
       visual.flash.visible = true;
       visual.flash.material.rotation = Math.random() * Math.PI * 2;
       visual.flash.scale.setScalar(0.3 + Math.random() * 0.15);
-      const hold = HOLDS[visual.shown] ?? HOLDS.rifle;
       const sound = SOUNDS[shot?.w] ?? SOUNDS[visual.shown] ?? SOUNDS.rifle;
-      playSoundAt('shot', getMuzzleWorld(visual.gun, _muzzle, hold.muzzle), {
+      const muzzle = visual.gun.localToWorld(_muzzle.copy(MUZZLES[visual.shown] ?? RIFLE_MUZZLE));
+      playSoundAt('shot', muzzle, {
         volume: Math.min(1, sound.volume * 1.65),
         detune: sound.detune + (Math.random() - 0.5) * 120,
       });
@@ -143,7 +165,7 @@ export const RemotePlayer = memo(function RemotePlayer({
     return () => setShotListener(id, null);
   }, [id, visual]);
 
-  useFrame((_, rawDt) => {
+  useFrame(({ camera, gl }, rawDt) => {
     const dt = Math.min(rawDt, 0.05);
     const s = motion.sample;
     if (!isDead) sampleRemote(id, s);
@@ -152,9 +174,8 @@ export const RemotePlayer = memo(function RemotePlayer({
     const weapon = getRemoteWeapon(id) ?? DEFAULT_WEAPON;
     if (visual.shown !== weapon && visual.guns[weapon]) {
       for (const [gunId, item] of Object.entries(visual.guns)) item.visible = gunId === weapon;
-      const hold = HOLDS[weapon];
-      visual.rig.setLeftGrip(hold.grip);
-      visual.flash.position.copy(hold.muzzle).add(new THREE.Vector3(0, 0, 0.06));
+      visual.soldier.setWeapon(weapon);
+      visual.flash.position.copy(MUZZLES[weapon]).add(new THREE.Vector3(0, 0, 0.06));
       visual.shown = weapon;
     }
 
@@ -173,17 +194,25 @@ export const RemotePlayer = memo(function RemotePlayer({
       root.rotation.y = s.yaw + Math.PI; // model faces +Z, cameras look down -Z
     }
 
-    const sin = Math.sin(s.yaw);
-    const cos = Math.cos(s.yaw);
-    visual.rig.update({
-      dt,
-      forward: -motion.vel.x * sin - motion.vel.z * cos,
-      side: motion.vel.x * cos - motion.vel.z * sin,
-      pitch: s.pitch,
-      grounded: (s.f & FLAG_GROUNDED) !== 0,
-      dead: !!isDead,
-      body: tiltRef.current,
-    });
+    motion.pending += dt;
+    const stride = animationStride(
+      camera.position.distanceTo(motion.last),
+      inView(camera, gl.info.render.frame, motion.last)
+    );
+    if ((++motion.frame + visual.seed) % stride === 0) {
+      const sin = Math.sin(s.yaw);
+      const cos = Math.cos(s.yaw);
+      visual.soldier.update({
+        dt: motion.pending,
+        forward: -motion.vel.x * sin - motion.vel.z * cos,
+        side: motion.vel.x * cos - motion.vel.z * sin,
+        pitch: s.pitch,
+        grounded: (s.f & FLAG_GROUNDED) !== 0,
+        aiming: (s.f & FLAG_AIM) !== 0,
+        dead: !!isDead,
+      });
+      motion.pending = 0;
+    }
 
     if (visual.flash.visible && performance.now() > motion.flashUntil) visual.flash.visible = false;
 
@@ -209,9 +238,7 @@ export const RemotePlayer = memo(function RemotePlayer({
         {!isDead && <CapsuleCollider args={[PLAYER_HALF_HEIGHT, PLAYER_RADIUS]} />}
       </RigidBody>
       <group ref={rootRef} position={[initialPosition.x, initialPosition.y - PLAYER_CENTER_TO_FEET, initialPosition.z]}>
-        <group ref={tiltRef}>
-          <primitive object={visual.model} />
-        </group>
+        <primitive object={visual.soldier.model} />
         <sprite
           position={[0, 2.05, 0]}
           scale={ally ? ALLY_TAG_SCALE : TAG_SCALE}
@@ -229,5 +256,6 @@ export const RemotePlayer = memo(function RemotePlayer({
   );
 });
 
-useGLTF.preload(SOLDIER_URL);
+for (const skin of SKINS) useGLTF.preload(skinUrl(skin));
+useGLTF.preload(CLIPS_URL);
 useGLTF.preload(RIFLE_URL);

@@ -1,0 +1,349 @@
+{
+ "characters": {
+  "ch15": {
+   "hips": [
+    0.0,
+    0.9393,
+    0.0059
+   ]
+  },
+  "ch35": {
+   "hips": [
+    0.0,
+    1.0093,
+    0.0321
+   ]
+  }
+ },
+ "clipHips": [
+  0.0,
+  0.9536,
+  0.0
+ ],
+ "clips": {
+  "rifle_idle": {
+   "duration": 2.1,
+   "speed": 0.0,
+   "dir": [
+    0,
+    0
+   ],
+   "loop": true
+  },
+  "rifle_aim": {
+   "duration": 2.1,
+   "speed": 0.0,
+   "dir": [
+    0,
+    0
+   ],
+   "loop": true
+  },
+  "rifle_walk_f": {
+   "duration": 1.0,
+   "speed": 1.921,
+   "dir": [
+    0.0,
+    1.0
+   ],
+   "loop": true
+  },
+  "rifle_walk_b": {
+   "duration": 1.0,
+   "speed": 1.921,
+   "dir": [
+    -0.0,
+    -1.0
+   ],
+   "loop": true
+  },
+  "rifle_walk_l": {
+   "duration": 1.0,
+   "speed": 1.921,
+   "dir": [
+    1.0,
+    -0.0
+   ],
+   "loop": true
+  },
+  "rifle_walk_r": {
+   "duration": 1.0,
+   "speed": 1.921,
+   "dir": [
+    -1.0,
+    0.0
+   ],
+   "loop": true
+  },
+  "rifle_walk_fl": {
+   "duration": 1.0,
+   "speed": 1.921,
+   "dir": [
+    0.707,
+    0.707
+   ],
+   "loop": true
+  },
+  "rifle_walk_fr": {
+   "duration": 1.0,
+   "speed": 1.921,
+   "dir": [
+    -0.707,
+    0.707
+   ],
+   "loop": true
+  },
+  "rifle_walk_bl": {
+   "duration": 1.0,
+   "speed": 1.921,
+   "dir": [
+    0.707,
+    -0.707
+   ],
+   "loop": true
+  },
+  "rifle_walk_br": {
+   "duration": 1.0,
+   "speed": 1.921,
+   "dir": [
+    -0.707,
+    -0.707
+   ],
+   "loop": true
+  },
+  "rifle_run_f": {
+   "duration": 0.5,
+   "speed": 4.803,
+   "dir": [
+    0.0,
+    1.0
+   ],
+   "loop": true
+  },
+  "rifle_run_b": {
+   "duration": 0.5,
+   "speed": 4.803,
+   "dir": [
+    -0.0,
+    -1.0
+   ],
+   "loop": true
+  },
+  "rifle_run_l": {
+   "duration": 0.5,
+   "speed": 4.803,
+   "dir": [
+    1.0,
+    0.0
+   ],
+   "loop": true
+  },
+  "rifle_run_r": {
+   "duration": 0.5,
+   "speed": 4.803,
+   "dir": [
+    -1.0,
+    -0.0
+   ],
+   "loop": true
+  },
+  "rifle_run_fl": {
+   "duration": 0.5,
+   "speed": 4.803,
+   "dir": [
+    0.707,
+    0.707
+   ],
+   "loop": true
+  },
+  "rifle_run_fr": {
+   "duration": 0.5,
+   "speed": 4.803,
+   "dir": [
+    -0.707,
+    0.707
+   ],
+   "loop": true
+  },
+  "rifle_run_bl": {
+   "duration": 0.5,
+   "speed": 4.803,
+   "dir": [
+    0.707,
+    -0.707
+   ],
+   "loop": true
+  },
+  "rifle_run_br": {
+   "duration": 0.5,
+   "speed": 4.803,
+   "dir": [
+    -0.707,
+    -0.707
+   ],
+   "loop": true
+  },
+  "rifle_sprint_f": {
+   "duration": 0.5,
+   "speed": 7.205,
+   "dir": [
+    -0.0,
+    1.0
+   ],
+   "loop": true
+  },
+  "rifle_sprint_fl": {
+   "duration": 0.5,
+   "speed": 7.205,
+   "dir": [
+    0.707,
+    0.707
+   ],
+   "loop": true
+  },
+  "rifle_sprint_fr": {
+   "duration": 0.5,
+   "speed": 7.203,
+   "dir": [
+    -0.707,
+    0.707
+   ],
+   "loop": true
+  },
+  "rifle_jump_up": {
+   "duration": 0.5333,
+   "speed": 0.036,
+   "dir": [
+    0,
+    0
+   ],
+   "loop": false
+  },
+  "rifle_jump_loop": {
+   "duration": 1.0,
+   "speed": 0.0,
+   "dir": [
+    0,
+    0
+   ],
+   "loop": true
+  },
+  "rifle_jump_down": {
+   "duration": 0.6667,
+   "speed": 0.029,
+   "dir": [
+    0,
+    0
+   ],
+   "loop": false
+  },
+  "death_front": {
+   "duration": 3.4333,
+   "speed": 0.291,
+   "dir": [
+    0.25,
+    0.968
+   ],
+   "loop": false
+  },
+  "death_back": {
+   "duration": 2.9667,
+   "speed": 0.372,
+   "dir": [
+    0.176,
+    0.984
+   ],
+   "loop": false
+  },
+  "death_right": {
+   "duration": 3.3,
+   "speed": 0.25,
+   "dir": [
+    0.997,
+    -0.083
+   ],
+   "loop": false
+  },
+  "death_headshot": {
+   "duration": 2.8333,
+   "speed": 0.115,
+   "dir": [
+    -0.796,
+    -0.605
+   ],
+   "loop": false
+  },
+  "pistol_idle": {
+   "duration": 1.3333,
+   "speed": 0.0,
+   "dir": [
+    0,
+    0
+   ],
+   "loop": true
+  },
+  "pistol_walk_f": {
+   "duration": 0.8,
+   "speed": 2.659,
+   "dir": [
+    0.0,
+    1.0
+   ],
+   "loop": true
+  },
+  "pistol_walk_b": {
+   "duration": 1.0333,
+   "speed": 1.462,
+   "dir": [
+    0.0,
+    -1.0
+   ],
+   "loop": true
+  },
+  "pistol_run_f": {
+   "duration": 0.5,
+   "speed": 4.943,
+   "dir": [
+    -0.0,
+    1.0
+   ],
+   "loop": true
+  },
+  "pistol_run_b": {
+   "duration": 0.5333,
+   "speed": 3.435,
+   "dir": [
+    -0.0,
+    -1.0
+   ],
+   "loop": true
+  },
+  "pistol_jump": {
+   "duration": 2.0,
+   "speed": 0.0,
+   "dir": [
+    0,
+    0
+   ],
+   "loop": false
+  },
+  "pistol_strafe_l": {
+   "duration": 0.5667,
+   "speed": 2.241,
+   "dir": [
+    1.0,
+    0.0
+   ],
+   "loop": true
+  },
+  "pistol_strafe_r": {
+   "duration": 0.6,
+   "speed": 2.516,
+   "dir": [
+    -1.0,
+    -0.0
+   ],
+   "loop": true
+  }
+ }
+}

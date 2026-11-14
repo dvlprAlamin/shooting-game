@@ -5,3 +5,6 @@ dist
 *.log
 .DS_Store
 .wrangler
+
+# Mixamo source files: never commit them (raw files may not be redistributed; some are >100 MB)
+*.fbx
