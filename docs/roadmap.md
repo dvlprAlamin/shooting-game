@@ -31,7 +31,7 @@ Status key: **todo**, **doing**, **done**. Update the status here when an item l
   form gains "Crash logs" (collected, not shared, not linked to the user). Stack traces are minified; hidden source
   maps per build would make them readable.
 
-### A2. Protocol version and "update the app" — todo
+### A2. Protocol version and "update the app" — done
 - **Why:** pushing to `main` redeploys the Worker (Workers Builds), but testers keep a fixed APK. Today the join
   message has no version, so one protocol change silently breaks every installed copy.
 - **Where:** `PROTOCOL_VERSION` in `packages/shared/gameplay.js`; client join in `apps/client/src/net/socket.js`;
@@ -40,6 +40,16 @@ Status key: **todo**, **doing**, **done**. Update the status here when an item l
 - **How:** the server accepts a range (`MIN_PROTOCOL..PROTOCOL_VERSION`) so old apps keep working until a change
   really breaks them. Nearby games (the phone hosts `RoomHost`) carry the same check.
 - **Done when:** a client with a lower version gets the update message, not a broken match. Server tests cover it.
+- **Status (Nov 14):** built as planned. `PROTOCOL_VERSION` and `MIN_PROTOCOL` (both 1) in
+  `packages/shared/gameplay.js`, whose comment says when to bump which; the join sends `protocol`, and none counts as
+  1, so the installed closed-test builds keep working. `RoomHost` refuses an app outside the range before it can make
+  the room: an `outdated` message with `{ min, max }`, then close `4006 OUTDATED`; an app from before versions gets a
+  notification and `4000` instead, which it already understands. The app works out who is behind: if it is, a notice
+  plus a box in the menu's tagline spot with Update (the Play listing on Android, the website on iOS until there is
+  an App Store listing) or Reload on the web; if the room is, "the host needs to update" (nearby) or "the server is
+  being updated". Nearby games replaced `NEARBY_VERSION` with the same range: hosts advertise `v` and `min`, and the
+  Nearby tab says whose app to update. Checked in headless Chrome against the real `RoomHost` (accepted, app too old
+  on web and Android, server behind, four phone sizes with no overflow).
 
 ### A3. CI before deploy — todo
 - **Why:** there are no GitHub workflows; a push to `main` goes live untested.
@@ -49,6 +59,10 @@ Status key: **todo**, **doing**, **done**. Update the status here when an item l
   production branch at a `release` branch, or deploy from the workflow with a Cloudflare API token secret after the
   checks pass.
 - **Done when:** a failing test blocks the deploy.
+- **Note (Nov 14):** a push to `main` doesn't deploy the Worker today: after pushing the error reporting (d48006c),
+  `POST /errors` was still 404 on the live server. The only build on push is a Cloudflare Pages project `rimfire`
+  (the web client, rimfire.pages.dev). So deploying from this workflow is the way, and until then the server goes
+  out with `pnpm deploy:server`.
 
 ### A4. In-app feedback — todo
 - **Why:** testers need a one-tap way to report what felt wrong.

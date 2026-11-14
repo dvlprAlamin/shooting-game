@@ -1,6 +1,15 @@
 // Gameplay numbers the client and the server must agree on. Both import this file as
 // `@rimfire/shared`. Types: gameplay.d.ts.
 
+// The version of the messages between the app and a room (the game server, or a phone hosting a nearby game). The
+// app sends its PROTOCOL_VERSION when it joins; a room takes apps from MIN_PROTOCOL up to its own PROTOCOL_VERSION
+// and tells the others to update (RoomHost in packages/game). Pushing to main updates the server at once, but
+// installed apps stay as they are until their players update, so: bump PROTOCOL_VERSION when the messages change,
+// keep the server speaking to the older apps while it can, and raise MIN_PROTOCOL only once they can't play any more.
+// Apps from before the version was sent count as version 1.
+export const PROTOCOL_VERSION = 1;
+export const MIN_PROTOCOL = 1;
+
 // Player capsule: 0.35 radius, 1.8 m tall. Positions sent over the network are the capsule centre.
 export const PLAYER_RADIUS = 0.35;
 export const PLAYER_HALF_HEIGHT = 0.55; // half height of the capsule's cylinder part

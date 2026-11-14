@@ -1,4 +1,5 @@
-import { LAN_PORT, Lan, NEARBY_VERSION, TUNNELS } from './native';
+import { PROTOCOL_VERSION } from '@rimfire/shared';
+import { LAN_PORT, Lan, TUNNELS } from './native';
 
 const LOOK_EVERY = 3000; // ms between checks on the games found
 const PROBE_TIMEOUT = 2500;
@@ -42,8 +43,9 @@ export function parseAddress(text) {
 }
 
 /**
- * The game at host:port, as a list entry: { key, host, port, name, map, mode, players, limit, sameVersion }.
- * Null if nothing answers there.
+ * The game at host:port, as a list entry: { key, host, port, name, map, mode, players, limit, version,
+ * compatible }. `version` is the host's protocol version, `compatible` whether its room takes this app's. Null if
+ * nothing answers there.
  */
 export async function probe(host, port) {
   const server = await serverAt(host, port).catch(() => null);
@@ -76,7 +78,9 @@ export async function probe(host, port) {
     mode: info.mode,
     players: info.players | 0,
     limit: info.limit | 0,
-    sameVersion: info.v === NEARBY_VERSION,
+    version: info.v,
+    // Hosts from before `min` took their own version only.
+    compatible: (info.min ?? info.v) <= PROTOCOL_VERSION && PROTOCOL_VERSION <= info.v,
   };
 }
 

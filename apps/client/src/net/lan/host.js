@@ -1,4 +1,5 @@
-import { LAN_PORT, Lan, NEARBY_VERSION } from './native';
+import { MIN_PROTOCOL, PROTOCOL_VERSION } from '@rimfire/shared';
+import { LAN_PORT, Lan } from './native';
 
 let current = null; // { worker, closed: Promise } while this phone hosts
 
@@ -15,7 +16,8 @@ export async function startHosting({ playerName, settings }) {
     // What players looking for games see (with how many are connected).
     info: {
       game: 'rimfire',
-      v: NEARBY_VERSION,
+      v: PROTOCOL_VERSION, // and the oldest app version the room takes (RoomHost checks it again on joining)
+      min: MIN_PROTOCOL,
       name: playerName,
       map: settings.map,
       mode: settings.mode,

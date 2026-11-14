@@ -1,4 +1,6 @@
 // Types for gameplay.js, for the TypeScript files in the client. Keep in step with gameplay.js.
+export declare const PROTOCOL_VERSION: number;
+export declare const MIN_PROTOCOL: number;
 export declare const PLAYER_RADIUS: number;
 export declare const PLAYER_HALF_HEIGHT: number;
 export declare const PLAYER_CENTER_TO_FEET: number;

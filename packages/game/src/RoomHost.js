@@ -1,4 +1,4 @@
-import { PROFILE_ID_PATTERN, QUICK_PLAY } from '@rimfire/shared';
+import { MIN_PROTOCOL, PROFILE_ID_PATTERN, PROTOCOL_VERSION, QUICK_PLAY } from '@rimfire/shared';
 import { MAPS } from '@rimfire/shared/maps';
 import { GameRoom } from './GameRoom.js';
 import { UPDATE_MS, botsCanPlay } from './bots/BotDirector.js';
@@ -12,6 +12,7 @@ export const CLOSE = {
     REPLACED: 4003, // the same player connected again on another connection
     ROOM_CLOSED: 4004, // the match ended and nobody started a rematch
     RATE_LIMITED: 4005, // too many connections from one address (the Worker's spam protection, apps/server)
+    OUTDATED: 4006, // the app's protocol version is one the room doesn't take; an 'outdated' message said which it does
 };
 
 const JOIN_TIMEOUT_MS = 10_000;
@@ -43,6 +44,11 @@ const randomId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 8);
  *
  * Fixed settings (`settings`): the room is made with those, whatever the creating join asks for, and is never
  * public. A phone hosting a nearby game uses this for its owner's choices, bots included.
+ *
+ * Versions: a join carries the app's `protocol` (PROTOCOL_VERSION in @rimfire/shared; none means 1). One outside
+ * `protocols` is refused before it can make the room: told the range with 'outdated', so the app can say whether it
+ * or the room needs updating, then closed with OUTDATED. Apps from before versions only know a refused join, so
+ * they get that, with a notification.
  */
 export class RoomHost {
     /**
@@ -54,6 +60,7 @@ export class RoomHost {
      * @param {(state: object | null) => void} [options.onReport] a public room's state, for the lobby
      * @param {(results: object[]) => void} [options.onResults] players' results, for their profiles
      * @param {{ duration, playersLimit, map, mode, bots }} [options.settings] the room's settings, fixed
+     * @param {{ min: number, max: number }} [options.protocols] the app versions the room takes
      */
     constructor({
         now = Date.now,
@@ -63,6 +70,7 @@ export class RoomHost {
         onReport = null,
         onResults = null,
         settings = null,
+        protocols = { min: MIN_PROTOCOL, max: PROTOCOL_VERSION },
     } = {}) {
         this.now = now;
         this.timers = timers;
@@ -71,6 +79,7 @@ export class RoomHost {
         this.onReport = onReport;
         this.onResults = onResults;
         this.settings = settings;
+        this.protocols = protocols;
         this.game = null; // GameRoom while the room exists
         this.botTimer = null; // drives the bots, in a room that has them
         this.public = false; // a quick-play room
@@ -129,6 +138,10 @@ export class RoomHost {
         if (conn.playerId) return this.notify(conn, 'Already in a room!');
         const { playerName, isCreate, duration, playersLimit, map, mode, playerKey, quick, practice, profileId } =
             data || {};
+        const protocol = data?.protocol ?? 1;
+        if (!Number.isInteger(protocol) || protocol < this.protocols.min || protocol > this.protocols.max) {
+            return this.outdated(conn, data?.protocol == null);
+        }
         const key = typeof playerKey === 'string' && playerKey.length <= MAX_KEY_LENGTH ? playerKey : null;
         const profile = typeof profileId === 'string' && PROFILE_ID_PATTERN.test(profileId) ? profileId : null;
 
@@ -240,6 +253,13 @@ export class RoomHost {
     reject(conn, message) {
         this.notify(conn, message);
         this.close(conn, CLOSE.JOIN_FAILED, message);
+    }
+
+    // `legacy`: an app from before versions, which can only be told it was refused.
+    outdated(conn, legacy) {
+        if (legacy) return this.reject(conn, 'This version of RimFire is out of date. Update it to keep playing.');
+        this.write(conn, 'outdated', this.protocols);
+        this.close(conn, CLOSE.OUTDATED, 'Outdated');
     }
 
     bind(conn, id) {

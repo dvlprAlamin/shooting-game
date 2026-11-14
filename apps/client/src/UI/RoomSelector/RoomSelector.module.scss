@@ -76,6 +76,25 @@
   }
 }
 
+// In the tagline's place when this app is too old for a room it tried to join.
+.update {
+  display: grid;
+  justify-items: start;
+  gap: 0.6rem;
+  max-width: 30ch;
+  margin-top: 0.9rem;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--sand);
+  font-size: 1.05rem;
+  color: var(--bone);
+
+  @include short {
+    gap: 0.4rem;
+    margin-top: 0.6rem;
+    font-size: 0.95rem;
+  }
+}
+
 // Settings (with the credits and the privacy policy).
 .about {
   display: flex;

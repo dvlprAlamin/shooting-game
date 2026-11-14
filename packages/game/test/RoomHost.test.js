@@ -341,3 +341,30 @@ test('fixed settings make the room whatever the creating join asks for, and it n
     assert.equal(host.public, false);
     assert.deepEqual(reports, []);
 });
+
+test('apps join with a protocol version the room takes; one without a version counts as 1', () => {
+    const { host, join } = setup({ protocols: { min: 1, max: 2 } });
+    const alice = join('Alice', { isCreate: true, protocol: 2 });
+    const bob = join('Bob');
+    assert.equal(alice.frames[0].e, 'joinedRoom');
+    assert.equal(bob.frames[0].e, 'joinedRoom');
+    assert.equal(Object.keys(host.game.players).length, 2);
+});
+
+test('an app older or newer than the room takes is told the range and closed, and never makes the room', () => {
+    const { host, join } = setup({ protocols: { min: 2, max: 3 } });
+    for (const protocol of [1, 4, '2', 2.5]) {
+        const app = join('Old', { isCreate: true, protocol });
+        assert.deepEqual(app.frames, [{ e: 'outdated', d: { min: 2, max: 3 } }], String(protocol));
+        assert.equal(app.closedWith.code, CLOSE.OUTDATED);
+        assert.equal(host.game, null);
+    }
+});
+
+test('an app from before versions is refused the way it understands, once the room no longer takes version 1', () => {
+    const { host, join } = setup({ protocols: { min: 2, max: 2 } });
+    const app = join('Old', { isCreate: true });
+    assert.deepEqual(app.notes(), ['This version of RimFire is out of date. Update it to keep playing.']);
+    assert.equal(app.closedWith.code, CLOSE.JOIN_FAILED);
+    assert.equal(host.game, null);
+});

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { nanoid } from 'nanoid';
-import { MODES, PLAYER_LIMITS, QUICK_PLAY, ROOM_DURATIONS } from '@rimfire/shared';
+import { MODES, PLAYER_LIMITS, PROTOCOL_VERSION, QUICK_PLAY, ROOM_DURATIONS } from '@rimfire/shared';
 import { DEFAULT_MAP, MAPS, getMap } from '@rimfire/shared/maps';
 import Button from '../elements/Button';
 import CopyButton from '../elements/CopyButton';
@@ -11,7 +11,9 @@ import { socket } from '@/net/socket';
 import { NEARBY } from '@/net/lan/native';
 import { startHosting } from '@/net/lan/host';
 import { closeTunnels, parseAddress, probe, serverAt, watchNearby } from '@/net/lan/nearby';
+import { STORE_URL } from '@/config';
 import { useFeedStore } from '@/store/FeedStore';
+import { APP_OUTDATED, HOST_OUTDATED, needUpdate, useUpdateStore } from '@/store/UpdateStore';
 import SignIn from './Account';
 import styles from './RoomSelector.module.scss';
 
@@ -137,14 +139,14 @@ const NearbyGames = ({ games, blocked, pick, onPick, address, onAddress }) => (
             <label
               key={game.key}
               className={`${styles.chip} ${styles.gameChip}`}
-              title={game.sameVersion ? `${game.host}` : 'Made with another version of the app: update both to play'}
+              title={game.compatible ? `${game.host}` : 'Made with another version of RimFire'}
             >
               <input
                 type="radio"
                 name="nearbyGame"
                 value={game.key}
                 checked={pick === game.key}
-                disabled={!game.sameVersion}
+                disabled={!game.compatible}
                 onChange={() => onPick(game.key)}
               />
               <span className={styles.gameName}>{game.name || 'RimFire'}</span>
@@ -198,6 +200,7 @@ const RoomSelector = ({ joinRoom }) => {
   const [pick, setPick] = useState(null); // the key of the nearby game picked
   const [address, setAddress] = useState('');
   const joining = useRef(null); // the nearby game being joined, whose tunnel stays open
+  const updateNeeded = useUpdateStore((s) => s.needed);
   const isCreate = tab === 'create';
   const settingUp = isCreate || (tab === 'nearby' && hosting); // the match settings pane
   const looking = tab === 'nearby' && !hosting;
@@ -270,13 +273,16 @@ const RoomSelector = ({ joinRoom }) => {
         return notice(`No game at ${address.trim()}. Check you're on the host's Wi-Fi or hotspot.`);
       }
     } else {
-      const open = games.filter((g) => g.sameVersion);
-      game = open.find((g) => g.key === pick) ?? (open.length === 1 ? open[0] : null);
+      const open = games.filter((g) => g.compatible);
+      // With none to join, the first one found says whose version is behind.
+      game = open.find((g) => g.key === pick) ?? (open.length === 1 ? open[0] : null) ?? (open.length ? null : games[0]);
       if (!game) return notice(open.length ? 'Pick a game to join.' : 'No games found yet.');
     }
-    if (!game.sameVersion) {
+    if (!game.compatible) {
       setFinding(false);
-      return notice('That game was made with another version of the app. Update both to play.');
+      if (game.version < PROTOCOL_VERSION) return notice(HOST_OUTDATED);
+      needUpdate();
+      return notice(APP_OUTDATED);
     }
     setFinding(true);
     try {
@@ -352,7 +358,23 @@ const RoomSelector = ({ joinRoom }) => {
         <h1 className={styles.title}>
           <span>Rim</span><span>Fire</span>
         </h1>
-        <p className={styles.tagline}>Deathmatch with friends. Create a room and share the code, or join theirs.</p>
+        {/* A room refused this app as too old: say so where the tagline was, with the way to update. */}
+        {updateNeeded ? (
+          <div className={styles.update}>
+            <p>{APP_OUTDATED}</p>
+            {STORE_URL ? (
+              <Button variant="quiet" href={STORE_URL} target="_blank" rel="noreferrer">
+                Update
+              </Button>
+            ) : (
+              <Button variant="quiet" onClick={() => window.location.reload()}>
+                Reload
+              </Button>
+            )}
+          </div>
+        ) : (
+          <p className={styles.tagline}>Deathmatch with friends. Create a room and share the code, or join theirs.</p>
+        )}
         <div className={styles.about}>
           <Settings record={profile} onProfile={setProfile} />
         </div>

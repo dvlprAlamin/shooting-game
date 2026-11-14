@@ -35,6 +35,15 @@ export const SERVER_URL: string =
 // The game's website (apps/site), which has the privacy policy that Play links to. `VITE_SITE_URL` overrides it.
 export const SITE_URL: string = env.VITE_SITE_URL || 'https://rimfire.anminas.com';
 export const PRIVACY_URL = `${SITE_URL.replace(/\/+$/, '')}/privacy`;
+// Where to get a newer version of the app: its Play listing on Android, the website on iOS until it's on the App
+// Store. None for the game in a browser, which reloading updates.
+const platform = Capacitor.getPlatform();
+export const STORE_URL: string | null =
+  platform === 'android'
+    ? 'https://play.google.com/store/apps/details?id=com.dvlpralamin.rimfire'
+    : platform === 'ios'
+      ? SITE_URL
+      : null;
 // Sign in with Google (optional; keeps your record on any device): the Web OAuth client id from Google Cloud,
 // the same one as the server's GOOGLE_CLIENT_ID. Not set: no sign-in. iOS needs a client id of its own as well,
 // so for now it's Android and the web.

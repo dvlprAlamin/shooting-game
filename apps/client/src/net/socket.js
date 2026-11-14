@@ -1,5 +1,6 @@
 import { SERVER_URL } from '@/config';
-import { ROOM_ID_PATTERN } from '@rimfire/shared';
+import { PROTOCOL_VERSION, ROOM_ID_PATTERN } from '@rimfire/shared';
+import { APP_OUTDATED, HOST_OUTDATED, needUpdate } from '@/store/UpdateStore';
 import { TOO_MANY_TRIES } from './api';
 import { getProfileId } from './profile';
 
@@ -18,9 +19,10 @@ import { getProfileId } from './profile';
 
 const RETRY_DELAYS = [500, 1000, 2000, 3000, 3000]; // ~9.5 s in total, inside the server's grace period
 // Close codes from the server (packages/game/src/RoomHost.js) that mean "don't retry".
-const FINAL_CLOSE_CODES = new Set([4000, 4001, 4002, 4003, 4004, 4005]);
+const FINAL_CLOSE_CODES = new Set([4000, 4001, 4002, 4003, 4004, 4005, 4006]);
 const REPLACED = 4003;
 const RATE_LIMITED = 4005; // refused by the Worker's spam protection (apps/server/src/app.js)
+const OUTDATED = 4006; // the room doesn't take this app's protocol version; its 'outdated' message said which it does
 // A refused join (4000) and a closed room (4004) already came with a notification saying why.
 const EXPLAINED_CLOSE_CODES = new Set([4000, 4004]);
 
@@ -52,6 +54,7 @@ class GameSocket {
   #reconnecting = false;
   #retry = 0;
   #retryTimer = null;
+  #roomVersions = null; // { min, max }: the protocol versions a room that refused this app takes
 
   // Movement is sent 20 times a second; if the connection is backed up, skip a packet rather than queue it.
   volatile = {
@@ -101,7 +104,7 @@ class GameSocket {
     if (!ROOM_ID_PATTERN.test(roomId)) return this.#fire('notification', { message: "That room code isn't valid." });
     if (this.#join) return this.#fire('notification', { message: "You're already in a room." });
     this.#base = server ?? WS_BASE;
-    this.#join = { ...info, roomId, playerKey: PLAYER_KEY, profileId: getProfileId() };
+    this.#join = { ...info, roomId, playerKey: PLAYER_KEY, profileId: getProfileId(), protocol: PROTOCOL_VERSION };
     this.#retry = 0;
     this.#open();
   }
@@ -119,6 +122,7 @@ class GameSocket {
       }
       // While coming back, a refusal (e.g. the room is gone) is reported as a lost connection instead.
       if (msg.e === 'notification' && this.#reconnecting) return;
+      if (msg.e === 'outdated') this.#roomVersions = msg.d;
       if (msg.e === 'joinedRoom') {
         this.id = msg.d?.id ?? null;
         this.#joined = true;
@@ -152,7 +156,18 @@ class GameSocket {
     this.id = null;
     if (code === REPLACED) this.#fire('notification', { message: 'You joined from another tab or device.' });
     else if (code === RATE_LIMITED) this.#fire('notification', { message: TOO_MANY_TRIES });
-    else if (EXPLAINED_CLOSE_CODES.has(code)) {
+    else if (code === OUTDATED) {
+      // Either this app or the room is behind. A server behind the app is one still being deployed.
+      if (this.#roomVersions?.max < PROTOCOL_VERSION) {
+        this.#fire('notification', {
+          message: nearby ? HOST_OUTDATED : 'The game server is being updated. Try again in a few minutes.',
+        });
+      } else {
+        needUpdate();
+        this.#fire('notification', { message: APP_OUTDATED });
+      }
+      this.#roomVersions = null;
+    } else if (EXPLAINED_CLOSE_CODES.has(code)) {
       // The server's notification said why.
     } else if (wasJoined) {
       this.#fire('notification', { message: `Lost the connection to the ${nearby ? 'host' : 'game server'}.` });

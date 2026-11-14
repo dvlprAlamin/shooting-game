@@ -16,5 +16,3 @@ export const TUNNELS = platform === 'android';
 
 // The port a host listens on (or the next free one after it): the one to try on a hotspot's gateway.
 export const LAN_PORT = 7350;
-// Hosts and players must speak the same game. Bump when the messages between them change.
-export const NEARBY_VERSION = 1;
