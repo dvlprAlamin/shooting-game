@@ -51,7 +51,7 @@ Status key: **todo**, **doing**, **done**. Update the status here when an item l
   Nearby tab says whose app to update. Checked in headless Chrome against the real `RoomHost` (accepted, app too old
   on web and Android, server behind, four phone sizes with no overflow).
 
-### A3. CI before deploy — todo
+### A3. CI before deploy — done
 - **Why:** there are no GitHub workflows; a push to `main` goes live untested.
 - **Where:** `.github/workflows/ci.yml`.
 - **How:** on push and pull request: `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm test`,
@@ -63,6 +63,18 @@ Status key: **todo**, **doing**, **done**. Update the status here when an item l
   `POST /errors` was still 404 on the live server. The only build on push is a Cloudflare Pages project `rimfire`
   (the web client, rimfire.pages.dev). So deploying from this workflow is the way, and until then the server goes
   out with `pnpm deploy:server`.
+- **Status (Nov 14):** `.github/workflows/ci.yml`. Every push and pull request runs lint, the client's `typecheck`
+  (new script, `tsc --noEmit`), all tests, the wrangler dry run and both builds. A push to `main` that passes deploys
+  the website every time and the game server only when the push touched `apps/server`, `packages` or the lockfile,
+  because a server deploy restarts every room and ends the matches in them; Run workflow deploys everything. The deploy
+  job needs the checks (`needs: check`), so a failing test blocks it. Wrangler keeps the deployed Worker's D1 database
+  (it inherits the binding), so a deploy from a fresh machine doesn't make a new one. The web game can move here too:
+  turn off Pages' automatic production deployments and set the repository variable `PAGES_FROM_CI=true`. Checked:
+  every step passes in a clean clone without a Cloudflare login, actionlint, and the change detection against real
+  commit ranges. Left: the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets (until then the deploy is
+  skipped with a warning), then one Run workflow to put out what has piled up. Caveat: on `main` only one run waits
+  behind a running one, so if three pushes land within a few minutes the middle one is cancelled, and a server change
+  in it waits for the next deploy that includes the server (or Run workflow).
 
 ### A4. In-app feedback — todo
 - **Why:** testers need a one-tap way to report what felt wrong.

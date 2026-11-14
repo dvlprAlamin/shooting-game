@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "app:sync": "vite build && cap sync",
     "app:android": "vite build && cap sync android && cap open android",

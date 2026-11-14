@@ -85,7 +85,9 @@ pnpm run deploy       # deploy; prints the URL, e.g. https://shooting-game.<your
 ```
 
 Use `pnpm run deploy`, not `pnpm deploy`: `pnpm deploy` is a built-in pnpm command that does something else.
-From the repo root, `pnpm deploy:server` does the same.
+From the repo root, `pnpm deploy:server` does the same. A push to `main` that changes the server deploys it from
+GitHub Actions once its checks pass (`.github/workflows/ci.yml`). Any deploy restarts every room, ending the matches
+in them.
 
 The first deploy also provisions the D1 database for profiles (the `DB` binding in `wrangler.jsonc` has no
 `database_id`, so wrangler creates it). Locally, `pnpm dev` gives it a local database.

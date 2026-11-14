@@ -32,6 +32,10 @@ pnpm build           # production build of the client into apps/client/dist
 pnpm deploy:server   # deploy the Worker (run `pnpm --filter @rimfire/server exec wrangler login` once first)
 ```
 
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, type checks, tests and builds on every push and pull request,
+and deploys a push to `main` that passes them: the website always, the game server when the push changed it. The top
+of the workflow lists the secrets it needs.
+
 Commands for one app run from its folder (`cd apps/client && pnpm app:apk`) or from the root with a filter
 (`pnpm --filter @rimfire/client app:apk`). The client's mobile app commands are in its README.
 
