@@ -8,6 +8,9 @@ const int = (value: string | undefined, fallback: number) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
+/** Which code this is: the commit the web build was made from, `-dirty` if it had uncommitted changes. */
+export const APP_BUILD: string = __APP_BUILD__;
+
 /** Running inside the Capacitor Android/iOS app (not a browser). */
 export const IS_NATIVE = Capacitor.isNativePlatform();
 

@@ -5,8 +5,9 @@
 
 import { API_URL, CONTACT, DEVELOPER, GOOGLE_WEB_CLIENT_ID, SITE_URL } from './config.js';
 
-const UPDATED = '13 November 2026';
+const UPDATED = '14 November 2026';
 const LOG_DAYS = 7; // Workers Logs keeps the game server's request logs this long (apps/server/wrangler.jsonc)
+const CRASH_DAYS = 30; // KEEP_DAYS in apps/server/src/errors.js
 
 const mail = `<a href="mailto:${CONTACT}">${CONTACT}</a>`;
 // The steps in the app (apps/client/src/UI/Settings/AccountSettings.jsx).
@@ -142,7 +143,8 @@ export const privacyPage = () =>
 <p class="meta">RimFire is a game by ${DEVELOPER}. Last updated ${UPDATED}.</p>
 <p>This policy covers the RimFire app for Android and iOS, the game in a web browser, and this website. It says what
 the game collects, what for, and how to delete it. In short: a random player ID, the name you type, your game record,
-and, only if you sign in with Google, your Google account's ID. No ads, no tracking, and nothing is sold.</p>
+crash reports that don't identify you, and, only if you sign in with Google, your Google account's ID. No ads, no
+tracking, and nothing is sold.</p>
 
 <h2>What the game collects</h2>
 <ul>
@@ -162,6 +164,10 @@ your email address on your device, so you know which account you're signed in wi
 <li><strong>Your IP address.</strong> Like any online service, the server sees it when the app connects. It's used
 to limit spam, by counting requests from each address per minute, and is never stored with your record. The
 server's request logs, which can include it, are deleted after ${LOG_DAYS} days.</li>
+<li><strong>Crash reports.</strong> When the game hits an error, the app sends a report to our server, so we can fix
+it: the error message and where in the game's code it happened, which build of the game it was, your platform
+(Android, iOS or web), your device model, and your system and browser versions. A report has no player ID, name or
+IP address in it, so it isn't linked to you.</li>
 </ul>
 
 <h2>Nearby games</h2>
@@ -190,7 +196,7 @@ stores the records, for us.</li>
 <h2>How long it's kept</h2>
 <p>Your record stays until you delete it. Uninstalling the app or clearing its data doesn't delete it from the
 server, but your device forgets the player ID, so unless you signed in with Google the record can't be tied back to
-you.</p>
+you. A crash report is deleted ${CRASH_DAYS} days after its error last happened.</p>
 
 <h2>Deleting your data</h2>
 <ul>

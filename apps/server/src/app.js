@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 import { CLOSE } from '@rimfire/game';
 import { PROFILE_ID_PATTERN, ROOM_ID_PATTERN } from '@rimfire/shared';
+import { parseReport, saveError } from './errors.js';
 import { verifyGoogleIdToken } from './googleAuth.js';
 import { lobbyOf } from './lobbyOf.js';
 import { deleteAccount, deleteProfile, getProfile, signIn } from './profiles.js';
@@ -35,6 +37,7 @@ const limit = (binding) => async (c, next) => {
 app.use('/quickplay', cors(), limit('LIMIT_QUICKPLAY'));
 app.use('/profile/*', cors(), limit('LIMIT_PROFILE'));
 app.use('/auth/*', cors(), limit('LIMIT_AUTH'));
+app.use('/errors', cors(), limit('LIMIT_ERRORS'), bodyLimit({ maxSize: 16 * 1024 }));
 app.use('/rooms/*', limit('LIMIT_ROOMS'));
 
 // Kept from the Node server for anything that pings it (Workers don't need waking up).
@@ -69,6 +72,22 @@ app.delete('/profile/:id', async (c) => {
     if (!PROFILE_ID_PATTERN.test(id)) return c.json({ error: 'Invalid profile id' }, 400);
     if (!c.env.DB) return c.json({ error: 'Profiles are not set up on this server' }, 503);
     await deleteProfile(c.env.DB, id);
+    return c.body(null, 204);
+});
+
+// A crash report from the app (src/net/crashReports.ts), kept in D1 for a while (see errors.js). The app sends it
+// with navigator.sendBeacon as text/plain, which needs no CORS preflight, so the body is read as text.
+app.post('/errors', async (c) => {
+    let body = null;
+    try {
+        body = JSON.parse(await c.req.text());
+    } catch {
+        // not JSON: refused below
+    }
+    const report = parseReport(body);
+    if (!report) return c.json({ error: 'Expected { message, stack, version, platform, device, url }' }, 400);
+    if (!c.env.DB) return c.json({ error: 'Error reports are not set up on this server' }, 503);
+    await saveError(c.env.DB, report);
     return c.body(null, 204);
 });
 

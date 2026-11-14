@@ -10,7 +10,7 @@ Status key: **todo**, **doing**, **done**. Update the status here when an item l
 
 ## A. Closed-test hardening
 
-### A1. Error reporting — todo
+### A1. Error reporting — done
 - **Why:** testers' crashes are invisible today; there is no reporting at all.
 - **Where:** new `POST /errors` route in `apps/server/src/app.js` (same rate limiter as the other routes), client
   hook in `apps/client/src/main.tsx`, a React error boundary around `<App/>`.
@@ -21,6 +21,15 @@ Status key: **todo**, **doing**, **done**. Update the status here when an item l
   `apps/site`.
 - **Done when:** a thrown error on a phone shows up in the store within a minute, and a flood from one client is
   capped.
+- **Status (Nov 14):** built as planned, with D1: `apps/server/src/errors.js` (one row per error and build, with a
+  count; rows unseen for 30 days are deleted as reports come in), `POST /errors` (rate limit `LIMIT_ERRORS`, 16 KB
+  cap), `apps/client/src/net/crashReports.ts` (sendBeacon as text/plain, each error once, 10 per session, nothing
+  sent from dev builds), `UI/ErrorScreen` with a Reload button, reported through the React root's `onCaughtError`
+  with the component stack. The build id is the commit (`__APP_BUILD__` in `vite.config.js`), also shown in
+  Settings > About. Read reports with `pnpm errors`. Privacy policy updated. Checked end to end in headless Chrome
+  (uncaught error, rejection, render error, cap, reload). Left: deploy (server, then site), then the Play Data safety
+  form gains "Crash logs" (collected, not shared, not linked to the user). Stack traces are minified; hidden source
+  maps per build would make them readable.
 
 ### A2. Protocol version and "update the app" — todo
 - **Why:** pushing to `main` redeploys the Worker (Workers Builds), but testers keep a fixed APK. Today the join

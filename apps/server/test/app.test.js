@@ -259,3 +259,27 @@ test('spam protection: a room WebSocket past the limit is closed with RATE_LIMIT
         globalThis.Response = RealResponse;
     }
 });
+
+// Crash reports come as text/plain (navigator.sendBeacon), from any origin.
+const errorReport = (body) => ({ method: 'POST', headers: { Origin: 'https://localhost' }, body });
+
+test('POST /errors keeps a crash report', { skip: skipD1 }, async () => {
+    const db = d1();
+    const body = JSON.stringify({ message: 'Boom', stack: 'Error: Boom\n    at x', version: '1.0 (3)', platform: 'web' });
+    const res = await app.request('/errors', errorReport(body), { ...env, DB: db });
+    assert.equal(res.status, 204);
+    assert.equal(res.headers.get('Access-Control-Allow-Origin'), '*');
+    assert.deepEqual(db.all('SELECT message, platform, count FROM errors').map((r) => ({ ...r })), [
+        { message: 'Boom', platform: 'web', count: 1 },
+    ]);
+});
+
+test('POST /errors refuses what is not a report, or too big, and says when there is no database', async () => {
+    const withDb = { ...env, DB: fakeDb() };
+    for (const body of ['nope', '{}', JSON.stringify({ message: '' })]) {
+        assert.equal((await app.request('/errors', errorReport(body), withDb)).status, 400, body);
+    }
+    const huge = JSON.stringify({ message: 'x', stack: 's'.repeat(20000) });
+    assert.equal((await app.request('/errors', errorReport(huge), withDb)).status, 413);
+    assert.equal((await app.request('/errors', errorReport(JSON.stringify({ message: 'x' })), env)).status, 503);
+});

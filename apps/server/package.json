@@ -6,7 +6,8 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "check": "wrangler deploy --dry-run --outdir dist",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "errors": "wrangler d1 execute shooting-game --remote --command \"SELECT fingerprint, datetime(last_seen / 1000, 'unixepoch') AS seen, count, version, platform, substr(device, 1, 40) AS device, substr(message, 1, 120) AS message FROM errors ORDER BY last_seen DESC LIMIT 25\""
   },
   "dependencies": {
     "@rimfire/game": "workspace:*",

@@ -14,8 +14,8 @@
     { "tag": "v1", "new_sqlite_classes": ["Room"] },
     { "tag": "v2", "new_sqlite_classes": ["Lobby"] }
   ],
-  // Player profiles. No database_id: `wrangler deploy` provisions the database the first time (it creates its own
-  // table, see src/profiles.js). The game runs without it, minus profiles.
+  // Player profiles, and crash reports (src/errors.js). No database_id: `wrangler deploy` provisions the database
+  // the first time (both create their own tables). The game runs without it, minus profiles and crash reports.
   "d1_databases": [{ "binding": "DB", "database_name": "shooting-game" }],
   // Spam protection (src/app.js): requests per client address per minute, counted per Cloudflare location. Room
   // connections include reconnects (up to 5 per dropped connection). namespace_id only has to be unique on the
@@ -24,7 +24,8 @@
     { "name": "LIMIT_ROOMS", "namespace_id": "7301", "simple": { "limit": 60, "period": 60 } },
     { "name": "LIMIT_QUICKPLAY", "namespace_id": "7302", "simple": { "limit": 30, "period": 60 } },
     { "name": "LIMIT_PROFILE", "namespace_id": "7303", "simple": { "limit": 60, "period": 60 } },
-    { "name": "LIMIT_AUTH", "namespace_id": "7304", "simple": { "limit": 20, "period": 60 } }
+    { "name": "LIMIT_AUTH", "namespace_id": "7304", "simple": { "limit": 20, "period": 60 } },
+    { "name": "LIMIT_ERRORS", "namespace_id": "7305", "simple": { "limit": 30, "period": 60 } }
   ],
   // The address the apps use (VITE_SERVER_URL in apps/client/.env.production). anminas.com is a zone in the same
   // Cloudflare account: deploying makes the DNS record and the certificate.

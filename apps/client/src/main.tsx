@@ -7,7 +7,11 @@ import '@fontsource/barlow-semi-condensed/600.css';
 import '@fontsource/barlow-semi-condensed/700.css';
 import '@/index.scss';
 import { GOOGLE_SIGN_IN, IS_NATIVE, IS_TOUCH } from '@/config';
+import { reportCrash, startCrashReports } from '@/net/crashReports';
 import { hideSplash } from '@/splash';
+import ErrorScreen from '@/UI/ErrorScreen/ErrorScreen.jsx';
+
+startCrashReports();
 
 document.documentElement.classList.toggle('touch', IS_TOUCH);
 
@@ -21,9 +25,18 @@ if (signInPopup) {
   import('@capgo/capacitor-social-login');
 } else {
   import('@/Game.jsx').then(({ default: Game }) =>
-    ReactDOM.createRoot(document.getElementById('root')!).render(
+    ReactDOM.createRoot(document.getElementById('root')!, {
+      // Errors an error boundary caught: ErrorScreen's, or one inside. Logged as React would, and reported.
+      // (Uncaught ones reach window's error event, which reports them too.)
+      onCaughtError: (error, info) => {
+        console.error(error);
+        reportCrash(error, info.componentStack);
+      },
+    }).render(
       <React.StrictMode>
-        <Game />
+        <ErrorScreen>
+          <Game />
+        </ErrorScreen>
       </React.StrictMode>
     )
   );

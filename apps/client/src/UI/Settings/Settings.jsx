@@ -1,5 +1,5 @@
 import { useId, useRef, useState } from 'react';
-import { IS_TOUCH, PRIVACY_URL } from '@/config';
+import { APP_BUILD, IS_TOUCH, PRIVACY_URL } from '@/config';
 import { DEFAULT_SETTINGS, LOOK_SPEED, useSettingsStore } from '@/store/SettingsStore';
 import Credits from '../Credits/Credits';
 import Button from '../elements/Button';
@@ -91,12 +91,16 @@ const About = () => (
         </Button>
       </div>
     </section>
+    <section className={styles.section}>
+      <h3 className={styles.heading}>Build</h3>
+      <p className={styles.note}>{APP_BUILD}</p>
+    </section>
   </>
 );
 
 /**
  * The menu's Settings button and its dialog: Controls (look sensitivity, the touch button layout), Account and About
- * (credits, the privacy policy). `record` and `onProfile` are the menu's record, for the Account tab.
+ * (credits, the privacy policy, the build). `record` and `onProfile` are the menu's record, for the Account tab.
  */
 const Settings = ({ record, onProfile }) => {
   const dialog = useRef(null);
